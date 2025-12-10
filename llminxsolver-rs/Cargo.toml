@@ -1,0 +1,9 @@
+[package]
+name = "llminxsolver-rs"
+description = "Megaminx Last Layer Solver - Rust Implementation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
