@@ -279,6 +279,7 @@
               class={isHovered && !disabled ? "brightness-110" : ""}
               role="button"
               tabindex="-1"
+            />
           </g>
         {/each}
       </g>
