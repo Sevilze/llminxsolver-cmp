@@ -1,0 +1,421 @@
+use crate::coordinate::{CKN, CoordinateUtil, FAC, POWERS_OF_THREE, POWERS_OF_TWO};
+use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
+use crate::search_mode::Metric;
+use std::fs::{self, File};
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::PathBuf;
+
+pub trait Pruner: Send + Sync {
+    fn name(&self) -> &str;
+    fn table_path(&self) -> &str;
+    fn table_size(&self) -> usize;
+    fn get_coordinate(&self, minx: &LLMinx) -> usize;
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx);
+    fn uses_corner_permutation(&self) -> bool;
+    fn uses_edge_permutation(&self) -> bool;
+    fn uses_corner_orientation(&self) -> bool;
+    fn uses_edge_orientation(&self) -> bool;
+
+    fn is_precomputed(&self, metric: Metric) -> bool {
+        self.get_table_file(metric).exists()
+    }
+
+    fn get_table_file(&self, metric: Metric) -> PathBuf {
+        let metric_suffix = match metric {
+            Metric::Fifth => "FIFTH",
+            Metric::Face => "FACE",
+        };
+        PathBuf::from(format!("{}{}.prn", self.table_path(), metric_suffix))
+    }
+
+    fn load_table(&self, metric: Metric) -> Option<Vec<u8>> {
+        let path = self.get_table_file(metric);
+        let file = File::open(&path).ok()?;
+        let mut reader = BufReader::with_capacity(1 << 20, file);
+        let mut table = vec![0u8; self.table_size()];
+        for byte in table.iter_mut() {
+            let mut buf = [0u8; 1];
+            if reader.read_exact(&mut buf).is_err() {
+                break;
+            }
+            *byte = buf[0];
+        }
+        Some(table)
+    }
+
+    fn save_table(&self, table: &[u8], metric: Metric) {
+        let path = self.get_table_file(metric);
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if let Ok(file) = File::create(&path) {
+            let mut writer = BufWriter::with_capacity(1 << 22, file);
+            for &byte in table {
+                let _ = writer.write_all(&[byte]);
+            }
+            let _ = writer.flush();
+        }
+    }
+}
+
+pub struct CornerOrientationPruner {
+    name: String,
+    table_path: String,
+    corners: Vec<u8>,
+}
+
+impl CornerOrientationPruner {
+    pub fn new(name: &str, table_path: &str, corners: &[u8]) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            corners: corners.to_vec(),
+        }
+    }
+}
+
+impl Pruner for CornerOrientationPruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        POWERS_OF_THREE[self.corners.len() - 1] as usize
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        CoordinateUtil::get_corner_orientation_coordinate(minx.corner_orientations(), &self.corners)
+            as usize
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        minx.set_corner_orientations(CoordinateUtil::get_corner_orientation(
+            coordinate as u32,
+            &self.corners,
+        ));
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        true
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        false
+    }
+}
+
+pub struct CornerPermutationPruner {
+    name: String,
+    table_path: String,
+    corners: Vec<u8>,
+}
+
+impl CornerPermutationPruner {
+    pub fn new(name: &str, table_path: &str, corners: &[u8]) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            corners: corners.to_vec(),
+        }
+    }
+}
+
+impl Pruner for CornerPermutationPruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        (FAC[self.corners.len()] / 2) as usize
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        CoordinateUtil::get_permutation_coordinate(minx.corner_positions(), &self.corners) as usize
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        CoordinateUtil::get_permutation(
+            coordinate as u32,
+            minx.corner_positions_mut(),
+            &self.corners,
+        );
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        true
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        false
+    }
+}
+
+pub struct EdgeOrientationPruner {
+    name: String,
+    table_path: String,
+    edges: Vec<u8>,
+}
+
+impl EdgeOrientationPruner {
+    pub fn new(name: &str, table_path: &str, edges: &[u8]) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            edges: edges.to_vec(),
+        }
+    }
+}
+
+impl Pruner for EdgeOrientationPruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        POWERS_OF_TWO[self.edges.len() - 1] as usize
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        CoordinateUtil::get_edge_orientation_coordinate(minx.edge_orientations(), self.edges.len())
+            as usize
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        minx.set_edge_orientations(CoordinateUtil::get_edge_orientation(
+            coordinate as u32,
+            self.edges.len(),
+        ));
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        true
+    }
+}
+
+pub struct EdgePermutationPruner {
+    name: String,
+    table_path: String,
+    edges: Vec<u8>,
+}
+
+impl EdgePermutationPruner {
+    pub fn new(name: &str, table_path: &str, edges: &[u8]) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            edges: edges.to_vec(),
+        }
+    }
+}
+
+impl Pruner for EdgePermutationPruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        (FAC[self.edges.len()] / 2) as usize
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        CoordinateUtil::get_permutation_coordinate(minx.edge_positions(), &self.edges) as usize
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        CoordinateUtil::get_permutation(coordinate as u32, minx.edge_positions_mut(), &self.edges);
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        true
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        false
+    }
+}
+
+pub struct SeparationPruner {
+    name: String,
+    table_path: String,
+    corners: Vec<u8>,
+    edges: Vec<u8>,
+}
+
+impl SeparationPruner {
+    pub fn new(name: &str, table_path: &str, corners: &[u8], edges: &[u8]) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            corners: corners.to_vec(),
+            edges: edges.to_vec(),
+        }
+    }
+}
+
+impl Pruner for SeparationPruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        (CKN[NUM_CORNERS][self.corners.len()] * CKN[NUM_EDGES][self.edges.len()]) as usize
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        let corner_coord =
+            CoordinateUtil::get_separation_coordinate(minx.corner_positions(), &self.corners);
+        let edge_coord =
+            CoordinateUtil::get_separation_coordinate(minx.edge_positions(), &self.edges);
+        (corner_coord * CKN[NUM_EDGES][self.edges.len()] + edge_coord) as usize
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        let edge_table_size = CKN[NUM_EDGES][self.edges.len()] as usize;
+        CoordinateUtil::get_separation(
+            (coordinate % edge_table_size) as u32,
+            minx.edge_positions_mut(),
+            &self.edges,
+        );
+        CoordinateUtil::get_separation(
+            (coordinate / edge_table_size) as u32,
+            minx.corner_positions_mut(),
+            &self.corners,
+        );
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        self.corners.len() > 1
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        self.edges.len() > 1
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        false
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        false
+    }
+}
+
+pub struct CompositePruner {
+    name: String,
+    table_path: String,
+    pruner_a: Box<dyn Pruner>,
+    pruner_b: Box<dyn Pruner>,
+}
+
+impl CompositePruner {
+    pub fn new(
+        name: &str,
+        table_path: &str,
+        pruner_a: Box<dyn Pruner>,
+        pruner_b: Box<dyn Pruner>,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            table_path: table_path.to_string(),
+            pruner_a,
+            pruner_b,
+        }
+    }
+}
+
+impl Pruner for CompositePruner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn table_path(&self) -> &str {
+        &self.table_path
+    }
+
+    fn table_size(&self) -> usize {
+        self.pruner_a.table_size() * self.pruner_b.table_size()
+    }
+
+    fn get_coordinate(&self, minx: &LLMinx) -> usize {
+        self.pruner_a.get_coordinate(minx) * self.pruner_b.table_size()
+            + self.pruner_b.get_coordinate(minx)
+    }
+
+    fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+        let size_b = self.pruner_b.table_size();
+        self.pruner_b.set_minx(coordinate % size_b, minx);
+        self.pruner_a.set_minx(coordinate / size_b, minx);
+    }
+
+    fn uses_corner_permutation(&self) -> bool {
+        self.pruner_a.uses_corner_permutation() || self.pruner_b.uses_corner_permutation()
+    }
+
+    fn uses_edge_permutation(&self) -> bool {
+        self.pruner_a.uses_edge_permutation() || self.pruner_b.uses_edge_permutation()
+    }
+
+    fn uses_corner_orientation(&self) -> bool {
+        self.pruner_a.uses_corner_orientation() || self.pruner_b.uses_corner_orientation()
+    }
+
+    fn uses_edge_orientation(&self) -> bool {
+        self.pruner_a.uses_edge_orientation() || self.pruner_b.uses_edge_orientation()
+    }
+}
