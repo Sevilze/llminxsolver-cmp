@@ -1,22 +1,23 @@
 [package]
 name = "app"
-description = "llminxsolver-rs Client"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+description = "llminxsolver-rs Client"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
+crate-type = ["cdylib", "rlib", "staticlib"]
 name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
-
-[build-dependencies]
-tauri-build = { version = "2.5.3" }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
+llminxsolver-rs = { path = "../llminxsolver-rs" }
 log = "0.4"
-tauri = { version = "2.9.5" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tauri = { version = "2.9.5", features = ["unstable"] }
 tauri-plugin-log = "2"
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
