@@ -10,7 +10,10 @@ import type {
   EdgePosition,
   CornerOrientation,
   EdgeOrientation,
+  ScoredSolution,
 } from "$lib/types/megaminx";
+import * as tauri from "$lib/services/tauri";
+import { calculateMCC, getMoveCount } from "$lib/wasm";
 
 const DEFAULT_MEGAMINX_STATE: MegaminxState = {
   cornerPositions: [0, 1, 2, 3, 4] as CornerPosition[],
@@ -155,21 +158,116 @@ export function setIgnoreFlag(flag: keyof IgnoreFlags, value: boolean) {
   }));
 }
 
-export function startSolve() {
+let unlistenProgress: (() => void) | null = null;
+let unlistenSolution: (() => void) | null = null;
+let unlistenComplete: (() => void) | null = null;
+
+async function cleanupListeners() {
+  if (unlistenProgress) {
+    unlistenProgress();
+    unlistenProgress = null;
+  }
+  if (unlistenSolution) {
+    unlistenSolution();
+    unlistenSolution = null;
+  }
+  if (unlistenComplete) {
+    unlistenComplete();
+    unlistenComplete = null;
+  }
+}
+
+export async function startSolve() {
+  if (!tauri.isTauri()) {
+    solverState.update((s) => ({
+      ...s,
+      status: "Tauri not available - run as desktop app",
+    }));
+    return;
+  }
+
   solverState.set({
     isSearching: true,
     progress: 0,
-    status: "Initializing search...",
+    status: "Initializing solver...",
     solutions: [],
   });
+
+  try {
+    unlistenProgress = await tauri.onSolverProgress((data) => {
+      solverState.update((s) => ({
+        ...s,
+        progress: data.progress,
+        status: data.message,
+      }));
+    });
+
+    unlistenSolution = await tauri.onSolutionFound((solution) => {
+      solverState.update((s) => ({
+        ...s,
+        solutions: [...s.solutions, solution],
+      }));
+    });
+
+    unlistenComplete = await tauri.onSolveComplete(() => {
+      solverState.update((s) => ({
+        ...s,
+        isSearching: false,
+        status: s.solutions.length > 0 ? "Complete" : "No solutions found",
+      }));
+    });
+
+    const currentConfig = get(config);
+    const currentState = get(megaminxState);
+
+    const solutions = await tauri.solveMegaminx(currentConfig, currentState);
+
+    solverState.update((s) => ({
+      ...s,
+      isSearching: false,
+      solutions: solutions.length > 0 ? solutions : s.solutions,
+      status:
+        solutions.length > 0 || s.solutions.length > 0
+          ? "Complete"
+          : "No solutions found",
+    }));
+  } catch (error) {
+    solverState.update((s) => ({
+      ...s,
+      isSearching: false,
+      status: `Error: ${error}`,
+    }));
+  } finally {
+    await cleanupListeners();
+  }
 }
 
-export function cancelSolve() {
-  solverState.update((prev) => ({
-    ...prev,
-    isSearching: false,
-    status: "Cancelled",
-  }));
+export async function cancelSolve() {
+  if (!tauri.isTauri()) {
+    solverState.update((s) => ({
+      ...s,
+      isSearching: false,
+      status: "Cancelled",
+    }));
+    return;
+  }
+
+  try {
+    await tauri.cancelSolve();
+    solverState.update((s) => ({
+      ...s,
+      isSearching: false,
+      status: "Cancelled",
+    }));
+  } catch (error) {
+    solverState.update((s) => ({
+      ...s,
+      isSearching: false,
+      status: `Cancel error: ${error}`,
+    }));
+  } finally {
+    await cleanupListeners();
+  }
 }
 
 export function addSolution(solution: string) {
@@ -182,3 +280,21 @@ export function addSolution(solution: string) {
 export function updateProgress(progress: number, status: string) {
   solverState.update((prev) => ({ ...prev, progress, status }));
 }
+
+export const scoredSolutions = derived(
+  [solverState, config],
+  ([$solverState, $config]): ScoredSolution[] => {
+    if ($solverState.solutions.length === 0) {
+      return [];
+    }
+
+    return $solverState.solutions
+      .map((alg) => ({
+        algorithm: alg,
+        mcc: calculateMCC(alg),
+        moveCount: getMoveCount(alg, $config.metric),
+      }))
+      .filter((s) => !isNaN(s.mcc))
+      .sort((a, b) => a.mcc - b.mcc);
+  }
+);

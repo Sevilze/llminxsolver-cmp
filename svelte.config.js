@@ -12,6 +12,14 @@ const config = {
       precompress: false,
       strict: true,
     }),
+    prerender: {
+      handleHttpError: ({ path, message }) => {
+        if (path === "/favicon.ico") {
+          return;
+        }
+        throw new Error(message);
+      },
+    },
   },
 };
 

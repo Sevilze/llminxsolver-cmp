@@ -3,7 +3,7 @@
     calculateMegaminxGeometry,
     pointsToPath,
     getCenterOfPoints,
-  } from "$lib/utils/geometry";
+  } from "$lib/wasm";
   import {
     STICKER_COLORS,
     CORNER_COLOR_MAP,
@@ -211,16 +211,22 @@
   });
 
   const EDGE_SIDES = ["top", "bottom"] as const;
-  const CORNER_SIDES = ["top", "left", "right"] as const;
+  const CORNER_SIDES = ["top", "right", "left"] as const;
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={containerEl}
   class="w-full aspect-square min-w-[200px] flex items-center justify-center"
   onmouseup={handleMouseUp}
   onmouseleave={handleMouseUp}
+  onkeyup={(e) => {
+    if (e.key === "Escape") handleMouseUp();
+  }}
   role="application"
   aria-label="Megaminx puzzle editor"
+  tabindex="0"
 >
   <svg
     width={dimensions.width}

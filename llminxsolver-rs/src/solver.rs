@@ -249,6 +249,8 @@ impl Solver {
                     break;
                 }
 
+                let depth_start_time = std::time::Instant::now();
+
                 self.fire_event(StatusEvent::new(
                     StatusEventType::StartDepth,
                     &format!("Searching depth {}...", depth),
@@ -257,9 +259,65 @@ impl Solver {
 
                 let mut minx = self.start.clone();
                 let mut stop = false;
+                let num_moves = self.moves.len();
+                let total_branches = if depth >= 2 {
+                    num_moves * num_moves
+                } else {
+                    num_moves
+                };
+                let mut last_reported_branch: Option<(Option<Move>, Option<Move>)> = None;
 
                 while !stop && !self.is_interrupted() {
                     let levels_left = depth.saturating_sub(minx.depth());
+
+                    // Track progress by monitoring the first two moves in the current path
+                    if minx.depth() > 0 {
+                        let moves_slice = minx.moves();
+                        let first_move = moves_slice.first().copied();
+                        let second_move = moves_slice.get(1).copied();
+                        let current_branch = (first_move, second_move);
+
+                        if current_branch != last_reported_branch.unwrap_or((None, None)) {
+                            last_reported_branch = Some(current_branch);
+
+                            if let Some(fm) = first_move {
+                                let first_idx =
+                                    self.moves.iter().position(|&m| m == fm).unwrap_or(0);
+
+                                let progress = if depth >= 2 {
+                                    let second_idx = second_move
+                                        .and_then(|sm| self.moves.iter().position(|&m| m == sm))
+                                        .unwrap_or(0);
+                                    (first_idx * num_moves + second_idx) as f64
+                                        / total_branches as f64
+                                } else {
+                                    first_idx as f64 / num_moves as f64
+                                };
+
+                                // Calculate ETR based on elapsed time and progress
+                                let elapsed = depth_start_time.elapsed().as_secs_f64();
+                                let etr = if progress > 0.001 {
+                                    (elapsed / progress) * (1.0 - progress)
+                                } else {
+                                    0.0
+                                };
+
+                                let etr_str = if etr > 0.0 && etr < 3600.0 {
+                                    format!(" (ETR: {:.1}s)", etr)
+                                } else if etr >= 3600.0 {
+                                    format!(" (ETR: {:.1}m)", etr / 60.0)
+                                } else {
+                                    String::new()
+                                };
+
+                                self.fire_event(StatusEvent::new(
+                                    StatusEventType::StartDepth,
+                                    &format!("Searching depth {}...{}", depth, etr_str),
+                                    progress,
+                                ));
+                            }
+                        }
+                    }
 
                     if minx.state_equals(&goal) {
                         if levels_left == 0 && Self::check_optimal(&minx) {
@@ -297,9 +355,10 @@ impl Solver {
                     }
                 }
 
+                let depth_elapsed = depth_start_time.elapsed().as_secs_f64();
                 self.fire_event(StatusEvent::new(
                     StatusEventType::EndDepth,
-                    &format!("Finished depth {}", depth),
+                    &format!("Finished depth {} in {:.1}s", depth, depth_elapsed),
                     1.0,
                 ));
             }

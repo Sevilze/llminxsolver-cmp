@@ -137,8 +137,6 @@ pub async fn solve(
     let app_clone = app.clone();
     std::thread::spawn(move || {
         for event in rx {
-            let progress_event: ProgressEvent = event.clone().into();
-
             match event.event_type {
                 StatusEventType::SolutionFound => {
                     let _ = app_clone.emit("solver:solution", event.message.clone());
@@ -146,10 +144,11 @@ pub async fn solve(
                 StatusEventType::FinishSearch => {
                     let _ = app_clone.emit("solver:complete", ());
                 }
-                _ => {}
+                _ => {
+                    let progress_event: ProgressEvent = event.into();
+                    let _ = app_clone.emit("solver:progress", progress_event);
+                }
             }
-
-            let _ = app_clone.emit("solver:progress", progress_event);
         }
     });
 

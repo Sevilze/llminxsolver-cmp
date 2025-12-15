@@ -2,6 +2,7 @@
   import MegaminxViewer from "./MegaminxViewer.svelte";
   import ControlPanel from "./ControlPanel.svelte";
   import SolutionsPanel from "./SolutionsPanel.svelte";
+  import ScoredSolutionsPanel from "./ScoredSolutionsPanel.svelte";
   import StatusBar from "./StatusBar.svelte";
   import type {
     MegaminxState,
@@ -114,10 +115,13 @@
       />
     </section>
 
-    <section class="flex-1 flex flex-col min-w-0">
+    <section class="flex-1 flex flex-col gap-3 min-w-0">
       <div class="flex-1 overflow-hidden">
-        <SolutionsPanel {solverState} />
+        <ScoredSolutionsPanel
+          metricLabel={config.metric === "FTM" ? "FTM" : "QTM"}
+        />
       </div>
+      <SolutionsPanel {solverState} defaultCollapsed={true} />
     </section>
   </main>
 
