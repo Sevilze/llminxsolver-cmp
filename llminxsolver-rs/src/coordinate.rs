@@ -1,15 +1,15 @@
 use std::sync::LazyLock;
 
-pub static POWERS_OF_TWO: LazyLock<[u32; 30]> = LazyLock::new(|| {
-    let mut arr = [0u32; 30];
+pub static POWERS_OF_TWO: LazyLock<[u32; 32]> = LazyLock::new(|| {
+    let mut arr = [0u32; 32];
     for (i, val) in arr.iter_mut().enumerate() {
         *val = 1 << i;
     }
     arr
 });
 
-pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 30]> = LazyLock::new(|| {
-    let mut arr = [0u32; 30];
+pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 32]> = LazyLock::new(|| {
+    let mut arr = [0u32; 32];
     for (i, val) in arr.iter_mut().enumerate() {
         *val = (1 << i) - 1;
     }
@@ -34,8 +34,8 @@ pub static FAC: LazyLock<[u32; 13]> = LazyLock::new(|| {
     arr
 });
 
-pub static CKN: LazyLock<[[u32; 9]; 20]> = LazyLock::new(|| {
-    let mut arr = [[0u32; 9]; 20];
+pub static CKN: LazyLock<[[u32; 9]; 21]> = LazyLock::new(|| {
+    let mut arr = [[0u32; 9]; 21];
     for (i, row) in arr.iter_mut().enumerate() {
         for (j, val) in row.iter_mut().enumerate() {
             *val = binomial(i as u32, j as u32) as u32;

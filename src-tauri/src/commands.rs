@@ -54,8 +54,10 @@ fn parse_search_mode(allowed_faces: &str) -> SearchMode {
         "R_U" => SearchMode::RU,
         "R_U_L" => SearchMode::RUL,
         "R_U_F" => SearchMode::RUF,
+        "R_U_bL" => SearchMode::RUbL,
+        "R_U_bR" => SearchMode::RUbR,
         "R_U_L_F" => SearchMode::RUFL,
-        "R_U_L_F_B" => SearchMode::RUFLB,
+        "R_U_L_F_bL" => SearchMode::RUFLbL,
         _ => SearchMode::RU,
     }
 }
@@ -90,11 +92,7 @@ pub async fn solve(
 ) -> Result<Vec<String>, String> {
     let search_mode = parse_search_mode(&config.allowed_faces);
     let metric = parse_metric(&config.metric);
-    let max_depth = if config.limit_depth {
-        config.max_depth
-    } else {
-        50
-    };
+    let max_depth = if config.limit_depth { config.max_depth } else { 50 };
 
     let start_state = build_llminx(&megaminx_state);
 
@@ -152,9 +150,7 @@ pub async fn solve(
         }
     });
 
-    let solutions = solve_handle
-        .join()
-        .map_err(|_| "Solver thread panicked".to_string())?;
+    let solutions = solve_handle.join().map_err(|_| "Solver thread panicked".to_string())?;
 
     {
         let mut handle = solver_handle.interrupt.lock().map_err(|e| e.to_string())?;

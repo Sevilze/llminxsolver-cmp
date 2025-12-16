@@ -15,8 +15,9 @@ pub enum CornerPosition {
     FC2 = 9,
     LC1 = 10,
     LC2 = 11,
-    BC1 = 12,
-    BC2 = 13,
+    BLC1 = 12,
+    BLC2 = 13,
+    BRC1 = 14,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -37,9 +38,11 @@ pub enum EdgePosition {
     LE3 = 12,
     LE4 = 13,
     LE5 = 14,
-    BE3 = 15,
-    BE4 = 16,
-    BE5 = 17,
+    BLE3 = 15,
+    BLE4 = 16,
+    BLE5 = 17,
+    BRE3 = 18,
+    BRE4 = 19,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

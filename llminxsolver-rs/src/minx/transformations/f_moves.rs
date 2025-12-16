@@ -22,9 +22,18 @@ impl LLMinx {
         self.edge_positions[FE2 as usize] = old_ue1_pos;
 
         self.set_corner_orientation(FC1 as u8, self.get_corner_orientation(FC5 as u8));
-        self.set_corner_orientation(FC5 as u8, Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)));
-        self.set_corner_orientation(UC3 as u8, Self::corner_orient_cw(self.get_corner_orientation(UC4 as u8)));
-        self.set_corner_orientation(UC4 as u8, Self::corner_orient_cw(self.get_corner_orientation(FC2 as u8)));
+        self.set_corner_orientation(
+            FC5 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)),
+        );
+        self.set_corner_orientation(
+            UC3 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(UC4 as u8)),
+        );
+        self.set_corner_orientation(
+            UC4 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(FC2 as u8)),
+        );
         self.set_corner_orientation(FC2 as u8, old_fc1_or);
 
         self.set_edge_orientation(UE1 as u8, (self.get_edge_orientation(FE5 as u8) ^ 1) & 1);
@@ -55,9 +64,18 @@ impl LLMinx {
         self.edge_positions[FE5 as usize] = old_ue1_pos;
 
         self.set_corner_orientation(FC1 as u8, self.get_corner_orientation(FC2 as u8));
-        self.set_corner_orientation(FC2 as u8, Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)));
-        self.set_corner_orientation(UC4 as u8, Self::corner_orient_ccw(self.get_corner_orientation(UC3 as u8)));
-        self.set_corner_orientation(UC3 as u8, Self::corner_orient_ccw(self.get_corner_orientation(FC5 as u8)));
+        self.set_corner_orientation(
+            FC2 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)),
+        );
+        self.set_corner_orientation(
+            UC4 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(UC3 as u8)),
+        );
+        self.set_corner_orientation(
+            UC3 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(FC5 as u8)),
+        );
         self.set_corner_orientation(FC5 as u8, old_fc1_or);
 
         self.set_edge_orientation(UE1 as u8, (self.get_edge_orientation(FE2 as u8) ^ 1) & 1);
@@ -87,10 +105,19 @@ impl LLMinx {
         self.edge_positions[FE5 as usize] = self.edge_positions[FE3 as usize];
         self.edge_positions[FE3 as usize] = old_ue1_pos;
 
-        self.set_corner_orientation(FC1 as u8, Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)));
-        self.set_corner_orientation(UC3 as u8, Self::corner_orient_ccw(self.get_corner_orientation(FC2 as u8)));
+        self.set_corner_orientation(
+            FC1 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)),
+        );
+        self.set_corner_orientation(
+            UC3 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(FC2 as u8)),
+        );
         self.set_corner_orientation(FC2 as u8, self.get_corner_orientation(FC5 as u8));
-        self.set_corner_orientation(FC5 as u8, Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)));
+        self.set_corner_orientation(
+            FC5 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)),
+        );
         self.set_corner_orientation(UC4 as u8, Self::corner_orient_cw(old_fc1_or));
 
         self.set_edge_orientation(UE1 as u8, (self.get_edge_orientation(FE4 as u8) ^ 1) & 1);
@@ -120,10 +147,19 @@ impl LLMinx {
         self.edge_positions[FE2 as usize] = self.edge_positions[FE4 as usize];
         self.edge_positions[FE4 as usize] = old_ue1_pos;
 
-        self.set_corner_orientation(FC1 as u8, Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)));
-        self.set_corner_orientation(UC4 as u8, Self::corner_orient_cw(self.get_corner_orientation(FC5 as u8)));
+        self.set_corner_orientation(
+            FC1 as u8,
+            Self::corner_orient_ccw(self.get_corner_orientation(UC4 as u8)),
+        );
+        self.set_corner_orientation(
+            UC4 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(FC5 as u8)),
+        );
         self.set_corner_orientation(FC5 as u8, self.get_corner_orientation(FC2 as u8));
-        self.set_corner_orientation(FC2 as u8, Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)));
+        self.set_corner_orientation(
+            FC2 as u8,
+            Self::corner_orient_cw(self.get_corner_orientation(UC3 as u8)),
+        );
         self.set_corner_orientation(UC3 as u8, Self::corner_orient_ccw(old_fc1_or));
 
         self.set_edge_orientation(UE1 as u8, (self.get_edge_orientation(FE3 as u8) ^ 1) & 1);

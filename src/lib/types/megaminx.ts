@@ -17,7 +17,14 @@ export interface IgnoreFlags {
 	edgeOrientations: boolean;
 }
 
-export type AllowedFacesMode = 'R_U' | 'R_U_L' | 'R_U_F' | 'R_U_L_F' | 'R_U_L_F_B';
+export type AllowedFacesMode =
+	| 'R_U'
+	| 'R_U_L'
+	| 'R_U_F'
+	| 'R_U_bL'
+	| 'R_U_bR'
+	| 'R_U_L_F'
+	| 'R_U_L_F_bL';
 
 export type MetricType = 'FTM' | 'QTM';
 

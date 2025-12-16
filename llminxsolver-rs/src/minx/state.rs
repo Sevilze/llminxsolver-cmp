@@ -1,7 +1,7 @@
 use super::moves::Move;
 
-pub const NUM_CORNERS: usize = 14;
-pub const NUM_EDGES: usize = 18;
+pub const NUM_CORNERS: usize = 15;
+pub const NUM_EDGES: usize = 20;
 pub const MAX_DEPTH: usize = 100;
 
 #[derive(Clone)]
@@ -118,8 +118,7 @@ impl LLMinx {
     #[inline]
     pub fn set_corner_orientation(&mut self, piece: u8, orientation: u8) {
         let mask = !(3u32 << (piece * 2));
-        self.corner_orientations =
-            (self.corner_orientations & mask) | ((orientation as u32) << (piece * 2));
+        self.corner_orientations = (self.corner_orientations & mask) | ((orientation as u32) << (piece * 2));
     }
 
     #[inline]
@@ -231,9 +230,7 @@ impl LLMinx {
     pub fn state_equals(&self, other: &LLMinx) -> bool {
         for i in 0..NUM_CORNERS {
             let piece = self.corner_positions[i];
-            if self.corner_positions[i] != other.corner_positions[i]
-                && !self.ignore_corner_positions[piece as usize]
-            {
+            if self.corner_positions[i] != other.corner_positions[i] && !self.ignore_corner_positions[piece as usize] {
                 return false;
             }
             if self.get_corner_orientation(i as u8) != other.get_corner_orientation(i as u8)
@@ -244,9 +241,7 @@ impl LLMinx {
         }
         for i in 0..NUM_EDGES {
             let piece = self.edge_positions[i];
-            if self.edge_positions[i] != other.edge_positions[i]
-                && !self.ignore_edge_positions[piece as usize]
-            {
+            if self.edge_positions[i] != other.edge_positions[i] && !self.ignore_edge_positions[piece as usize] {
                 return false;
             }
             if self.get_edge_orientation(i as u8) != other.get_edge_orientation(i as u8)

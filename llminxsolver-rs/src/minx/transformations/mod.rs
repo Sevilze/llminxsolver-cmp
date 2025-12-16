@@ -1,7 +1,8 @@
 use super::state::LLMinx;
 use crate::minx::moves::Move;
 
-pub mod b_moves;
+pub mod bl_moves;
+pub mod br_moves;
 pub mod f_moves;
 pub mod l_moves;
 pub mod r_moves;
@@ -46,10 +47,14 @@ impl LLMinx {
             Move::Fi => self.move_fi(),
             Move::F2 => self.move_f2(),
             Move::F2i => self.move_f2i(),
-            Move::B => self.move_b(),
-            Move::Bi => self.move_bi(),
-            Move::B2 => self.move_b2(),
-            Move::B2i => self.move_b2i(),
+            Move::bL => self.move_bl(),
+            Move::bLi => self.move_bli(),
+            Move::bL2 => self.move_bl2(),
+            Move::bL2i => self.move_bl2i(),
+            Move::bR => self.move_br(),
+            Move::bRi => self.move_bri(),
+            Move::bR2 => self.move_br2(),
+            Move::bR2i => self.move_br2i(),
         }
     }
 
@@ -67,3 +72,4 @@ impl LLMinx {
         self.last_move = Some(m);
     }
 }
+

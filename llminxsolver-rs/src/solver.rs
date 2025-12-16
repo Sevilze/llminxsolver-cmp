@@ -195,11 +195,11 @@ impl Solver {
 
         const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
             true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false,
+            false, false,
         ];
         const IGNORE_EDGE_5: [bool; NUM_EDGES] = [
             true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false, false, false, false, false,
+            false, false, false, false, false, false, false,
         ];
 
         if self.ignore_corner_positions {
@@ -391,9 +391,9 @@ impl Solver {
                 .collect()
         };
 
-        let max_move_id = Move::B2i as usize + 2;
+        let max_move_id = Move::bR2i as usize + 2;
         self.first_moves = vec![self.moves[0]; max_move_id];
-        self.next_siblings = vec![vec![None; Move::B2i as usize + 1]; max_move_id];
+        self.next_siblings = vec![vec![None; Move::bR2i as usize + 1]; max_move_id];
 
         self.first_moves[0] = self.moves[0];
         for i in 0..(self.moves.len() - 1) {
@@ -601,12 +601,12 @@ impl Solver {
                 let l_face = Move::L.face();
                 let r_face = Move::R.face();
                 let f_face = Move::F.face();
-                let b_face = Move::B.face();
+                let bl_face = Move::bL.face();
 
                 if (face_i == l_face && face_prev == r_face)
                     || (face_i == r_face && face_prev == l_face)
-                    || (face_i == b_face && face_prev == f_face)
-                    || (face_i == f_face && face_prev == b_face)
+                    || (face_i == bl_face && face_prev == f_face)
+                    || (face_i == f_face && face_prev == bl_face)
                 {
                     return false;
                 }
@@ -724,4 +724,29 @@ mod tests {
         assert_eq!(minx.depth(), 4);
         assert!(!minx.state_equals(&goal));
     }
+
+    #[test]
+    fn test_br_moves_inverse() {
+        let mut minx = LLMinx::new();
+        let goal = LLMinx::new();
+
+        minx.apply_move(Move::bR);
+        assert!(!minx.state_equals(&goal));
+
+        minx.apply_move(Move::bRi);
+        assert!(minx.state_equals(&goal));
+    }
+
+    #[test]
+    fn test_br2_moves_inverse() {
+        let mut minx = LLMinx::new();
+        let goal = LLMinx::new();
+
+        minx.apply_move(Move::bR2);
+        assert!(!minx.state_equals(&goal));
+
+        minx.apply_move(Move::bR2i);
+        assert!(minx.state_equals(&goal));
+    }
 }
+
