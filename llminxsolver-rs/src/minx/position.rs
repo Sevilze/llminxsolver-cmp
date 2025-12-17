@@ -18,6 +18,8 @@ pub enum CornerPosition {
     BLC1 = 12,
     BLC2 = 13,
     BRC1 = 14,
+    DC1 = 15,
+    DC2 = 16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -43,6 +45,9 @@ pub enum EdgePosition {
     BLE5 = 17,
     BRE3 = 18,
     BRE4 = 19,
+    DE3 = 20,
+    DE4 = 21,
+    DE5 = 22,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

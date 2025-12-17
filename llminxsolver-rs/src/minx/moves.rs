@@ -28,10 +28,14 @@ pub enum Move {
     bRi = 21,
     bR2 = 22,
     bR2i = 23,
+    D = 24,
+    Di = 25,
+    D2 = 26,
+    D2i = 27,
 }
 
 impl Move {
-    pub const ALL: [Move; 24] = [
+    pub const ALL: [Move; 28] = [
         Move::R,
         Move::Ri,
         Move::R2,
@@ -56,9 +60,13 @@ impl Move {
         Move::bRi,
         Move::bR2,
         Move::bR2i,
+        Move::D,
+        Move::Di,
+        Move::D2,
+        Move::D2i,
     ];
 
-    pub const INVERSE: [Move; 24] = [
+    pub const INVERSE: [Move; 28] = [
         Move::Ri,
         Move::R,
         Move::R2i,
@@ -83,11 +91,16 @@ impl Move {
         Move::bR,
         Move::bR2i,
         Move::bR2,
+        Move::Di,
+        Move::D,
+        Move::D2i,
+        Move::D2,
     ];
 
-    pub const STRINGS: [&'static str; 24] = [
+    pub const STRINGS: [&'static str; 28] = [
         "R ", "R' ", "R2 ", "R2' ", "L ", "L' ", "L2 ", "L2' ", "U ", "U' ", "U2 ", "U2' ", "F ",
-        "F' ", "F2 ", "F2' ", "bL ", "bL' ", "bL2 ", "bL2' ", "bR ", "bR' ", "bR2 ", "bR2' ",
+        "F' ", "F2 ", "F2' ", "bL ", "bL' ", "bL2 ", "bL2' ", "bR ", "bR' ", "bR2 ", "bR2' ", "D ",
+        "D' ", "D2 ", "D2' ",
     ];
 
     #[inline]
@@ -110,7 +123,7 @@ impl Move {
     }
 
     pub fn from_u8(v: u8) -> Option<Move> {
-        if v < 24 {
+        if v < 28 {
             Some(Move::ALL[v as usize])
         } else {
             None

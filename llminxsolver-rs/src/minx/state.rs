@@ -1,14 +1,14 @@
 use super::moves::Move;
 
-pub const NUM_CORNERS: usize = 15;
-pub const NUM_EDGES: usize = 20;
+pub const NUM_CORNERS: usize = 17;
+pub const NUM_EDGES: usize = 23;
 pub const MAX_DEPTH: usize = 100;
 
 #[derive(Clone)]
 pub struct LLMinx {
     pub(crate) corner_positions: [u8; NUM_CORNERS],
     pub(crate) edge_positions: [u8; NUM_EDGES],
-    pub(crate) corner_orientations: u32,
+    pub(crate) corner_orientations: u64,
     pub(crate) edge_orientations: u32,
     pub(crate) ignore_corner_positions: [bool; NUM_CORNERS],
     pub(crate) ignore_edge_positions: [bool; NUM_EDGES],
@@ -53,7 +53,7 @@ impl LLMinx {
     pub fn with_state(
         corner_positions: [u8; NUM_CORNERS],
         edge_positions: [u8; NUM_EDGES],
-        corner_orientations: u32,
+        corner_orientations: u64,
         edge_orientations: u32,
     ) -> Self {
         LLMinx {
@@ -91,12 +91,12 @@ impl LLMinx {
     }
 
     #[inline]
-    pub fn corner_orientations(&self) -> u32 {
+    pub fn corner_orientations(&self) -> u64 {
         self.corner_orientations
     }
 
     #[inline]
-    pub fn set_corner_orientations(&mut self, orientations: u32) {
+    pub fn set_corner_orientations(&mut self, orientations: u64) {
         self.corner_orientations = orientations;
     }
 
@@ -117,8 +117,9 @@ impl LLMinx {
 
     #[inline]
     pub fn set_corner_orientation(&mut self, piece: u8, orientation: u8) {
-        let mask = !(3u32 << (piece * 2));
-        self.corner_orientations = (self.corner_orientations & mask) | ((orientation as u32) << (piece * 2));
+        let mask = !(3u64 << (piece * 2));
+        self.corner_orientations =
+            (self.corner_orientations & mask) | ((orientation as u64) << (piece * 2));
     }
 
     #[inline]
@@ -209,7 +210,7 @@ impl LLMinx {
         result
     }
 
-    pub fn get_qtm_length(&self) -> usize {
+    pub fn get_fftm_length(&self) -> usize {
         let mut length = 0;
         for m in &self.moves {
             length += ((*m as u8) % 4) / 2 + 1;
@@ -217,7 +218,7 @@ impl LLMinx {
         length as usize
     }
 
-    pub fn get_htm_length(&self) -> usize {
+    pub fn get_ftm_length(&self) -> usize {
         let mut length = self.moves.len();
         for i in 1..self.moves.len() {
             if self.moves[i].face() == self.moves[i - 1].face() {
@@ -230,7 +231,9 @@ impl LLMinx {
     pub fn state_equals(&self, other: &LLMinx) -> bool {
         for i in 0..NUM_CORNERS {
             let piece = self.corner_positions[i];
-            if self.corner_positions[i] != other.corner_positions[i] && !self.ignore_corner_positions[piece as usize] {
+            if self.corner_positions[i] != other.corner_positions[i]
+                && !self.ignore_corner_positions[piece as usize]
+            {
                 return false;
             }
             if self.get_corner_orientation(i as u8) != other.get_corner_orientation(i as u8)
@@ -241,7 +244,9 @@ impl LLMinx {
         }
         for i in 0..NUM_EDGES {
             let piece = self.edge_positions[i];
-            if self.edge_positions[i] != other.edge_positions[i] && !self.ignore_edge_positions[piece as usize] {
+            if self.edge_positions[i] != other.edge_positions[i]
+                && !self.ignore_edge_positions[piece as usize]
+            {
                 return false;
             }
             if self.get_edge_orientation(i as u8) != other.get_edge_orientation(i as u8)

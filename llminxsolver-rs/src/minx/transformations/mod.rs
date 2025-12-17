@@ -3,6 +3,7 @@ use crate::minx::moves::Move;
 
 pub mod bl_moves;
 pub mod br_moves;
+pub mod d_moves;
 pub mod f_moves;
 pub mod l_moves;
 pub mod r_moves;
@@ -55,6 +56,10 @@ impl LLMinx {
             Move::bRi => self.move_bri(),
             Move::bR2 => self.move_br2(),
             Move::bR2i => self.move_br2i(),
+            Move::D => self.move_d(),
+            Move::Di => self.move_di(),
+            Move::D2 => self.move_d2(),
+            Move::D2i => self.move_d2i(),
         }
     }
 
@@ -72,4 +77,3 @@ impl LLMinx {
         self.last_move = Some(m);
     }
 }
-

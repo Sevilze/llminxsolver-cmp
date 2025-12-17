@@ -195,11 +195,11 @@ impl Solver {
 
         const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
             true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false, false,
+            false, false, false, false,
         ];
         const IGNORE_EDGE_5: [bool; NUM_EDGES] = [
             true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false, false, false, false, false, false, false,
+            false, false, false, false, false, false, false, false, false, false,
         ];
 
         if self.ignore_corner_positions {
@@ -324,8 +324,8 @@ impl Solver {
                             let msg = format!(
                                 "{} ({},{})",
                                 minx.get_generating_moves(),
-                                minx.get_htm_length(),
-                                minx.get_qtm_length()
+                                minx.get_ftm_length(),
+                                minx.get_fftm_length()
                             );
                             self.fire_event(StatusEvent::new(
                                 StatusEventType::SolutionFound,
@@ -391,9 +391,9 @@ impl Solver {
                 .collect()
         };
 
-        let max_move_id = Move::bR2i as usize + 2;
+        let max_move_id = Move::D2i as usize + 2;
         self.first_moves = vec![self.moves[0]; max_move_id];
-        self.next_siblings = vec![vec![None; Move::bR2i as usize + 1]; max_move_id];
+        self.next_siblings = vec![vec![None; Move::D2i as usize + 1]; max_move_id];
 
         self.first_moves[0] = self.moves[0];
         for i in 0..(self.moves.len() - 1) {
@@ -749,4 +749,3 @@ mod tests {
         assert!(minx.state_equals(&goal));
     }
 }
-

@@ -35,6 +35,7 @@ pub enum SearchMode {
     RUFLbL,
     RUbL,
     RUbR,
+    RUD,
 }
 
 impl SearchMode {
@@ -47,6 +48,7 @@ impl SearchMode {
             SearchMode::RUFLbL => "RUFLbL",
             SearchMode::RUbL => "RUbL",
             SearchMode::RUbR => "RUbR",
+            SearchMode::RUD => "RUD",
         }
     }
 
@@ -157,6 +159,20 @@ impl SearchMode {
                 Move::bRi,
                 Move::bR2,
                 Move::bR2i,
+            ],
+            SearchMode::RUD => vec![
+                Move::R,
+                Move::Ri,
+                Move::R2,
+                Move::R2i,
+                Move::U,
+                Move::Ui,
+                Move::U2,
+                Move::U2i,
+                Move::D,
+                Move::Di,
+                Move::D2,
+                Move::D2i,
             ],
         }
     }
@@ -408,6 +424,24 @@ impl SearchMode {
                             RE3 as u8, RE4 as u8, FE2 as u8, BRE3 as u8, BRE4 as u8, BLE5 as u8,
                         ],
                     )),
+                )),
+            ],
+            SearchMode::RUD => vec![
+                Box::new(CornerOrientationPruner::new(
+                    "Corner orientations RUD",
+                    "rudcornerorientations",
+                    &[
+                        UC1 as u8, UC2 as u8, UC3 as u8, UC4 as u8, UC5 as u8, RC1 as u8,
+                        FC5 as u8, RC5 as u8, DC1 as u8, DC2 as u8, FC1 as u8,
+                    ],
+                )),
+                Box::new(CornerPermutationPruner::new(
+                    "Corner permutations RUD",
+                    "rudcornerpermutations",
+                    &[
+                        UC1 as u8, UC2 as u8, UC3 as u8, UC4 as u8, UC5 as u8, RC1 as u8,
+                        FC5 as u8, RC5 as u8, DC1 as u8, DC2 as u8, FC1 as u8,
+                    ],
                 )),
             ],
         }

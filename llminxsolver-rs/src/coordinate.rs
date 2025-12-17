@@ -1,15 +1,23 @@
 use std::sync::LazyLock;
 
-pub static POWERS_OF_TWO: LazyLock<[u32; 32]> = LazyLock::new(|| {
-    let mut arr = [0u32; 32];
+pub static POWERS_OF_TWO: LazyLock<[u32; 35]> = LazyLock::new(|| {
+    let mut arr = [0u32; 35];
     for (i, val) in arr.iter_mut().enumerate() {
         *val = 1 << i;
     }
     arr
 });
 
-pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 32]> = LazyLock::new(|| {
-    let mut arr = [0u32; 32];
+pub static POWERS_OF_TWO_64: LazyLock<[u64; 64]> = LazyLock::new(|| {
+    let mut arr = [0u64; 64];
+    for (i, val) in arr.iter_mut().enumerate() {
+        *val = 1 << i;
+    }
+    arr
+});
+
+pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 35]> = LazyLock::new(|| {
+    let mut arr = [0u32; 35];
     for (i, val) in arr.iter_mut().enumerate() {
         *val = (1 << i) - 1;
     }
@@ -34,8 +42,8 @@ pub static FAC: LazyLock<[u32; 13]> = LazyLock::new(|| {
     arr
 });
 
-pub static CKN: LazyLock<[[u32; 9]; 21]> = LazyLock::new(|| {
-    let mut arr = [[0u32; 9]; 21];
+pub static CKN: LazyLock<[[u32; 9]; 24]> = LazyLock::new(|| {
+    let mut arr = [[0u32; 9]; 24];
     for (i, row) in arr.iter_mut().enumerate() {
         for (j, val) in row.iter_mut().enumerate() {
             *val = binomial(i as u32, j as u32) as u32;
@@ -139,30 +147,30 @@ impl CoordinateUtil {
         coord | ((Self::get_parity(coord) as u32) << (edge_count - 1))
     }
 
-    pub fn get_corner_orientation_coordinate(corner_orientation: u32, cubies: &[u8]) -> u32 {
+    pub fn get_corner_orientation_coordinate(corner_orientation: u64, cubies: &[u8]) -> u32 {
         let mut coordinate = 0u32;
         for i in 0..(cubies.len().saturating_sub(1)) {
-            coordinate += POWERS_OF_THREE[i] * ((corner_orientation >> (cubies[i] * 2)) & 3);
+            coordinate += POWERS_OF_THREE[i] * ((corner_orientation >> (cubies[i] * 2)) & 3) as u32;
         }
         coordinate
     }
 
-    pub fn get_corner_orientation(corner_coordinate: u32, cubies: &[u8]) -> u32 {
-        let mut orientation = 0u32;
-        let mut sum_orientation = 0u32;
+    pub fn get_corner_orientation(corner_coordinate: u32, cubies: &[u8]) -> u64 {
+        let mut orientation = 0u64;
+        let mut sum_orientation = 0u64;
         let mut coord = corner_coordinate;
 
         let len = cubies.len();
         for i in 0..(len.saturating_sub(1)) {
-            let cubie_orientation = coord % 3;
+            let cubie_orientation = (coord % 3) as u64;
             sum_orientation += cubie_orientation;
-            orientation += POWERS_OF_TWO[cubies[i] as usize * 2] * cubie_orientation;
+            orientation += POWERS_OF_TWO_64[cubies[i] as usize * 2] * cubie_orientation;
             coord /= 3;
         }
 
         if len > 0 {
             orientation +=
-                POWERS_OF_TWO[cubies[len - 1] as usize * 2] * ((3 - sum_orientation % 3) % 3);
+                POWERS_OF_TWO_64[cubies[len - 1] as usize * 2] * ((3 - sum_orientation % 3) % 3);
         }
         orientation
     }
