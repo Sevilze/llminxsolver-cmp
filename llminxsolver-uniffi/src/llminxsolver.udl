@@ -1,0 +1,60 @@
+namespace llminxsolver {
+    f64 calculate_mcc(string sequence);
+    u32 get_move_count(string algorithm, string metric);
+};
+
+[Enum]
+interface SearchMode {
+    RU();
+    RUF();
+    RUL();
+    RUFL();
+    RUFLbL();
+    RUbL();
+    RUbR();
+    RUD();
+};
+
+[Enum]
+interface Metric {
+    Face();
+    Fifth();
+};
+
+dictionary SolverConfig {
+    SearchMode search_mode;
+    Metric metric;
+    boolean limit_depth;
+    u32 max_depth;
+    boolean ignore_corner_positions;
+    boolean ignore_edge_positions;
+    boolean ignore_corner_orientations;
+    boolean ignore_edge_orientations;
+};
+
+dictionary MegaminxState {
+    sequence<u8> corner_positions;
+    sequence<u8> corner_orientations;
+    sequence<u8> edge_positions;
+    sequence<u8> edge_orientations;
+};
+
+dictionary ProgressEvent {
+    string event_type;
+    string message;
+    f64 progress;
+};
+
+callback interface SolverCallback {
+    void on_progress(ProgressEvent event);
+    void on_solution_found(string solution);
+    void on_complete();
+};
+
+interface SolverHandle {
+    constructor(SolverConfig config, MegaminxState state);
+    void set_callback(SolverCallback callback);
+    void start();
+    void cancel();
+    boolean is_running();
+};
