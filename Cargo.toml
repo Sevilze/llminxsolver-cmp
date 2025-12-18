@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["llminxsolver-rs", "llminxsolver-wasm", "src-tauri"]
+members = ["llminxsolver-rs", "llminxsolver-uniffi"]
 
 [workspace.package]
 version = "0.1.0"
