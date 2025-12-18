@@ -1,7 +1,6 @@
-pub const VALID_MOVES: [&str; 27] = [
-    "r", "r2", "r'", "u", "u'", "u2", "f", "f2", "f'",
-    "d", "d2", "d'", "l", "l2", "l'", "b", "b2", "b'",
-    "x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"
+pub const VALID_MOVES: [&str; 30] = [
+    "bl", "bl2", "bl'", "br", "br2", "br'", "r", "r2", "r'", "u", "u'", "u2", "f", "f2", "f'", "d",
+    "d2", "d'", "l", "l2", "l'", "x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2",
 ];
 
 #[derive(Clone, Copy)]
@@ -33,7 +32,7 @@ impl Default for MCCParams {
     }
 }
 
-pub type FingerState = (f64, &'static str);
+pub type FingerStateTuple = (f64, &'static str);
 
 pub enum TestResult {
     Continue([f64; 6]),

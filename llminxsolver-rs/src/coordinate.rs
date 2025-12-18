@@ -1,9 +1,9 @@
 use std::sync::LazyLock;
 
-pub static POWERS_OF_TWO: LazyLock<[u32; 35]> = LazyLock::new(|| {
-    let mut arr = [0u32; 35];
+pub static POWERS_OF_TWO: LazyLock<[u32; 32]> = LazyLock::new(|| {
+    let mut arr = [0u32; 32];
     for (i, val) in arr.iter_mut().enumerate() {
-        *val = 1 << i;
+        *val = 1u32 << i;
     }
     arr
 });
@@ -16,10 +16,10 @@ pub static POWERS_OF_TWO_64: LazyLock<[u64; 64]> = LazyLock::new(|| {
     arr
 });
 
-pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 35]> = LazyLock::new(|| {
-    let mut arr = [0u32; 35];
+pub static POWERS_OF_TWO_SUBT_ONE: LazyLock<[u32; 32]> = LazyLock::new(|| {
+    let mut arr = [0u32; 32];
     for (i, val) in arr.iter_mut().enumerate() {
-        *val = (1 << i) - 1;
+        *val = (1u32 << i) - 1;
     }
     arr
 });
