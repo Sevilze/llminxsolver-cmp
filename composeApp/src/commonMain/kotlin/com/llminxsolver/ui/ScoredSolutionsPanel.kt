@@ -1,0 +1,284 @@
+package com.llminxsolver.ui
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.llminxsolver.data.ScoredSolution
+import kotlin.math.roundToInt
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun ScoredSolutionsPanel(
+    scoredSolutions: List<ScoredSolution>,
+    metricLabel: String = "Moves",
+    maxSolutions: Int = 20,
+    modifier: Modifier = Modifier
+) {
+    var displayCount by remember { mutableIntStateOf(maxSolutions) }
+    var copiedIndex by remember { mutableStateOf<Int?>(null) }
+
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
+
+    val displayedSolutions = scoredSolutions.take(displayCount)
+
+    Card(
+        modifier = modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Scored Algorithms",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    if (scoredSolutions.isNotEmpty()) {
+                        Text(
+                            text = "(${minOf(
+                                displayCount,
+                                scoredSolutions.size
+                            )} of ${scoredSolutions.size})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Top",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = displayCount.toFloat(),
+                        onValueChange = { displayCount = it.roundToInt() },
+                        valueRange = 5f..50f,
+                        steps = 8,
+                        modifier = Modifier.width(100.dp)
+                    )
+                    Text(
+                        text = displayCount.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (scoredSolutions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "No solutions to score yet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Run the solver to generate algorithms.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "MCC",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(48.dp)
+                    )
+                    Text(
+                        text = metricLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(36.dp)
+                    )
+                    Text(
+                        text = "Algorithm",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(modifier = Modifier.width(40.dp))
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(bottom = 8.dp)
+                ) {
+                    itemsIndexed(displayedSolutions) { index, solution ->
+                        ScoredSolutionRow(
+                            solution = solution,
+                            isCopied = copiedIndex == index,
+                            onCopy = {
+                                clipboardManager.setText(AnnotatedString(solution.algorithm))
+                                copiedIndex = index
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ScoredSolutionRow(
+    solution: ScoredSolution,
+    isCopied: Boolean,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .hoverable(interactionSource)
+            .clickable(onClick = onCopy)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = String.format("%.1f", solution.mcc),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.tertiary,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.width(48.dp)
+        )
+
+        Text(
+            text = solution.moveCount.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.width(36.dp)
+        )
+
+        Text(
+            text = solution.algorithm,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        AnimatedContent(
+            targetState = isCopied,
+            transitionSpec = {
+                (scaleIn(spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn())
+                    .togetherWith(
+                        scaleOut(spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
+                    )
+            },
+            modifier = Modifier.width(40.dp)
+        ) { copied ->
+            if (copied) {
+                Icon(
+                    imageVector = Icons.Filled.Done,
+                    contentDescription = "Copied",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                IconButton(
+                    onClick = onCopy,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = "Copy",
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isHovered) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outline
+                        }
+                    )
+                }
+            }
+        }
+    }
+}

@@ -39,10 +39,7 @@ import kotlin.math.sqrt
 
 data class Point(val x: Float, val y: Float)
 
-data class EdgeSticker(
-    val top: List<Point>,
-    val bottom: List<Point>
-)
+data class EdgeSticker(val top: List<Point>, val bottom: List<Point>)
 
 data class CornerSticker(
     val top: List<Point>,
@@ -61,19 +58,15 @@ data class MegaminxGeometry(
     val cornerStickers: List<CornerSticker>
 )
 
-private fun pointAt(center: Point, distance: Float, angle: Float): Point {
-    return Point(
-        x = center.x + distance * cos(angle),
-        y = center.y + distance * sin(angle)
-    )
-}
+private fun pointAt(center: Point, distance: Float, angle: Float): Point = Point(
+    x = center.x + distance * cos(angle),
+    y = center.y + distance * sin(angle)
+)
 
-private fun lerp(p1: Point, p2: Point, fraction: Float): Point {
-    return Point(
-        x = p1.x * (1 - fraction) + p2.x * fraction,
-        y = p1.y * (1 - fraction) + p2.y * fraction
-    )
-}
+private fun lerp(p1: Point, p2: Point, fraction: Float): Point = Point(
+    x = p1.x * (1 - fraction) + p2.x * fraction,
+    y = p1.y * (1 - fraction) + p2.y * fraction
+)
 
 private fun distance(p1: Point, p2: Point): Float {
     val dx = p2.x - p1.x
@@ -82,8 +75,14 @@ private fun distance(p1: Point, p2: Point): Float {
 }
 
 private fun lineIntersection(
-    x1: Float, y1: Float, x2: Float, y2: Float,
-    x3: Float, y3: Float, x4: Float, y4: Float
+    x1: Float,
+    y1: Float,
+    x2: Float,
+    y2: Float,
+    x3: Float,
+    y3: Float,
+    x4: Float,
+    y4: Float
 ): Point {
     fun det(a: Float, b: Float, c: Float, d: Float) = a * d - b * c
     val denom = det(x1 - x2, y1 - y2, x3 - x4, y3 - y4)
@@ -123,20 +122,30 @@ private fun calculateGeometry(width: Float, height: Float, padding: Float = 10f)
         val prevCorner = (i + 4) % 5
         val nextCorner = (i + 1) % 5
 
-        val intersectionRight = lineIntersection(
-            innerCorners[prevCorner].x, innerCorners[prevCorner].y,
-            innerCorners[i].x, innerCorners[i].y,
-            middleCorners[i].x, middleCorners[i].y,
-            middleCorners[nextCorner].x, middleCorners[nextCorner].y
-        )
+        val intersectionRight =
+            lineIntersection(
+                innerCorners[prevCorner].x,
+                innerCorners[prevCorner].y,
+                innerCorners[i].x,
+                innerCorners[i].y,
+                middleCorners[i].x,
+                middleCorners[i].y,
+                middleCorners[nextCorner].x,
+                middleCorners[nextCorner].y
+            )
         middleEdgesRight[i] = intersectionRight
 
-        val intersectionLeft = lineIntersection(
-            innerCorners[i].x, innerCorners[i].y,
-            innerCorners[nextCorner].x, innerCorners[nextCorner].y,
-            middleCorners[prevCorner].x, middleCorners[prevCorner].y,
-            middleCorners[i].x, middleCorners[i].y
-        )
+        val intersectionLeft =
+            lineIntersection(
+                innerCorners[i].x,
+                innerCorners[i].y,
+                innerCorners[nextCorner].x,
+                innerCorners[nextCorner].y,
+                middleCorners[prevCorner].x,
+                middleCorners[prevCorner].y,
+                middleCorners[i].x,
+                middleCorners[i].y
+            )
         middleEdgesLeft[prevCorner] = intersectionLeft
     }
 
@@ -147,7 +156,8 @@ private fun calculateGeometry(width: Float, height: Float, padding: Float = 10f)
         val prevCorner = (i + 4) % 5
         val nextCorner = (i + 1) % 5
 
-        val fraction = distance(middleEdgesLeft[prevCorner], innerCorners[i]) /
+        val fraction =
+            distance(middleEdgesLeft[prevCorner], innerCorners[i]) /
                 distance(middleEdgesLeft[prevCorner], middleEdgesRight[nextCorner])
 
         val leftOuterCorner = lerp(outerCorners[i], outerCorners[nextCorner], fraction)
@@ -155,41 +165,47 @@ private fun calculateGeometry(width: Float, height: Float, padding: Float = 10f)
         val leftOuterEdge = lerp(outerCorners[nextCorner], outerCorners[i], fraction)
 
         val edgeIndex = (i + 3) % 5
-        edgeStickers[edgeIndex] = EdgeSticker(
-            top = listOf(
-                innerCorners[i],
-                innerCorners[nextCorner],
-                middleEdgesLeft[i],
-                middleEdgesRight[i]
-            ),
-            bottom = listOf(
-                leftOuterCorner,
-                middleEdgesRight[i],
-                middleEdgesLeft[i],
-                leftOuterEdge
+        edgeStickers[edgeIndex] =
+            EdgeSticker(
+                top =
+                    listOf(
+                        innerCorners[i],
+                        innerCorners[nextCorner],
+                        middleEdgesLeft[i],
+                        middleEdgesRight[i]
+                    ),
+                bottom =
+                    listOf(
+                        leftOuterCorner,
+                        middleEdgesRight[i],
+                        middleEdgesLeft[i],
+                        leftOuterEdge
+                    )
             )
-        )
 
         cornerStickers.add(
             CornerSticker(
-                top = listOf(
-                    innerCorners[i],
-                    middleEdgesLeft[prevCorner],
-                    middleCorners[i],
-                    middleEdgesRight[i]
-                ),
-                leftSide = listOf(
-                    middleCorners[i],
-                    middleEdgesRight[i],
-                    leftOuterCorner,
-                    outerCorners[i]
-                ),
-                rightSide = listOf(
-                    middleCorners[i],
-                    middleEdgesLeft[prevCorner],
-                    rightOuterCorner,
-                    outerCorners[i]
-                )
+                top =
+                    listOf(
+                        innerCorners[i],
+                        middleEdgesLeft[prevCorner],
+                        middleCorners[i],
+                        middleEdgesRight[i]
+                    ),
+                leftSide =
+                    listOf(
+                        middleCorners[i],
+                        middleEdgesRight[i],
+                        leftOuterCorner,
+                        outerCorners[i]
+                    ),
+                rightSide =
+                    listOf(
+                        middleCorners[i],
+                        middleEdgesLeft[prevCorner],
+                        rightOuterCorner,
+                        outerCorners[i]
+                    )
             )
         )
     }
@@ -214,13 +230,14 @@ private fun DrawScope.drawPolygon(
 ) {
     if (points.isEmpty()) return
 
-    val path = Path().apply {
-        moveTo(points[0].x, points[0].y)
-        for (i in 1 until points.size) {
-            lineTo(points[i].x, points[i].y)
+    val path =
+        Path().apply {
+            moveTo(points[0].x, points[0].y)
+            for (i in 1 until points.size) {
+                lineTo(points[i].x, points[i].y)
+            }
+            close()
         }
-        close()
-    }
 
     drawPath(path, fillColor, style = Fill)
     drawPath(path, strokeColor, style = Stroke(width = strokeWidth))
@@ -245,7 +262,8 @@ private fun pointInPolygon(point: Point, polygon: List<Point>): Boolean {
         val xj = polygon[j].x
         val yj = polygon[j].y
 
-        val intersect = ((yi > point.y) != (yj > point.y)) &&
+        val intersect =
+            ((yi > point.y) != (yj > point.y)) &&
                 (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
 
         if (intersect) inside = !inside
@@ -344,12 +362,23 @@ fun MegaminxViewer(
             when (selected.type) {
                 StickerType.Corner -> {
                     if (selected.cubieIndex == hovered.cubieIndex) {
-                        val direction = if ((hovered.orientationIndex - selected.orientationIndex + 3) % 3 == 1) 1 else -1
+                        val direction = if ((
+                                hovered.orientationIndex - selected.orientationIndex +
+                                    3
+                                ) %
+                            3 ==
+                            1
+                        ) {
+                            1
+                        } else {
+                            -1
+                        }
                         onRotateCorner(selected.cubieIndex, direction)
                     } else {
                         onSwapCorners(selected.cubieIndex, hovered.cubieIndex)
                     }
                 }
+
                 StickerType.Edge -> {
                     if (selected.cubieIndex == hovered.cubieIndex) {
                         onFlipEdge(selected.cubieIndex)
@@ -357,55 +386,56 @@ fun MegaminxViewer(
                         onSwapEdges(selected.cubieIndex, hovered.cubieIndex)
                     }
                 }
+
                 else -> {}
             }
         }
     }
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectTapGestures(
-                    onPress = { offset ->
-                        val sticker = findStickerAt(offset)
-                        if (sticker != null) {
-                            selectedSticker = sticker
-                            isDragging = true
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectTapGestures(
+                        onPress = { offset ->
+                            val sticker = findStickerAt(offset)
+                            if (sticker != null) {
+                                selectedSticker = sticker
+                                isDragging = true
+                            }
                         }
-                    }
-                )
-            }
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val sticker = findStickerAt(offset)
-                        if (sticker != null) {
-                            selectedSticker = sticker
-                            isDragging = true
-                            dragPosition = offset
+                    )
+                }.pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val sticker = findStickerAt(offset)
+                            if (sticker != null) {
+                                selectedSticker = sticker
+                                isDragging = true
+                                dragPosition = offset
+                            }
+                        },
+                        onDrag = { change, _ ->
+                            dragPosition = change.position
+                            hoveredSticker = findStickerAt(change.position)
+                        },
+                        onDragEnd = {
+                            handleInteraction()
+                            selectedSticker = null
+                            hoveredSticker = null
+                            isDragging = false
+                        },
+                        onDragCancel = {
+                            selectedSticker = null
+                            hoveredSticker = null
+                            isDragging = false
                         }
-                    },
-                    onDrag = { change, _ ->
-                        dragPosition = change.position
-                        hoveredSticker = findStickerAt(change.position)
-                    },
-                    onDragEnd = {
-                        handleInteraction()
-                        selectedSticker = null
-                        hoveredSticker = null
-                        isDragging = false
-                    },
-                    onDragCancel = {
-                        selectedSticker = null
-                        hoveredSticker = null
-                        isDragging = false
-                    }
-                )
-            }
+                    )
+                }
     ) {
         val newSize = minOf(size.width, size.height)
         if (newSize != canvasSize || geometry == null) {
@@ -428,20 +458,29 @@ fun MegaminxViewer(
                 val points = if (sideName == "top") edge.top else edge.bottom
                 val info = StickerInfo(StickerType.Edge, cubieIndex, orientationIndex)
 
-                val isSelected = selectedSticker?.type == StickerType.Edge &&
+                val isSelected =
+                    selectedSticker?.type == StickerType.Edge &&
                         selectedSticker?.cubieIndex == cubieIndex &&
                         selectedSticker?.orientationIndex == orientationIndex
 
-                val isHovered = hoveredSticker?.type == StickerType.Edge &&
+                val isHovered =
+                    hoveredSticker?.type == StickerType.Edge &&
                         hoveredSticker?.cubieIndex == cubieIndex &&
                         hoveredSticker?.orientationIndex == orientationIndex
 
-                val isTarget = isDragging && selectedSticker != null &&
+                val isTarget =
+                    isDragging && selectedSticker != null &&
                         selectedSticker!!.type == StickerType.Edge &&
                         isHovered
 
                 if ((isTarget || (isSelected && isDragging)) && selectedSticker != null) {
-                    val highlightPoints = if (selectedSticker!!.orientationIndex == 0) edge.top else edge.bottom
+                    val highlightPoints = if (selectedSticker!!.orientationIndex ==
+                        0
+                    ) {
+                        edge.top
+                    } else {
+                        edge.bottom
+                    }
                     drawPolygon(highlightPoints, HighlightColor, Color.Transparent, 0f)
                 }
 
@@ -456,30 +495,35 @@ fun MegaminxViewer(
         val cornerSides = listOf("top" to 0, "right" to 1, "left" to 2)
         for ((cubieIndex, corner) in geo.cornerStickers.withIndex()) {
             for ((sideName, orientationIndex) in cornerSides) {
-                val points = when (sideName) {
-                    "top" -> corner.top
-                    "right" -> corner.rightSide
-                    else -> corner.leftSide
-                }
+                val points =
+                    when (sideName) {
+                        "top" -> corner.top
+                        "right" -> corner.rightSide
+                        else -> corner.leftSide
+                    }
 
-                val isSelected = selectedSticker?.type == StickerType.Corner &&
+                val isSelected =
+                    selectedSticker?.type == StickerType.Corner &&
                         selectedSticker?.cubieIndex == cubieIndex &&
                         selectedSticker?.orientationIndex == orientationIndex
 
-                val isHovered = hoveredSticker?.type == StickerType.Corner &&
+                val isHovered =
+                    hoveredSticker?.type == StickerType.Corner &&
                         hoveredSticker?.cubieIndex == cubieIndex &&
                         hoveredSticker?.orientationIndex == orientationIndex
 
-                val isTarget = isDragging && selectedSticker != null &&
+                val isTarget =
+                    isDragging && selectedSticker != null &&
                         selectedSticker!!.type == StickerType.Corner &&
                         isHovered
 
                 if ((isTarget || (isSelected && isDragging)) && selectedSticker != null) {
-                    val highlightPoints = when (selectedSticker!!.orientationIndex) {
-                        0 -> corner.top
-                        1 -> corner.rightSide
-                        else -> corner.leftSide
-                    }
+                    val highlightPoints =
+                        when (selectedSticker!!.orientationIndex) {
+                            0 -> corner.top
+                            1 -> corner.rightSide
+                            else -> corner.leftSide
+                        }
                     drawPolygon(highlightPoints, HighlightColor, Color.Transparent, 0f)
                 }
 
@@ -492,8 +536,8 @@ fun MegaminxViewer(
         }
 
         if (isDragging && selectedSticker != null && hoveredSticker != null &&
-            selectedSticker!!.type == hoveredSticker!!.type) {
-
+            selectedSticker!!.type == hoveredSticker!!.type
+        ) {
             val selected = selectedSticker!!
             val hovered = hoveredSticker!!
 
@@ -504,24 +548,31 @@ fun MegaminxViewer(
                 StickerType.Corner -> {
                     val startCorner = geo.cornerStickers[selected.cubieIndex]
                     val endCorner = geo.cornerStickers[hovered.cubieIndex]
-                    startPoints = when (selected.orientationIndex) {
-                        0 -> startCorner.top
-                        1 -> startCorner.rightSide
-                        else -> startCorner.leftSide
-                    }
-                    endPoints = when (hovered.orientationIndex) {
-                        0 -> endCorner.top
-                        1 -> endCorner.rightSide
-                        else -> endCorner.leftSide
-                    }
+                    startPoints =
+                        when (selected.orientationIndex) {
+                            0 -> startCorner.top
+                            1 -> startCorner.rightSide
+                            else -> startCorner.leftSide
+                        }
+                    endPoints =
+                        when (hovered.orientationIndex) {
+                            0 -> endCorner.top
+                            1 -> endCorner.rightSide
+                            else -> endCorner.leftSide
+                        }
                 }
+
                 StickerType.Edge -> {
                     val startEdge = geo.edgeStickers[selected.cubieIndex]
                     val endEdge = geo.edgeStickers[hovered.cubieIndex]
-                    startPoints = if (selected.orientationIndex == 0) startEdge.top else startEdge.bottom
+                    startPoints =
+                        if (selected.orientationIndex == 0) startEdge.top else startEdge.bottom
                     endPoints = if (hovered.orientationIndex == 0) endEdge.top else endEdge.bottom
                 }
-                else -> return@Canvas
+
+                else -> {
+                    return@Canvas
+                }
             }
 
             val start = getCenterOfPoints(startPoints)
@@ -536,33 +587,35 @@ fun MegaminxViewer(
                 strokeWidth = 3f
             )
 
-            val arrowPath = Path().apply {
-                moveTo(end.x, end.y)
-                lineTo(
-                    end.x - arrowSize * cos(angle - PI.toFloat() / 6),
-                    end.y - arrowSize * sin(angle - PI.toFloat() / 6)
-                )
-                lineTo(
-                    end.x - arrowSize * cos(angle + PI.toFloat() / 6),
-                    end.y - arrowSize * sin(angle + PI.toFloat() / 6)
-                )
-                close()
-            }
-            drawPath(arrowPath, SelectionColor)
-
-            if (selected.cubieIndex != hovered.cubieIndex) {
-                val reverseArrowPath = Path().apply {
-                    moveTo(start.x, start.y)
+            val arrowPath =
+                Path().apply {
+                    moveTo(end.x, end.y)
                     lineTo(
-                        start.x + arrowSize * cos(angle - PI.toFloat() / 6),
-                        start.y + arrowSize * sin(angle - PI.toFloat() / 6)
+                        end.x - arrowSize * cos(angle - PI.toFloat() / 6),
+                        end.y - arrowSize * sin(angle - PI.toFloat() / 6)
                     )
                     lineTo(
-                        start.x + arrowSize * cos(angle + PI.toFloat() / 6),
-                        start.y + arrowSize * sin(angle + PI.toFloat() / 6)
+                        end.x - arrowSize * cos(angle + PI.toFloat() / 6),
+                        end.y - arrowSize * sin(angle + PI.toFloat() / 6)
                     )
                     close()
                 }
+            drawPath(arrowPath, SelectionColor)
+
+            if (selected.cubieIndex != hovered.cubieIndex) {
+                val reverseArrowPath =
+                    Path().apply {
+                        moveTo(start.x, start.y)
+                        lineTo(
+                            start.x + arrowSize * cos(angle - PI.toFloat() / 6),
+                            start.y + arrowSize * sin(angle - PI.toFloat() / 6)
+                        )
+                        lineTo(
+                            start.x + arrowSize * cos(angle + PI.toFloat() / 6),
+                            start.y + arrowSize * sin(angle + PI.toFloat() / 6)
+                        )
+                        close()
+                    }
                 drawPath(reverseArrowPath, SelectionColor)
             }
         }

@@ -12,33 +12,36 @@ object MegaminxColors {
     val Gray = Color(0xFF808080)
 }
 
-val StickerColors = listOf(
-    MegaminxColors.Yellow,
-    MegaminxColors.Red,
-    MegaminxColors.Orange,
-    MegaminxColors.Green,
-    MegaminxColors.Pink,
-    MegaminxColors.Blue
-)
+val StickerColors =
+    listOf(
+        MegaminxColors.Yellow,
+        MegaminxColors.Red,
+        MegaminxColors.Orange,
+        MegaminxColors.Green,
+        MegaminxColors.Pink,
+        MegaminxColors.Blue
+    )
 
-val CornerColorMap = listOf(
-    listOf(0, 3, 4),
-    listOf(0, 4, 5),
-    listOf(0, 5, 1),
-    listOf(0, 1, 2),
-    listOf(0, 2, 3)
-)
+val CornerColorMap =
+    listOf(
+        listOf(0, 3, 4),
+        listOf(0, 4, 5),
+        listOf(0, 5, 1),
+        listOf(0, 1, 2),
+        listOf(0, 2, 3)
+    )
 
-val EdgeColorMap = listOf(
-    listOf(0, 1),
-    listOf(0, 2),
-    listOf(0, 3),
-    listOf(0, 4),
-    listOf(0, 5)
-)
+val EdgeColorMap =
+    listOf(
+        listOf(0, 1),
+        listOf(0, 2),
+        listOf(0, 3),
+        listOf(0, 4),
+        listOf(0, 5)
+    )
 
 val SelectionColor = Color(0xE6800000)
 val HighlightColor = Color(0x26FF0000)
 val StrokeColor = Color.Black
-const val StrokeWidth = 1.5f
-const val StrokeWidthSelected = 3f
+val StrokeWidth = 1.5f
+val StrokeWidthSelected = 3f

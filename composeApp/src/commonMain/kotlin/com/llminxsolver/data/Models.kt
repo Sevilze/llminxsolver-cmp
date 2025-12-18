@@ -19,10 +19,10 @@ enum class AllowedFacesMode(val displayName: String) {
     R_U_L("R, U, L"),
     R_U_F("R, U, F"),
     R_U_D("R, U, D"),
-    R_U_bL("R, U, bL"),
-    R_U_bR("R, U, bR"),
+    R_U_BL("R, U, bL"),
+    R_U_BR("R, U, bR"),
     R_U_L_F("R, U, L, F"),
-    R_U_L_F_bL("R, U, L, F, bL")
+    R_U_L_F_BL("R, U, L, F, bL")
 }
 
 enum class MetricType(val displayName: String) {
@@ -45,20 +45,14 @@ data class SolverState(
     val solutions: List<String> = emptyList()
 )
 
-data class ScoredSolution(
-    val algorithm: String,
-    val mcc: Float,
-    val moveCount: Int
-)
+data class ScoredSolution(val algorithm: String, val mcc: Float, val moveCount: Int)
 
 sealed class StickerType {
     data object Center : StickerType()
+
     data object Corner : StickerType()
+
     data object Edge : StickerType()
 }
 
-data class StickerInfo(
-    val type: StickerType,
-    val cubieIndex: Int,
-    val orientationIndex: Int
-)
+data class StickerInfo(val type: StickerType, val cubieIndex: Int, val orientationIndex: Int)
