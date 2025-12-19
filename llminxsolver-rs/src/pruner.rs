@@ -1,4 +1,5 @@
 use crate::coordinate::{CKN, CoordinateUtil, FAC, POWERS_OF_THREE, POWERS_OF_TWO};
+use crate::data_directory::get_data_directory;
 use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
 use crate::search_mode::Metric;
 use std::fs::{self, File};
@@ -25,7 +26,13 @@ pub trait Pruner: Send + Sync {
             Metric::Fifth => "FIFTH",
             Metric::Face => "FACE",
         };
-        PathBuf::from(format!("{}{}.prn", self.table_path(), metric_suffix))
+        let filename = format!("{}{}.prn", self.table_path(), metric_suffix);
+
+        if let Some(data_dir) = get_data_directory() {
+            data_dir.join(&filename)
+        } else {
+            PathBuf::from(filename)
+        }
     }
 
     fn load_table(&self, metric: Metric) -> Option<Vec<u8>> {

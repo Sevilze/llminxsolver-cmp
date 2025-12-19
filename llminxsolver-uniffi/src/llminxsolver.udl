@@ -1,4 +1,5 @@
 namespace llminxsolver {
+    void set_data_directory(string path);
     f64 calculate_mcc(string sequence);
     u32 get_move_count(string algorithm, string metric);
 };

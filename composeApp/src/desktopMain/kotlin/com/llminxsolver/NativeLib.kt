@@ -1,9 +1,11 @@
 package com.llminxsolver
 
 import java.io.File
+import uniffi.llminxsolver.setDataDirectory
 
 actual object NativeLib {
     private var loaded = false
+    private var initialized = false
 
     actual fun ensureLoaded() {
         if (!loaded) {
@@ -42,6 +44,18 @@ actual object NativeLib {
                     "Warning: Native library not found. Using mock implementation. Error: ${e.message}"
                 )
             }
+        }
+    }
+
+    actual fun initialize(dataDirectory: String) {
+        ensureLoaded()
+        if (loaded && !initialized) {
+            val dataDir = File(dataDirectory)
+            if (!dataDir.exists()) {
+                dataDir.mkdirs()
+            }
+            setDataDirectory(dataDirectory)
+            initialized = true
         }
     }
 }

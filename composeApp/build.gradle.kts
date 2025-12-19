@@ -105,7 +105,7 @@ compose.desktop {
         mainClass = "com.llminxsolver.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "LLMinx Solver"
             packageVersion = "1.0.0"
 

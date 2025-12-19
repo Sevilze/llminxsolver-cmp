@@ -168,21 +168,19 @@ impl SolverHandle {
 
             if let Some(ref cb) = callback {
                 let cb_clone = Arc::clone(cb);
-                solver.set_status_callback(move |event: StatusEvent| {
-                    match event.event_type {
-                        StatusEventType::SolutionFound => {
-                            cb_clone.on_solution_found(event.message.clone());
-                        }
-                        StatusEventType::FinishSearch => {
-                            cb_clone.on_complete();
-                        }
-                        _ => {
-                            cb_clone.on_progress(ProgressEvent {
-                                event_type: format!("{:?}", event.event_type),
-                                message: event.message.clone(),
-                                progress: event.progress,
-                            });
-                        }
+                solver.set_status_callback(move |event: StatusEvent| match event.event_type {
+                    StatusEventType::SolutionFound => {
+                        cb_clone.on_solution_found(event.message.clone());
+                    }
+                    StatusEventType::FinishSearch => {
+                        cb_clone.on_complete();
+                    }
+                    _ => {
+                        cb_clone.on_progress(ProgressEvent {
+                            event_type: format!("{:?}", event.event_type),
+                            message: event.message.clone(),
+                            progress: event.progress,
+                        });
                     }
                 });
             }
@@ -212,4 +210,8 @@ pub fn get_move_count(algorithm: String, metric: String) -> u32 {
 
 pub fn calculate_mcc(sequence: String) -> f64 {
     llminxsolver_rs::calculate_mcc(&sequence)
+}
+
+pub fn set_data_directory(path: String) {
+    llminxsolver_rs::set_data_directory(&path);
 }

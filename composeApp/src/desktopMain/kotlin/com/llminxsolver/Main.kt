@@ -1,14 +1,25 @@
 package com.llminxsolver
 
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.llminxsolver.ui.App
+import java.io.File
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "LLMinx Solver",
-    ) {
-        App()
+fun main() {
+    val userHome = System.getProperty("user.home")
+    val tablesDir = File(userHome, ".llminxsolver/tables")
+    NativeLib.initialize(tablesDir.absolutePath)
+
+    application {
+        val windowState = rememberWindowState(placement = WindowPlacement.Fullscreen)
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "LLMinx Solver",
+            state = windowState
+        ) {
+            App()
+        }
     }
 }
