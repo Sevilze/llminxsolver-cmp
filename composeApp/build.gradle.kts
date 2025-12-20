@@ -108,13 +108,28 @@ compose.desktop {
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "LLMinx Solver"
             packageVersion = "1.0.0"
+            description = "Megaminx Last Layer Solver with Compose Multiplatform GUI"
+            vendor = "Sevilze"
+            licenseFile.set(project.rootProject.file("LICENSE"))
 
             linux {
-                iconFile.set(project.file("icons/icon.png"))
+                iconFile.set(project.file("icons/manimicon.png"))
+                debMaintainer = "sevilzcubing@gmail.com"
+                menuGroup = "Utilities"
+                appCategory = "Utilities"
+                rpmLicenseType = "MIT"
             }
 
             windows {
-                iconFile.set(project.file("icons/icon.ico"))
+                iconFile.set(project.file("icons/manimicon.ico"))
+                menuGroup = "LLMinx Solver"
+                upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+
+            macOS {
+                iconFile.set(project.file("icons/icon.icns"))
+                bundleID = "com.llminxsolver"
+                dockName = "LLMinx Solver"
             }
         }
     }
