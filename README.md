@@ -1,73 +1,104 @@
-# React + TypeScript + Vite
+# LLMinx Solver - Compose Multiplatform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+llminxsolver-cmp is a Megaminx Last Layer solver written in **Rust** with a **Compose Multiplatform** GUI, designed to run on both Mobile and Desktop platforms with a heavy focus on **Material 3 Expressive** theme. The solver uses an IDA\* search algorithm with precomputed pruning tables for finding optimal solutions.
 
-Currently, two official plugins are available:
+The Rust solver library is exposed to Kotlin via [Mozilla's UniFFI](https://github.com/mozilla/uniffi-rs), providing non-blocking solve operations with callback-based progress reporting and thread-safe cancellation support.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Installation
 
-## React Compiler
+### Arch Linux (AUR)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+paru -S llminxsolver-bin
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Or using yay:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+yay -S llminxsolver-bin
 ```
+
+### Debian / Ubuntu
+
+Download the `.deb` file from the [Releases](https://github.com/Sevilze/llminxsolver-cmp/releases) page and install it:
+
+```bash
+sudo dpkg -i llminxsolver_*.deb
+sudo apt-get install -f  # Fix dependencies if needed
+```
+
+### Fedora / Red Hat
+
+Download the `.rpm` file from the [Releases](https://github.com/Sevilze/llminxsolver-cmp/releases) page and install it:
+
+```bash
+sudo rpm -i llminxsolver-*.rpm
+```
+
+### Windows
+
+Download the `.exe` installer from the [Releases](https://github.com/Sevilze/llminxsolver-cmp/releases) page and run it to install the application.
+
+### macOS
+
+Download the `.dmg` file from the [Releases](https://github.com/Sevilze/llminxsolver-cmp/releases) page, open it, and drag the application to your Applications folder.
+
+## Usage Guide
+
+The application is divided into several key components, each handling a specific aspect of the workflow.
+
+---
+
+### 1. Megaminx Viewer
+
+The Megaminx Viewer displays the last layer face with 5 corners and 5 edges. This is where you set up the puzzle state before solving.
+
+**Interactions:**
+
+- Drag between stickers of the same piece type to swap pieces.
+- Drag between stickers on the same corner to rotate its orientation.
+- Drag between stickers on the same edge to flip its orientation.
+
+**Ignore Options:**
+
+Skip certain piece aspects during solving. You can ignore corner positions, edge positions, corner orientations, or edge orientations independently.
+
+---
+
+### 2. Search Configuration
+
+The Search Configuration panel allows you to customize how the solver searches for solutions.
+
+**Allowed Faces:**
+
+Select which face moves the solver is allowed to use. The current supported move sets are RU, RUF, RUL, RUFL, RUFLbL, RUbL, RUbR, and RUD.
+
+**Metric:**
+
+Choose between FTM (Face Turn Metric), which counts consecutive same-face moves as one, and FFTM (Fifth Turn Metric), which counts 72 and 144 degree turns separately.
+
+**Search Depth:**
+
+Enable depth limiting and set a maximum search depth between 1 and 30 moves.
+
+---
+
+### 3. Solving
+
+Press the Solve button to start the search. The Status Bar displays the current search depth, progress percentage, and estimated time remaining. Solutions appear in real-time as they are found. Press Cancel to interrupt the search at any time.
+
+---
+
+### 4. Solutions Panel
+
+Found solutions are displayed with their move sequence notation, FTM and FFTM move counts, and MCC score. The MCC score estimates algorithm speed based on finger simulation, lower scores indicate faster algorithms.
+
+---
+
+## Credits
+
+This project includes code and logic adapted from the following open-source projects:
+
+- **[jazzthief81/llminxsolver](https://github.com/jazzthief81/llminxsolver)**: The original Megaminx last layer solver. The Rust implementation is adapted from this Java-based solver, preserving the IDA\* search algorithm and pruning table strategies.
+
+- **[trangium/BatchSolver](https://github.com/trangium/trangium.github.io/tree/master/BatchSolver)**: The MCC calculation logic and finger simulation model are adapted from this project's algorithm scoring system.
