@@ -226,8 +226,8 @@ class SolverViewModel {
     private fun updateScoredSolutions() {
         val solutions = _solverState.value.solutions
         val metricStr = when (_solverConfig.value.metric) {
-            MetricType.FTM -> "ftm"
-            MetricType.FFTM -> "fftm"
+            MetricType.FTM -> "FTM"
+            MetricType.FFTM -> "FFTM"
         }
 
         val scored = solutions.mapNotNull { alg ->

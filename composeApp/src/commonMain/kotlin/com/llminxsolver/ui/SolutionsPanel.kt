@@ -133,7 +133,7 @@ fun SolutionsPanel(
                 visible = isExpanded,
                 enter = expandVertically(
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMediumLow
                     )
                 ) + fadeIn(
@@ -145,7 +145,7 @@ fun SolutionsPanel(
                         stiffness = Spring.StiffnessMedium
                     )
                 ) + fadeOut(
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                    animationSpec = spring(stiffness = Spring.StiffnessLow)
                 )
             ) {
                 if (solverState.solutions.isEmpty()) {
@@ -163,7 +163,7 @@ fun SolutionsPanel(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .height(400.dp),
                         contentPadding = PaddingValues(
                             start = 16.dp,
                             end = 16.dp,

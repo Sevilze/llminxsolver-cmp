@@ -1,12 +1,17 @@
 package com.llminxsolver.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -16,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchDepthSelector(
     limitDepth: Boolean,
@@ -43,42 +49,47 @@ fun SearchDepthSelector(
                 )
             }
 
-            Switch(
-                checked = limitDepth,
-                onCheckedChange = { if (enabled) onLimitChange(it) },
-                enabled = enabled
-            )
+            MaterialExpressiveTheme(
+                motionScheme = MotionScheme.expressive(),
+                colorScheme = MaterialTheme.colorScheme,
+                typography = MaterialTheme.typography,
+                shapes = MaterialTheme.shapes
+            ) {
+                Switch(
+                    checked = limitDepth,
+                    onCheckedChange = { if (enabled) onLimitChange(it) },
+                    enabled = enabled
+                )
+            }
         }
 
-        AnimatedVisibility(visible = limitDepth) {
+        AnimatedVisibility(
+            visible = limitDepth,
+            enter = expandVertically(
+                animationSpec = MotionScheme.expressive().defaultSpatialSpec()
+            ),
+            exit = shrinkVertically(
+                animationSpec = MotionScheme.expressive().defaultSpatialSpec()
+            )
+        ) {
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             ) {
                 Slider(
                     value = maxDepth.toFloat(),
                     onValueChange = { if (enabled) onDepthChange(it.roundToInt()) },
-                    valueRange = 1f..20f,
-                    steps = 18,
-                    enabled = enabled && limitDepth
+                    valueRange = 1f..30f,
+                    enabled = enabled
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "1",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "20",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(text = "1", style = MaterialTheme.typography.labelSmall)
+                    Text(text = "30", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

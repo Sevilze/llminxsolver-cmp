@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.ScoredSolution
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -62,6 +65,20 @@ fun ScoredSolutionsPanel(
 ) {
     var displayCount by remember { mutableIntStateOf(maxSolutions) }
     var copiedIndex by remember { mutableStateOf<Int?>(null) }
+    var displayMetricLabel by remember { mutableStateOf(metricLabel) }
+
+    LaunchedEffect(scoredSolutions.isEmpty()) {
+        if (scoredSolutions.isEmpty()) {
+            displayMetricLabel = metricLabel
+        }
+    }
+
+    LaunchedEffect(copiedIndex) {
+        if (copiedIndex != null) {
+            delay(1000)
+            copiedIndex = null
+        }
+    }
 
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
@@ -114,8 +131,7 @@ fun ScoredSolutionsPanel(
                     Slider(
                         value = displayCount.toFloat(),
                         onValueChange = { displayCount = it.roundToInt() },
-                        valueRange = 5f..50f,
-                        steps = 8,
+                        valueRange = 5f..100f,
                         modifier = Modifier.width(100.dp)
                     )
                     Text(
@@ -164,11 +180,12 @@ fun ScoredSolutionsPanel(
                         modifier = Modifier.width(48.dp)
                     )
                     Text(
-                        text = metricLabel,
+                        text = displayMetricLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(36.dp)
+                        modifier = Modifier.width(48.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Algorithm",
                         style = MaterialTheme.typography.labelSmall,
@@ -187,9 +204,11 @@ fun ScoredSolutionsPanel(
                     itemsIndexed(displayedSolutions) { index, solution ->
                         ScoredSolutionRow(
                             solution = solution,
+                            metricLabel = displayMetricLabel,
                             isCopied = copiedIndex == index,
                             onCopy = {
-                                clipboardManager.setText(AnnotatedString(solution.algorithm))
+                                val algorithmOnly = solution.algorithm.substringBefore("(").trim()
+                                clipboardManager.setText(AnnotatedString(algorithmOnly))
                                 copiedIndex = index
                             }
                         )
@@ -204,6 +223,7 @@ fun ScoredSolutionsPanel(
 @Composable
 private fun ScoredSolutionRow(
     solution: ScoredSolution,
+    metricLabel: String,
     isCopied: Boolean,
     onCopy: () -> Unit,
     modifier: Modifier = Modifier
@@ -233,8 +253,9 @@ private fun ScoredSolutionRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = FontFamily.Monospace,
-            modifier = Modifier.width(36.dp)
+            modifier = Modifier.width(48.dp)
         )
+        Spacer(modifier = Modifier.width(8.dp))
 
         Text(
             text = solution.algorithm,
