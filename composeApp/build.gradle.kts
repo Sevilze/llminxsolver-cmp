@@ -107,7 +107,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "LLMinx Solver"
-            packageVersion = "1.0.0"
+            packageVersion = System.getenv("APP_VERSION") ?: "1.0.0"
             description = "Megaminx Last Layer Solver with Compose Multiplatform GUI"
             vendor = "Sevilze"
             licenseFile.set(project.rootProject.file("LICENSE"))
