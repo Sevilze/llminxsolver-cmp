@@ -104,12 +104,18 @@ jobs:
 
       - name: Generate Windows Icon
         run: |
-          choco install imagemagick -y
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          magick composeApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 composeApp/icons/manimicon.ico
+          choco install imagemagick -y --no-progress
+          $magick = (Get-ChildItem "C:\Program Files\ImageMagick-*\magick.exe" | Select-Object -First 1).FullName
+          if (!$magick) { Write-Error "ImageMagick not found"; exit 1 }
+          & $magick composeApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 composeApp/icons/manimicon.ico
+          if (!(Test-Path composeApp/icons/manimicon.ico)) {
+            Write-Error "Failed to create manimicon.ico"
+            exit 1
+          }
+        shell: pwsh
 
       - name: Build Desktop Package
-        run: ./gradlew :composeApp:packageExe
+        run: ./gradlew :composeApp:packageExe --stacktrace
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
@@ -130,12 +136,19 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
 
-      - name: Build Native Library
+      - name: Build Universal Native Library
         run: |
-          cargo build -p llminxsolver-uniffi --release
+          cargo build -p llminxsolver-uniffi --release --target x86_64-apple-darwin
+          cargo build -p llminxsolver-uniffi --release --target aarch64-apple-darwin
+
           mkdir -p composeApp/src/desktopMain/resources
-          cp target/release/libllminxsolver_uniffi.dylib composeApp/src/desktopMain/resources/
+          lipo -create \
+            target/x86_64-apple-darwin/release/libllminxsolver_uniffi.dylib \
+            target/aarch64-apple-darwin/release/libllminxsolver_uniffi.dylib \
+            -output composeApp/src/desktopMain/resources/libllminxsolver_uniffi.dylib
 
       - name: Generate macOS Icon
         run: |
