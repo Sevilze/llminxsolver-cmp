@@ -103,19 +103,10 @@ jobs:
           Copy-Item target/release/llminxsolver_uniffi.dll composeApp/src/desktopMain/resources/
 
       - name: Generate Windows Icon
-        run: |
-          choco install imagemagick -y --no-progress
-          $magick = (Get-ChildItem "C:\Program Files\ImageMagick-*\magick.exe" | Select-Object -First 1).FullName
-          if (!$magick) { Write-Error "ImageMagick not found"; exit 1 }
-          & $magick composeApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 composeApp/icons/manimicon.ico
-          if (!(Test-Path composeApp/icons/manimicon.ico)) {
-            Write-Error "Failed to create manimicon.ico"
-            exit 1
-          }
-        shell: pwsh
+        run: magick composeApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 composeApp/icons/manimicon.ico
 
       - name: Build Desktop Package
-        run: ./gradlew :composeApp:packageExe --stacktrace
+        run: .\gradlew.bat :composeApp:packageExe
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
