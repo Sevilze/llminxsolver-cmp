@@ -13,7 +13,7 @@ fun main() {
     NativeLib.initialize(tablesDir.absolutePath)
 
     application {
-        val windowState = rememberWindowState(placement = WindowPlacement.Fullscreen)
+        val windowState = rememberWindowState(placement = WindowPlacement.Maximized)
         Window(
             onCloseRequest = ::exitApplication,
             title = "LLMinx Solver",
