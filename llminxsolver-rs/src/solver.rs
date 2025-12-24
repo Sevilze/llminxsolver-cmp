@@ -1,9 +1,11 @@
+use crate::memory_config::MemoryConfig;
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
 use crate::pruner::Pruner;
 use crate::search_mode::{Metric, SearchMode};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StatusEventType {
@@ -34,7 +36,17 @@ impl StatusEvent {
     }
 }
 
-pub type StatusCallback = Box<dyn Fn(StatusEvent) + Send + Sync>;
+pub type StatusCallback = Arc<dyn Fn(StatusEvent) + Send + Sync>;
+
+struct SearchContext<'a> {
+    tables: &'a [Arc<Vec<u8>>],
+    pruners: &'a [&'a dyn Pruner],
+    first_moves: &'a [Move],
+    next_siblings: &'a [Vec<Option<Move>>],
+    interrupted: &'a Arc<AtomicBool>,
+    solution_tx: &'a crossbeam_channel::Sender<String>,
+    status_tx: &'a crossbeam_channel::Sender<StatusEvent>,
+}
 
 pub struct Solver {
     search_mode: SearchMode,
@@ -48,8 +60,9 @@ pub struct Solver {
     ignore_edge_orientations: bool,
     interrupted: Arc<AtomicBool>,
     status_callback: Option<StatusCallback>,
+    memory_config: MemoryConfig,
     pruners: Vec<Box<dyn Pruner>>,
-    tables: Vec<Vec<u8>>,
+    tables: Vec<Arc<Vec<u8>>>,
     moves: Vec<Move>,
     first_moves: Vec<Move>,
     next_siblings: Vec<Vec<Option<Move>>>,
@@ -69,6 +82,14 @@ impl Solver {
     }
 
     pub fn with_config(search_mode: SearchMode, max_depth: usize) -> Self {
+        Self::with_parallel_config(search_mode, max_depth, MemoryConfig::default())
+    }
+
+    pub fn with_parallel_config(
+        search_mode: SearchMode,
+        max_depth: usize,
+        memory_config: MemoryConfig,
+    ) -> Self {
         Self {
             search_mode,
             metric: Metric::Fifth,
@@ -81,6 +102,7 @@ impl Solver {
             ignore_edge_orientations: false,
             interrupted: Arc::new(AtomicBool::new(false)),
             status_callback: None,
+            memory_config,
             pruners: Vec::new(),
             tables: Vec::new(),
             moves: Vec::new(),
@@ -89,6 +111,14 @@ impl Solver {
             last_search_mode: None,
             last_metric: None,
         }
+    }
+
+    pub fn memory_config(&self) -> &MemoryConfig {
+        &self.memory_config
+    }
+
+    pub fn set_memory_config(&mut self, config: MemoryConfig) {
+        self.memory_config = config;
     }
 
     pub fn search_mode(&self) -> SearchMode {
@@ -151,7 +181,7 @@ impl Solver {
     where
         F: Fn(StatusEvent) + Send + Sync + 'static,
     {
-        self.status_callback = Some(Box::new(callback));
+        self.status_callback = Some(Arc::new(callback));
     }
 
     pub fn interrupt_handle(&self) -> Arc<AtomicBool> {
@@ -173,9 +203,9 @@ impl Solver {
     }
 
     pub fn solve(&mut self) -> Vec<String> {
+        let num_threads = self.memory_config.search_threads;
         let start_time = std::time::Instant::now();
         self.interrupted.store(false, Ordering::SeqCst);
-        let mut solutions = Vec::new();
 
         if self.search_mode != self.last_search_mode.unwrap_or(self.search_mode)
             || self.metric != self.last_metric.unwrap_or(self.metric)
@@ -202,17 +232,18 @@ impl Solver {
             false, false, false, false, false, false, false, false, false, false,
         ];
 
+        let mut start = self.start.clone();
         if self.ignore_corner_positions {
-            self.start.set_ignore_corner_positions(IGNORE_CORNER_5);
+            start.set_ignore_corner_positions(IGNORE_CORNER_5);
         }
         if self.ignore_edge_positions {
-            self.start.set_ignore_edge_positions(IGNORE_EDGE_5);
+            start.set_ignore_edge_positions(IGNORE_EDGE_5);
         }
         if self.ignore_corner_orientations {
-            self.start.set_ignore_corner_orientations(IGNORE_CORNER_5);
+            start.set_ignore_corner_orientations(IGNORE_CORNER_5);
         }
         if self.ignore_edge_orientations {
-            self.start.set_ignore_edge_orientations(IGNORE_EDGE_5);
+            start.set_ignore_edge_orientations(IGNORE_EDGE_5);
         }
 
         let mut goal = LLMinx::new();
@@ -231,138 +262,131 @@ impl Solver {
 
         let used_pruners = self.filter_pruning_tables();
 
-        if !self.is_interrupted() {
+        if self.is_interrupted() {
+            return Vec::new();
+        }
+
+        self.fire_event(StatusEvent::new(
+            StatusEventType::StartSearch,
+            &format!("Searching with {} threads...", num_threads),
+            0.0,
+        ));
+
+        let max_search_depth = if self.limit_depth {
+            self.max_depth
+        } else {
+            127
+        };
+
+        let (solution_tx, solution_rx) = crossbeam_channel::unbounded::<String>();
+        let (status_tx, status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+
+        let status_callback_clone = self.status_callback.clone();
+        let status_thread = std::thread::spawn(move || {
+            for event in status_rx.iter() {
+                if let Some(ref callback) = status_callback_clone {
+                    callback(event);
+                }
+            }
+        });
+
+        let tables: Vec<Arc<Vec<u8>>> = used_pruners.iter().map(|(t, _)| Arc::clone(t)).collect();
+        let pruner_indices: Vec<usize> = self
+            .pruners
+            .iter()
+            .enumerate()
+            .filter(|(_, pruner)| {
+                let dominated = (pruner.uses_corner_permutation() && self.ignore_corner_positions)
+                    || (pruner.uses_edge_permutation() && self.ignore_edge_positions)
+                    || (pruner.uses_corner_orientation() && self.ignore_corner_orientations)
+                    || (pruner.uses_edge_orientation() && self.ignore_edge_orientations);
+                !dominated
+            })
+            .map(|(i, _)| i)
+            .collect();
+
+        let moves = self.moves.clone();
+        let first_moves = self.first_moves.clone();
+        let next_siblings = self.next_siblings.clone();
+        let interrupted = Arc::clone(&self.interrupted);
+
+        let search_mode = self.search_mode;
+
+        for depth in 1..=max_search_depth {
+            if interrupted.load(Ordering::SeqCst) {
+                break;
+            }
+
+            let depth_start_time = std::time::Instant::now();
+
             self.fire_event(StatusEvent::new(
-                StatusEventType::StartSearch,
-                "Searching...",
+                StatusEventType::StartDepth,
+                &format!("Searching depth {} ({} threads)...", depth, num_threads),
                 0.0,
             ));
 
-            let max_search_depth = if self.limit_depth {
-                self.max_depth
-            } else {
-                127
-            };
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(num_threads)
+                .build()
+                .unwrap();
 
-            for depth in 1..=max_search_depth {
-                if self.is_interrupted() {
-                    break;
-                }
+            let moves_clone = moves.clone();
+            let first_moves_clone = first_moves.clone();
+            let next_siblings_clone = next_siblings.clone();
+            let tables_clone = tables.clone();
+            let pruner_indices_clone = pruner_indices.clone();
+            let start_clone = start.clone();
+            let goal_clone = goal.clone();
+            let interrupted_clone = Arc::clone(&interrupted);
+            let solution_tx_clone = solution_tx.clone();
+            let search_mode_clone = search_mode;
 
-                let depth_start_time = std::time::Instant::now();
+            let status_tx_clone = status_tx.clone();
 
-                self.fire_event(StatusEvent::new(
-                    StatusEventType::StartDepth,
-                    &format!("Searching depth {}...", depth),
-                    0.0,
-                ));
-
-                let mut minx = self.start.clone();
-                let mut stop = false;
-                let num_moves = self.moves.len();
-                let total_branches = if depth >= 2 {
-                    num_moves * num_moves
-                } else {
-                    num_moves
-                };
-                let mut last_reported_branch: Option<(Option<Move>, Option<Move>)> = None;
-
-                while !stop && !self.is_interrupted() {
-                    let levels_left = depth.saturating_sub(minx.depth());
-
-                    // Track progress by monitoring the first two moves in the current path
-                    if minx.depth() > 0 {
-                        let moves_slice = minx.moves();
-                        let first_move = moves_slice.first().copied();
-                        let second_move = moves_slice.get(1).copied();
-                        let current_branch = (first_move, second_move);
-
-                        if current_branch != last_reported_branch.unwrap_or((None, None)) {
-                            last_reported_branch = Some(current_branch);
-
-                            if let Some(fm) = first_move {
-                                let first_idx =
-                                    self.moves.iter().position(|&m| m == fm).unwrap_or(0);
-
-                                let progress = if depth >= 2 {
-                                    let second_idx = second_move
-                                        .and_then(|sm| self.moves.iter().position(|&m| m == sm))
-                                        .unwrap_or(0);
-                                    (first_idx * num_moves + second_idx) as f64
-                                        / total_branches as f64
-                                } else {
-                                    first_idx as f64 / num_moves as f64
-                                };
-
-                                // Calculate ETR based on elapsed time and progress
-                                let elapsed = depth_start_time.elapsed().as_secs_f64();
-                                let etr = if progress > 0.001 {
-                                    (elapsed / progress) * (1.0 - progress)
-                                } else {
-                                    0.0
-                                };
-
-                                let etr_str = if etr > 0.0 && etr < 3600.0 {
-                                    format!(" (ETR: {:.1}s)", etr)
-                                } else if etr >= 3600.0 {
-                                    format!(" (ETR: {:.1}m)", etr / 60.0)
-                                } else {
-                                    String::new()
-                                };
-
-                                self.fire_event(StatusEvent::new(
-                                    StatusEventType::StartDepth,
-                                    &format!("Searching depth {}...{}", depth, etr_str),
-                                    progress,
-                                ));
-                            }
-                        }
+            pool.install(|| {
+                moves_clone.par_iter().for_each(|&first_move| {
+                    if interrupted_clone.load(Ordering::Relaxed) {
+                        return;
                     }
 
-                    if minx.state_equals(&goal) {
-                        if levels_left == 0 && Self::check_optimal(&minx) {
-                            let msg = format!(
-                                "{} ({},{})",
-                                minx.get_generating_moves(),
-                                minx.get_ftm_length(),
-                                minx.get_fftm_length()
-                            );
-                            self.fire_event(StatusEvent::new(
-                                StatusEventType::SolutionFound,
-                                &msg,
-                                0.0,
-                            ));
-                            solutions.push(msg);
-                        }
-                        stop = self.back_track(&mut minx);
-                    } else if levels_left > 0 {
-                        let mut pruned = false;
-                        for &(table_idx, pruner) in &used_pruners {
-                            let coord = pruner.get_coordinate(&minx);
-                            if self.tables[table_idx][coord] as usize > levels_left {
-                                pruned = true;
-                                break;
-                            }
-                        }
+                    let mut minx = start_clone.clone();
+                    minx.apply_move(first_move);
 
-                        if !pruned {
-                            stop = self.next_node(&mut minx, depth);
-                        } else {
-                            stop = self.back_track(&mut minx);
-                        }
-                    } else {
-                        stop = self.next_node(&mut minx, depth);
-                    }
-                }
+                    let all_pruners = search_mode_clone.create_pruners();
+                    let local_pruners: Vec<&dyn Pruner> = pruner_indices_clone
+                        .iter()
+                        .filter_map(|&i| all_pruners.get(i).map(|p| p.as_ref()))
+                        .collect();
 
-                let depth_elapsed = depth_start_time.elapsed().as_secs_f64();
-                self.fire_event(StatusEvent::new(
-                    StatusEventType::EndDepth,
-                    &format!("Finished depth {} in {:.1}s", depth, depth_elapsed),
-                    1.0,
-                ));
-            }
+                    let ctx = SearchContext {
+                        tables: &tables_clone,
+                        pruners: &local_pruners,
+                        first_moves: &first_moves_clone,
+                        next_siblings: &next_siblings_clone,
+                        interrupted: &interrupted_clone,
+                        solution_tx: &solution_tx_clone,
+                        status_tx: &status_tx_clone,
+                    };
+
+                    Self::search_branch(&mut minx, &goal_clone, depth, &ctx);
+                });
+            });
+            let depth_elapsed = depth_start_time.elapsed().as_secs_f64();
+
+            self.fire_event(StatusEvent::new(
+                StatusEventType::EndDepth,
+                &format!("Finished depth {} in {:.1}s", depth, depth_elapsed),
+                1.0,
+            ));
         }
+
+        drop(solution_tx);
+        drop(status_tx);
+
+        // Wait for the status thread to finish processing all events
+        let _ = status_thread.join();
+
+        let solutions: Vec<String> = solution_rx.iter().collect();
 
         let elapsed = start_time.elapsed();
         let was_interrupted = self.is_interrupted();
@@ -377,6 +401,120 @@ impl Solver {
         self.fire_event(StatusEvent::new(StatusEventType::FinishSearch, &msg, 1.0));
 
         solutions
+    }
+
+    fn search_branch(minx: &mut LLMinx, goal: &LLMinx, target_depth: usize, ctx: &SearchContext) {
+        let mut stop = false;
+
+        while !stop && !ctx.interrupted.load(Ordering::Relaxed) {
+            let levels_left = target_depth.saturating_sub(minx.depth());
+
+            if minx.state_equals(goal) {
+                if levels_left == 0 && Self::check_optimal(minx) {
+                    let msg = format!(
+                        "{} ({},{})",
+                        minx.get_generating_moves(),
+                        minx.get_ftm_length(),
+                        minx.get_fftm_length()
+                    );
+                    let _ = ctx.solution_tx.send(msg.clone());
+                    let _ = ctx.status_tx.send(StatusEvent::new(
+                        StatusEventType::SolutionFound,
+                        &msg,
+                        0.0,
+                    ));
+                }
+                stop = Self::back_track(minx, ctx.next_siblings);
+            } else if levels_left > 0 {
+                let mut pruned = false;
+                for (table_idx, pruner) in ctx.pruners.iter().enumerate() {
+                    if let Some(table) = ctx.tables.get(table_idx) {
+                        let coord = pruner.get_coordinate(minx);
+                        if coord < table.len() && table[coord] as usize > levels_left {
+                            pruned = true;
+                            break;
+                        }
+                    }
+                }
+
+                if !pruned {
+                    stop = Self::next_node(minx, target_depth, ctx.first_moves, ctx.next_siblings);
+                } else {
+                    stop = Self::back_track(minx, ctx.next_siblings);
+                }
+            } else {
+                stop = Self::next_node(minx, target_depth, ctx.first_moves, ctx.next_siblings);
+            }
+        }
+    }
+
+    fn next_node(
+        minx: &mut LLMinx,
+        target_depth: usize,
+        first_moves: &[Move],
+        next_siblings: &[Vec<Option<Move>>],
+    ) -> bool {
+        if minx.depth() < target_depth {
+            let last_move_index = minx.last_move().map(|m| m as usize + 1).unwrap_or(0);
+            if last_move_index < first_moves.len() {
+                let first = first_moves[last_move_index];
+                minx.apply_move(first);
+                false
+            } else {
+                true
+            }
+        } else {
+            Self::back_track(minx, next_siblings)
+        }
+    }
+
+    fn back_track(minx: &mut LLMinx, next_siblings: &[Vec<Option<Move>>]) -> bool {
+        if minx.depth() <= 1 {
+            return true;
+        }
+
+        let sibling = minx.undo_move();
+        let Some(sibling) = sibling else {
+            return true;
+        };
+
+        let last_move = minx.last_move();
+        let last_move_index = last_move.map(|m| m as usize + 1).unwrap_or(0);
+
+        if last_move_index >= next_siblings.len() {
+            return true;
+        }
+
+        let sibling_idx = sibling as usize;
+        let mut next_sibling = if sibling_idx < next_siblings[last_move_index].len() {
+            next_siblings[last_move_index][sibling_idx]
+        } else {
+            None
+        };
+
+        while last_move.is_some() && next_sibling.is_none() && minx.depth() > 1 {
+            let Some(s) = minx.undo_move() else {
+                return true;
+            };
+            let lm = minx.last_move();
+            let lm_index = lm.map(|m| m as usize + 1).unwrap_or(0);
+            if lm_index < next_siblings.len() && (s as usize) < next_siblings[lm_index].len() {
+                next_sibling = next_siblings[lm_index][s as usize];
+            } else {
+                next_sibling = None;
+            }
+
+            if lm.is_none() && next_sibling.is_none() {
+                return true;
+            }
+        }
+
+        if let Some(ns) = next_sibling {
+            minx.apply_move(ns);
+            false
+        } else {
+            true
+        }
     }
 
     fn build_moves_table(&mut self) {
@@ -464,9 +602,10 @@ impl Solver {
                     0.0,
                 ));
                 if let Some(table) = pruner.load_table(self.metric) {
-                    self.tables.push(table);
+                    self.tables.push(Arc::new(table));
                 } else {
-                    self.tables.push(self.build_pruning_table(pruner.as_ref()));
+                    let table = self.build_pruning_table(pruner.as_ref());
+                    self.tables.push(Arc::new(table));
                 }
             } else {
                 self.fire_event(StatusEvent::new(
@@ -492,20 +631,30 @@ impl Solver {
                     1.0,
                 ));
 
-                self.tables.push(table);
+                self.tables.push(Arc::new(table));
             }
         }
     }
 
     fn build_pruning_table(&self, pruner: &dyn Pruner) -> Vec<u8> {
+        let num_threads = self.memory_config.table_generation_threads;
+
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .map(|pool| pool.install(|| self.build_pruning_table_internal(pruner)))
+            .unwrap_or_else(|_| self.build_pruning_table_internal(pruner))
+    }
+
+    fn build_pruning_table_internal(&self, pruner: &dyn Pruner) -> Vec<u8> {
         let table_size = pruner.table_size();
-        let mut table = vec![u8::MAX; table_size];
+        let table: Vec<AtomicU8> = (0..table_size).map(|_| AtomicU8::new(u8::MAX)).collect();
 
-        let mut minx = LLMinx::new();
+        let minx = LLMinx::new();
         let coord = pruner.get_coordinate(&minx);
-        table[coord] = 0;
+        table[coord].store(0, Ordering::Relaxed);
 
-        let mut nodes = 1usize;
+        let mut total_nodes = 1usize;
         let mut prev_depth_count = 1usize;
         let mut depth: u8 = 0;
 
@@ -513,66 +662,96 @@ impl Solver {
             self.fire_event(StatusEvent::new(
                 StatusEventType::Message,
                 &format!("Depth {}: {}", depth, prev_depth_count),
-                nodes as f64 / table_size as f64,
+                total_nodes as f64 / table_size as f64,
             ));
 
-            let forward_search = prev_depth_count < table_size - nodes;
-            prev_depth_count = 0;
+            let forward_search = prev_depth_count < table_size - total_nodes;
             let next_depth = depth + 1;
 
-            if forward_search {
-                for i in 0..table_size {
-                    if self.is_interrupted() {
-                        break;
-                    }
+            let new_count = if forward_search {
+                let interrupted = &self.interrupted;
+                let moves = &self.moves;
 
-                    if table[i] == depth {
-                        pruner.set_minx(i, &mut minx);
-
-                        for &m in &self.moves {
-                            minx.apply_move(m);
-                            let new_coord = pruner.get_coordinate(&minx);
-                            if table[new_coord] == u8::MAX {
-                                table[new_coord] = next_depth;
-                                nodes += 1;
-                                prev_depth_count += 1;
+                (0..table_size)
+                    .into_par_iter()
+                    .fold(
+                        || (LLMinx::new(), 0usize),
+                        |(mut local_minx, mut count), i| {
+                            if interrupted.load(Ordering::Relaxed) {
+                                return (local_minx, count);
                             }
-                            minx.undo_move();
-                        }
-                    }
-                }
+
+                            if table[i].load(Ordering::Relaxed) == depth {
+                                pruner.set_minx(i, &mut local_minx);
+
+                                for &m in moves {
+                                    local_minx.apply_move(m);
+                                    let new_coord = pruner.get_coordinate(&local_minx);
+                                    if table[new_coord]
+                                        .compare_exchange(
+                                            u8::MAX,
+                                            next_depth,
+                                            Ordering::Relaxed,
+                                            Ordering::Relaxed,
+                                        )
+                                        .is_ok()
+                                    {
+                                        count += 1;
+                                    }
+                                    local_minx.undo_move();
+                                }
+                            }
+                            (local_minx, count)
+                        },
+                    )
+                    .map(|(_, count)| count)
+                    .sum::<usize>()
             } else {
-                for i in 0..table_size {
-                    if self.is_interrupted() {
-                        break;
-                    }
+                let interrupted = &self.interrupted;
+                let moves = &self.moves;
 
-                    if table[i] == u8::MAX {
-                        pruner.set_minx(i, &mut minx);
-
-                        for &m in &self.moves {
-                            minx.apply_move(m);
-                            let new_coord = pruner.get_coordinate(&minx);
-                            if table[new_coord] == depth {
-                                table[i] = next_depth;
-                                nodes += 1;
-                                prev_depth_count += 1;
-                                minx.undo_move();
-                                break;
+                (0..table_size)
+                    .into_par_iter()
+                    .fold(
+                        || (LLMinx::new(), 0usize),
+                        |(mut local_minx, mut count), i| {
+                            if interrupted.load(Ordering::Relaxed) {
+                                return (local_minx, count);
                             }
-                            minx.undo_move();
-                        }
-                    }
-                }
-            }
 
+                            if table[i].load(Ordering::Relaxed) == u8::MAX {
+                                pruner.set_minx(i, &mut local_minx);
+
+                                for &m in moves {
+                                    local_minx.apply_move(m);
+                                    let new_coord = pruner.get_coordinate(&local_minx);
+                                    if table[new_coord].load(Ordering::Relaxed) == depth {
+                                        table[i].store(next_depth, Ordering::Relaxed);
+                                        count += 1;
+                                        break;
+                                    }
+                                    local_minx.undo_move();
+                                }
+                            }
+                            (local_minx, count)
+                        },
+                    )
+                    .map(|(_, count)| count)
+                    .sum::<usize>()
+            };
+
+            total_nodes += new_count;
+            prev_depth_count = new_count;
             depth += 1;
         }
 
         table
+            .into_iter()
+            .map(|a| a.load(Ordering::Relaxed))
+            .collect()
     }
 
-    fn filter_pruning_tables(&self) -> Vec<(usize, &dyn Pruner)> {
+    fn filter_pruning_tables(&self) -> Vec<(Arc<Vec<u8>>, &dyn Pruner)> {
         self.pruners
             .iter()
             .enumerate()
@@ -583,8 +762,28 @@ impl Solver {
                     || (pruner.uses_edge_orientation() && self.ignore_edge_orientations);
                 !dominated
             })
-            .map(|(i, pruner)| (i, pruner.as_ref()))
+            .map(|(i, pruner)| (Arc::clone(&self.tables[i]), pruner.as_ref()))
             .collect()
+    }
+
+    pub fn get_tables(&self) -> &[Arc<Vec<u8>>] {
+        &self.tables
+    }
+
+    pub fn get_pruners(&self) -> &[Box<dyn Pruner>] {
+        &self.pruners
+    }
+
+    pub fn get_moves(&self) -> &[Move] {
+        &self.moves
+    }
+
+    pub fn get_first_moves(&self) -> &[Move] {
+        &self.first_moves
+    }
+
+    pub fn get_next_siblings(&self) -> &[Vec<Option<Move>>] {
+        &self.next_siblings
     }
 
     fn check_optimal(minx: &LLMinx) -> bool {
@@ -613,53 +812,6 @@ impl Solver {
             }
         }
         true
-    }
-
-    fn next_node(&self, minx: &mut LLMinx, target_depth: usize) -> bool {
-        if minx.depth() < target_depth {
-            let last_move_index = minx.last_move().map(|m| m as usize + 1).unwrap_or(0);
-            let first = self.first_moves[last_move_index];
-            minx.apply_move(first);
-            false
-        } else {
-            self.back_track(minx)
-        }
-    }
-
-    fn back_track(&self, minx: &mut LLMinx) -> bool {
-        if minx.depth() == 0 {
-            return true;
-        }
-
-        let sibling = minx.undo_move();
-        let Some(sibling) = sibling else {
-            return true;
-        };
-
-        let last_move = minx.last_move();
-        let last_move_index = last_move.map(|m| m as usize + 1).unwrap_or(0);
-
-        let mut next_sibling = self.next_siblings[last_move_index][sibling as usize];
-
-        while last_move.is_some() && next_sibling.is_none() {
-            let Some(s) = minx.undo_move() else {
-                return true;
-            };
-            let lm = minx.last_move();
-            let lm_index = lm.map(|m| m as usize + 1).unwrap_or(0);
-            next_sibling = self.next_siblings[lm_index][s as usize];
-
-            if lm.is_none() && next_sibling.is_none() {
-                return true;
-            }
-        }
-
-        if let Some(ns) = next_sibling {
-            minx.apply_move(ns);
-            false
-        } else {
-            true
-        }
     }
 }
 
