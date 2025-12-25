@@ -14,7 +14,7 @@ data class IgnoreFlags(
     val edgeOrientations: Boolean = false
 )
 
-enum class AllowedFacesMode(val displayName: String) {
+enum class GeneratorMode(val displayName: String) {
     R_U("R, U"),
     R_U_L("R, U, L"),
     R_U_F("R, U, F"),
@@ -30,13 +30,38 @@ enum class MetricType(val displayName: String) {
     FFTM("FFTM")
 }
 
+data class ParallelConfig(
+    val memoryBudgetMb: Int = 256,
+    val tableGenThreads: Int = 2,
+    val searchThreads: Int = 4
+) {
+    companion object {
+        fun forMobile(): ParallelConfig = ParallelConfig(
+            memoryBudgetMb = 256,
+            tableGenThreads = 2,
+            searchThreads = 4
+        )
+
+        fun forDesktop(availableCpus: Int, availableMemoryMb: Int): ParallelConfig = ParallelConfig(
+            memoryBudgetMb = (availableMemoryMb * 0.5).toInt().coerceAtLeast(256),
+            tableGenThreads = availableCpus,
+            searchThreads = availableCpus
+        )
+    }
+}
+
 data class SolverConfig(
-    val allowedFaces: AllowedFacesMode = AllowedFacesMode.R_U,
+    val generatorMode: GeneratorMode = GeneratorMode.R_U,
+    val selectedModes: Set<GeneratorMode> = setOf(GeneratorMode.R_U),
     val metric: MetricType = MetricType.FTM,
     val limitDepth: Boolean = false,
     val maxDepth: Int = 12,
-    val ignoreFlags: IgnoreFlags = IgnoreFlags()
-)
+    val ignoreFlags: IgnoreFlags = IgnoreFlags(),
+    val parallelConfig: ParallelConfig = ParallelConfig()
+) {
+    val isMultiMode: Boolean
+        get() = selectedModes.size > 1
+}
 
 data class SolverState(
     val isSearching: Boolean = false,

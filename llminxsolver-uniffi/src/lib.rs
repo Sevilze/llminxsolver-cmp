@@ -1,4 +1,4 @@
-use llminxsolver_rs::{LLMinx, Solver, StatusEvent, StatusEventType};
+use llminxsolver_rs::{LLMinx, MemoryConfig, ParallelSolver, Solver, StatusEvent, StatusEventType};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 
@@ -47,6 +47,34 @@ impl From<Metric> for llminxsolver_rs::Metric {
 }
 
 #[derive(Debug, Clone)]
+pub struct ParallelConfig {
+    pub memory_budget_mb: u32,
+    pub table_gen_threads: u32,
+    pub search_threads: u32,
+}
+
+impl Default for ParallelConfig {
+    fn default() -> Self {
+        let config = MemoryConfig::default();
+        Self {
+            memory_budget_mb: config.budget_mb() as u32,
+            table_gen_threads: config.table_generation_threads as u32,
+            search_threads: config.search_threads as u32,
+        }
+    }
+}
+
+impl From<ParallelConfig> for MemoryConfig {
+    fn from(config: ParallelConfig) -> Self {
+        MemoryConfig::new(
+            config.memory_budget_mb as usize,
+            config.table_gen_threads as usize,
+            config.search_threads as usize,
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct SolverConfig {
     pub search_mode: SearchMode,
     pub metric: Metric,
@@ -56,6 +84,20 @@ pub struct SolverConfig {
     pub ignore_edge_positions: bool,
     pub ignore_corner_orientations: bool,
     pub ignore_edge_orientations: bool,
+    pub parallel_config: Option<ParallelConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParallelSolverConfig {
+    pub search_modes: Vec<SearchMode>,
+    pub metric: Metric,
+    pub limit_depth: bool,
+    pub max_depth: u32,
+    pub ignore_corner_positions: bool,
+    pub ignore_edge_positions: bool,
+    pub ignore_corner_orientations: bool,
+    pub ignore_edge_orientations: bool,
+    pub parallel_config: ParallelConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -148,7 +190,12 @@ impl SolverHandle {
 
             let start_state = build_llminx(&state);
 
-            let mut solver = Solver::with_config(search_mode, max_depth);
+            let memory_config = config
+                .parallel_config
+                .map(|pc| pc.into())
+                .unwrap_or_default();
+
+            let mut solver = Solver::with_parallel_config(search_mode, max_depth, memory_config);
             solver.set_metric(metric);
             solver.set_limit_depth(config.limit_depth);
             solver.set_start(start_state);
@@ -159,8 +206,11 @@ impl SolverHandle {
 
             let solver_interrupt = solver.interrupt_handle();
             let interrupt_clone = Arc::clone(&interrupt);
+            let running_clone = Arc::clone(&running);
             std::thread::spawn(move || {
-                while !interrupt_clone.load(Ordering::SeqCst) {
+                while !interrupt_clone.load(Ordering::SeqCst)
+                    && running_clone.load(Ordering::SeqCst)
+                {
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
                 solver_interrupt.store(true, Ordering::SeqCst);
@@ -188,10 +238,111 @@ impl SolverHandle {
             solver.solve();
 
             running.store(false, Ordering::SeqCst);
+        });
+    }
+
+    pub fn cancel(&self) {
+        self.interrupt.store(true, Ordering::SeqCst);
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::SeqCst)
+    }
+}
+
+pub struct ParallelSolverHandle {
+    config: ParallelSolverConfig,
+    state: MegaminxState,
+    callback: RwLock<Option<Arc<dyn SolverCallback>>>,
+    running: Arc<AtomicBool>,
+    interrupt: Arc<AtomicBool>,
+}
+
+impl ParallelSolverHandle {
+    pub fn new(config: ParallelSolverConfig, state: MegaminxState) -> Self {
+        Self {
+            config,
+            state,
+            callback: RwLock::new(None),
+            running: Arc::new(AtomicBool::new(false)),
+            interrupt: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn set_callback(&self, callback: Box<dyn SolverCallback>) {
+        let mut cb = self.callback.write().unwrap();
+        *cb = Some(Arc::from(callback));
+    }
+
+    pub fn start(&self) {
+        if self.running.swap(true, Ordering::SeqCst) {
+            return;
+        }
+
+        self.interrupt.store(false, Ordering::SeqCst);
+
+        let config = self.config.clone();
+        let state = self.state.clone();
+        let callback = self.callback.read().unwrap().clone();
+        let interrupt = Arc::clone(&self.interrupt);
+        let running = Arc::clone(&self.running);
+
+        std::thread::spawn(move || {
+            let modes: Vec<llminxsolver_rs::SearchMode> =
+                config.search_modes.iter().map(|&m| m.into()).collect();
+            let metric: llminxsolver_rs::Metric = config.metric.into();
+            let max_depth = if config.limit_depth {
+                config.max_depth as usize
+            } else {
+                50
+            };
+
+            let start_state = build_llminx(&state);
+            let memory_config: MemoryConfig = config.parallel_config.into();
+
+            let mut parallel_solver = ParallelSolver::with_config(modes, memory_config);
+            parallel_solver.set_metric(metric);
+            parallel_solver.set_max_depth(max_depth);
+            parallel_solver.set_limit_depth(config.limit_depth);
+            parallel_solver.set_ignore_corner_positions(config.ignore_corner_positions);
+            parallel_solver.set_ignore_edge_positions(config.ignore_edge_positions);
+            parallel_solver.set_ignore_corner_orientations(config.ignore_corner_orientations);
+            parallel_solver.set_ignore_edge_orientations(config.ignore_edge_orientations);
+
+            let solver_interrupt = parallel_solver.interrupt_handle();
+            let interrupt_clone = Arc::clone(&interrupt);
+            let running_clone = Arc::clone(&running);
+            std::thread::spawn(move || {
+                while !interrupt_clone.load(Ordering::SeqCst)
+                    && running_clone.load(Ordering::SeqCst)
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                solver_interrupt.store(true, Ordering::SeqCst);
+            });
 
             if let Some(ref cb) = callback {
-                cb.on_complete();
+                let cb_clone = Arc::clone(cb);
+                parallel_solver.set_status_callback(move |event: StatusEvent| match event.event_type {
+                    StatusEventType::SolutionFound => {
+                        cb_clone.on_solution_found(event.message.clone());
+                    }
+                    StatusEventType::FinishSearch => {
+                        cb_clone.on_complete();
+                    }
+                    _ => {
+                        cb_clone.on_progress(ProgressEvent {
+                            event_type: format!("{:?}", event.event_type),
+                            message: event.message.clone(),
+                            progress: event.progress,
+                        });
+                    }
+                });
             }
+
+            let _ = parallel_solver.solve(start_state);
+
+            running.store(false, Ordering::SeqCst);
         });
     }
 
@@ -214,4 +365,12 @@ pub fn calculate_mcc(sequence: String) -> f64 {
 
 pub fn set_data_directory(path: String) {
     llminxsolver_rs::set_data_directory(&path);
+}
+
+pub fn get_available_cpus() -> u32 {
+    MemoryConfig::available_cpus() as u32
+}
+
+pub fn get_available_memory_mb() -> u32 {
+    MemoryConfig::available_memory_mb() as u32
 }

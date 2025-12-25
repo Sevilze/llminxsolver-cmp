@@ -2,6 +2,8 @@ namespace llminxsolver {
     void set_data_directory(string path);
     f64 calculate_mcc(string sequence);
     u32 get_move_count(string algorithm, string metric);
+    u32 get_available_cpus();
+    u32 get_available_memory_mb();
 };
 
 [Enum]
@@ -22,6 +24,12 @@ interface Metric {
     Fifth();
 };
 
+dictionary ParallelConfig {
+    u32 memory_budget_mb;
+    u32 table_gen_threads;
+    u32 search_threads;
+};
+
 dictionary SolverConfig {
     SearchMode search_mode;
     Metric metric;
@@ -31,6 +39,19 @@ dictionary SolverConfig {
     boolean ignore_edge_positions;
     boolean ignore_corner_orientations;
     boolean ignore_edge_orientations;
+    ParallelConfig? parallel_config;
+};
+
+dictionary ParallelSolverConfig {
+    sequence<SearchMode> search_modes;
+    Metric metric;
+    boolean limit_depth;
+    u32 max_depth;
+    boolean ignore_corner_positions;
+    boolean ignore_edge_positions;
+    boolean ignore_corner_orientations;
+    boolean ignore_edge_orientations;
+    ParallelConfig parallel_config;
 };
 
 dictionary MegaminxState {
@@ -54,6 +75,14 @@ callback interface SolverCallback {
 
 interface SolverHandle {
     constructor(SolverConfig config, MegaminxState state);
+    void set_callback(SolverCallback callback);
+    void start();
+    void cancel();
+    boolean is_running();
+};
+
+interface ParallelSolverHandle {
+    constructor(ParallelSolverConfig config, MegaminxState state);
     void set_callback(SolverCallback callback);
     void start();
     void cancel();
