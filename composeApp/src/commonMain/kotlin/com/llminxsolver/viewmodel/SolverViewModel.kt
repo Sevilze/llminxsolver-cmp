@@ -1,12 +1,15 @@
 package com.llminxsolver.viewmodel
 
 import com.llminxsolver.NativeLib
-import com.llminxsolver.data.AllowedFacesMode
+import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.data.MetricType
+import com.llminxsolver.data.ParallelConfig
 import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
+import com.llminxsolver.platform.MemoryInfo
+import com.llminxsolver.platform.MemoryMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,15 +20,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uniffi.llminxsolver.Metric
+import uniffi.llminxsolver.ParallelSolverConfig
+import uniffi.llminxsolver.ParallelSolverHandle
 import uniffi.llminxsolver.ProgressEvent
 import uniffi.llminxsolver.SearchMode
 import uniffi.llminxsolver.SolverCallback
 import uniffi.llminxsolver.SolverHandle
 import uniffi.llminxsolver.calculateMcc
+import uniffi.llminxsolver.getAvailableCpus
+import uniffi.llminxsolver.getAvailableMemoryMb
 import uniffi.llminxsolver.getMoveCount
 
 class SolverViewModel {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val memoryMonitor = MemoryMonitor()
 
     private val _megaminxState = MutableStateFlow(MegaminxState())
     val megaminxState: StateFlow<MegaminxState> = _megaminxState.asStateFlow()
@@ -39,15 +47,55 @@ class SolverViewModel {
     private val _scoredSolutions = MutableStateFlow<List<ScoredSolution>>(emptyList())
     val scoredSolutions: StateFlow<List<ScoredSolution>> = _scoredSolutions.asStateFlow()
 
+    private val _memoryInfo = MutableStateFlow<MemoryInfo?>(null)
+    val memoryInfo: StateFlow<MemoryInfo?> = _memoryInfo.asStateFlow()
+
+    private val _availableCpus = MutableStateFlow(4)
+    val availableCpus: StateFlow<Int> = _availableCpus.asStateFlow()
+
     private var solverHandle: SolverHandle? = null
+    private var parallelSolverHandle: ParallelSolverHandle? = null
     private var solveJob: Job? = null
 
     init {
         NativeLib.ensureLoaded()
+        initializePlatformInfo()
+        startMemoryMonitoring()
     }
 
-    fun setAllowedFaces(mode: AllowedFacesMode) {
-        _solverConfig.update { it.copy(allowedFaces = mode) }
+    private fun initializePlatformInfo() {
+        try {
+            _availableCpus.value = getAvailableCpus().toInt()
+            val availableMemory = getAvailableMemoryMb().toInt()
+            val defaultConfig = ParallelConfig.forDesktop(_availableCpus.value, availableMemory)
+            _solverConfig.update { it.copy(parallelConfig = defaultConfig) }
+        } catch (e: Exception) {
+            _availableCpus.value = 4
+        }
+    }
+
+    private fun startMemoryMonitoring() {
+        memoryMonitor.startMonitoring(2000L) { info ->
+            _memoryInfo.value = info
+        }
+    }
+
+    fun setSelectedModes(modes: Set<GeneratorMode>) {
+        _solverConfig.update {
+            it.copy(
+                selectedModes = modes,
+                generatorMode = modes.firstOrNull() ?: GeneratorMode.R_U
+            )
+        }
+    }
+
+    fun setGeneratorModes(mode: GeneratorMode) {
+        _solverConfig.update {
+            it.copy(
+                generatorMode = mode,
+                selectedModes = setOf(mode)
+            )
+        }
     }
 
     fun setMetric(metric: MetricType) {
@@ -60,6 +108,10 @@ class SolverViewModel {
 
     fun setMaxDepth(depth: Int) {
         _solverConfig.update { it.copy(maxDepth = depth) }
+    }
+
+    fun setParallelConfig(config: ParallelConfig) {
+        _solverConfig.update { it.copy(parallelConfig = config) }
     }
 
     fun setIgnoreFlag(flag: String, value: Boolean) {
@@ -117,15 +169,15 @@ class SolverViewModel {
         _scoredSolutions.value = emptyList()
     }
 
-    private fun mapAllowedFacesToSearchMode(mode: AllowedFacesMode): SearchMode = when (mode) {
-        AllowedFacesMode.R_U -> SearchMode.RU
-        AllowedFacesMode.R_U_L -> SearchMode.RUL
-        AllowedFacesMode.R_U_F -> SearchMode.RUF
-        AllowedFacesMode.R_U_D -> SearchMode.RUD
-        AllowedFacesMode.R_U_BL -> SearchMode.R_UB_L
-        AllowedFacesMode.R_U_BR -> SearchMode.R_UB_R
-        AllowedFacesMode.R_U_L_F -> SearchMode.RUFL
-        AllowedFacesMode.R_U_L_F_BL -> SearchMode.RUF_LB_L
+    private fun mapGeneratorModesToSearchMode(mode: GeneratorMode): SearchMode = when (mode) {
+        GeneratorMode.R_U -> SearchMode.RU
+        GeneratorMode.R_U_L -> SearchMode.RUL
+        GeneratorMode.R_U_F -> SearchMode.RUF
+        GeneratorMode.R_U_D -> SearchMode.RUD
+        GeneratorMode.R_U_BL -> SearchMode.R_UB_L
+        GeneratorMode.R_U_BR -> SearchMode.R_UB_R
+        GeneratorMode.R_U_L_F -> SearchMode.RUFL
+        GeneratorMode.R_U_L_F_BL -> SearchMode.RUF_LB_L
     }
 
     private fun mapMetricType(metric: MetricType): Metric = when (metric) {
@@ -143,23 +195,57 @@ class SolverViewModel {
         )
     }
 
+    private fun buildUniffiParallelConfig(): uniffi.llminxsolver.ParallelConfig {
+        val config = _solverConfig.value.parallelConfig
+        return uniffi.llminxsolver.ParallelConfig(
+            memoryBudgetMb = config.memoryBudgetMb.toUInt(),
+            tableGenThreads = config.tableGenThreads.toUInt(),
+            searchThreads = config.searchThreads.toUInt()
+        )
+    }
+
     private fun buildUniffiSolverConfig(): uniffi.llminxsolver.SolverConfig {
         val config = _solverConfig.value
         return uniffi.llminxsolver.SolverConfig(
-            searchMode = mapAllowedFacesToSearchMode(config.allowedFaces),
+            searchMode = mapGeneratorModesToSearchMode(config.generatorMode),
             metric = mapMetricType(config.metric),
             limitDepth = config.limitDepth,
             maxDepth = config.maxDepth.toUInt(),
             ignoreCornerPositions = config.ignoreFlags.cornerPositions,
             ignoreEdgePositions = config.ignoreFlags.edgePositions,
             ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
-            ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations
+            ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations,
+            parallelConfig = buildUniffiParallelConfig()
+        )
+    }
+
+    private fun buildUniffiParallelSolverConfig(): ParallelSolverConfig {
+        val config = _solverConfig.value
+        return ParallelSolverConfig(
+            searchModes = config.selectedModes.map { mapGeneratorModesToSearchMode(it) },
+            metric = mapMetricType(config.metric),
+            limitDepth = config.limitDepth,
+            maxDepth = config.maxDepth.toUInt(),
+            ignoreCornerPositions = config.ignoreFlags.cornerPositions,
+            ignoreEdgePositions = config.ignoreFlags.edgePositions,
+            ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
+            ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations,
+            parallelConfig = buildUniffiParallelConfig()
         )
     }
 
     fun solve() {
         if (_solverState.value.isSearching) return
 
+        val config = _solverConfig.value
+        if (config.isMultiMode) {
+            solveMultiMode()
+        } else {
+            solveSingleMode()
+        }
+    }
+
+    private fun solveSingleMode() {
         solveJob = scope.launch {
             _solverState.update {
                 it.copy(
@@ -223,6 +309,71 @@ class SolverViewModel {
         }
     }
 
+    private fun solveMultiMode() {
+        val config = _solverConfig.value
+        solveJob = scope.launch {
+            _solverState.update {
+                it.copy(
+                    isSearching = true,
+                    status = "Starting multi-mode search (${config.selectedModes.size} modes)...",
+                    progress = 0f,
+                    solutions = emptyList()
+                )
+            }
+            _scoredSolutions.value = emptyList()
+
+            try {
+                val uniffiConfig = buildUniffiParallelSolverConfig()
+                val uniffiState = buildUniffiMegaminxState()
+
+                parallelSolverHandle = ParallelSolverHandle(uniffiConfig, uniffiState)
+
+                val callback = object : SolverCallback {
+                    override fun onProgress(event: ProgressEvent) {
+                        _solverState.update {
+                            it.copy(
+                                status = event.message,
+                                progress = event.progress.toFloat()
+                            )
+                        }
+                    }
+
+                    override fun onSolutionFound(solution: String) {
+                        _solverState.update {
+                            it.copy(solutions = it.solutions + solution)
+                        }
+                        updateScoredSolutions()
+                    }
+
+                    override fun onComplete() {
+                        val solutionCount = _solverState.value.solutions.size
+                        _solverState.update {
+                            it.copy(
+                                isSearching = false,
+                                status = "Found $solutionCount solutions (multi-mode).",
+                                progress = 1f
+                            )
+                        }
+                        parallelSolverHandle?.close()
+                        parallelSolverHandle = null
+                    }
+                }
+
+                parallelSolverHandle?.setCallback(callback)
+                parallelSolverHandle?.start()
+            } catch (e: Exception) {
+                _solverState.update {
+                    it.copy(
+                        isSearching = false,
+                        status = "Error: ${e.message}"
+                    )
+                }
+                parallelSolverHandle?.close()
+                parallelSolverHandle = null
+            }
+        }
+    }
+
     private fun updateScoredSolutions() {
         val solutions = _solverState.value.solutions
         val metricStr = when (_solverConfig.value.metric) {
@@ -251,6 +402,9 @@ class SolverViewModel {
         solverHandle?.cancel()
         solverHandle?.close()
         solverHandle = null
+        parallelSolverHandle?.cancel()
+        parallelSolverHandle?.close()
+        parallelSolverHandle = null
         solveJob?.cancel()
         _solverState.update {
             it.copy(
@@ -262,5 +416,6 @@ class SolverViewModel {
 
     fun onCleared() {
         cancelSolve()
+        memoryMonitor.stopMonitoring()
     }
 }

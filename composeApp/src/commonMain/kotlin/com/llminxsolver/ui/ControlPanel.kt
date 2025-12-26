@@ -4,15 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.llminxsolver.data.AllowedFacesMode
-import com.llminxsolver.data.IgnoreFlags
+import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MetricType
 import com.llminxsolver.data.SolverConfig
 
@@ -20,7 +18,7 @@ import com.llminxsolver.data.SolverConfig
 fun ControlPanel(
     config: SolverConfig,
     isSearching: Boolean,
-    onAllowedFacesChange: (AllowedFacesMode) -> Unit,
+    onSelectedModesChange: (Set<GeneratorMode>) -> Unit,
     onMetricChange: (MetricType) -> Unit,
     onLimitDepthChange: (Boolean) -> Unit,
     onMaxDepthChange: (Int) -> Unit,
@@ -34,9 +32,9 @@ fun ControlPanel(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        AllowedFacesSelector(
-            value = config.allowedFaces,
-            onChange = onAllowedFacesChange,
+        SearchModeSelector(
+            selectedModes = config.selectedModes,
+            onModesChange = onSelectedModesChange,
             enabled = !isSearching
         )
 

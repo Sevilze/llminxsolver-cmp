@@ -132,7 +132,7 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                     ControlPanel(
                         config = state.solverConfig,
                         isSearching = state.solverState.isSearching,
-                        onAllowedFacesChange = actions.onAllowedFacesChange,
+                        onSelectedModesChange = actions.onSelectedModesChange,
                         onMetricChange = actions.onMetricChange,
                         onLimitDepthChange = actions.onLimitDepthChange,
                         onMaxDepthChange = actions.onMaxDepthChange,
@@ -171,7 +171,11 @@ actual fun MainScreen(viewModel: SolverViewModel) {
 
     if (showStorageSettings) {
         StorageSettingsDialog(
-            onDismiss = { showStorageSettings = false }
+            onDismiss = { showStorageSettings = false },
+            parallelConfig = state.solverConfig.parallelConfig,
+            memoryInfo = state.memoryInfo,
+            availableCpus = state.availableCpus,
+            onParallelConfigChange = actions.onParallelConfigChange
         )
     }
 }

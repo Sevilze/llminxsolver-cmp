@@ -24,7 +24,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -38,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -55,6 +58,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.llminxsolver.data.ParallelConfig
+import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.platform.PruningTableInfo
 import com.llminxsolver.platform.StorageManager
 import kotlinx.coroutines.delay
@@ -62,7 +67,13 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun StorageSettingsDialog(onDismiss: () -> Unit) {
+fun StorageSettingsDialog(
+    onDismiss: () -> Unit,
+    parallelConfig: ParallelConfig = ParallelConfig(),
+    memoryInfo: MemoryInfo? = null,
+    availableCpus: Int = 4,
+    onParallelConfigChange: ((ParallelConfig) -> Unit)? = null
+) {
     val storageManager = remember { StorageManager() }
     var tables by remember { mutableStateOf(storageManager.getPruningTables()) }
     var skipDeletionWarning by remember { mutableStateOf(false) }
@@ -208,7 +219,102 @@ fun StorageSettingsDialog(onDismiss: () -> Unit) {
 
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider()
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (onParallelConfigChange != null) {
+                        Text(
+                            text = "Performance",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Memory Budget",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = "${parallelConfig.memoryBudgetMb} MB",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                val maxMemory = (memoryInfo?.totalMB ?: 4096L).toFloat()
+                                Slider(
+                                    value = parallelConfig.memoryBudgetMb.toFloat(),
+                                    onValueChange = { newValue ->
+                                        onParallelConfigChange(
+                                            parallelConfig.copy(memoryBudgetMb = newValue.toInt())
+                                        )
+                                    },
+                                    valueRange = 64f..maxMemory.coerceAtMost(8192f),
+                                    steps = 15
+                                )
+                            }
+
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Table Gen Threads",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = "${parallelConfig.tableGenThreads}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Slider(
+                                    value = parallelConfig.tableGenThreads.toFloat(),
+                                    onValueChange = { newValue ->
+                                        onParallelConfigChange(
+                                            parallelConfig.copy(tableGenThreads = newValue.toInt())
+                                        )
+                                    },
+                                    valueRange = 1f..availableCpus.toFloat().coerceAtLeast(2f),
+                                    steps = (availableCpus - 2).coerceAtLeast(0)
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        val desktop = ParallelConfig.forDesktop(
+                                            availableCpus,
+                                            memoryInfo?.totalMB?.toInt() ?: 4096
+                                        )
+                                        onParallelConfigChange(desktop)
+                                    }
+                                ) {
+                                    Text("Desktop")
+                                }
+                                TextButton(
+                                    onClick = {
+                                        onParallelConfigChange(ParallelConfig.forMobile())
+                                    }
+                                ) {
+                                    Text("Mobile")
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     Text(
                         text = "Pruning Tables (${tables.size})",
