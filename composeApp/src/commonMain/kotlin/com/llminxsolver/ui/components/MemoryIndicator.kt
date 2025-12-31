@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState

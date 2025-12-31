@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.megaminx
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -25,6 +25,7 @@ import com.llminxsolver.data.StickerType
 import com.llminxsolver.theme.CornerColorMap
 import com.llminxsolver.theme.EdgeColorMap
 import com.llminxsolver.theme.HighlightColor
+import com.llminxsolver.theme.MegaminxColorScheme
 import com.llminxsolver.theme.MegaminxColors
 import com.llminxsolver.theme.SelectionColor
 import com.llminxsolver.theme.StickerColors
@@ -243,6 +244,44 @@ private fun DrawScope.drawPolygon(
     drawPath(path, strokeColor, style = Stroke(width = strokeWidth))
 }
 
+private fun DrawScope.drawRoundedPolygon(
+    points: List<Point>,
+    fillColor: Color,
+    strokeColor: Color,
+    strokeWidth: Float,
+    cornerRadius: Float
+) {
+    if (points.isEmpty()) return
+
+    val path = Path()
+    for (i in points.indices) {
+        val curr = points[i]
+        val prev = points[(i - 1 + points.size) % points.size]
+        val next = points[(i + 1) % points.size]
+
+        val dx1 = prev.x - curr.x
+        val dy1 = prev.y - curr.y
+        val len1 = sqrt(dx1 * dx1 + dy1 * dy1)
+        val p1 = Point(curr.x + dx1 / len1 * cornerRadius, curr.y + dy1 / len1 * cornerRadius)
+
+        val dx2 = next.x - curr.x
+        val dy2 = next.y - curr.y
+        val len2 = sqrt(dx2 * dx2 + dy2 * dy2)
+        val p2 = Point(curr.x + dx2 / len2 * cornerRadius, curr.y + dy2 / len2 * cornerRadius)
+
+        if (i == 0) {
+            path.moveTo(p1.x, p1.y)
+        } else {
+            path.lineTo(p1.x, p1.y)
+        }
+        path.quadraticTo(curr.x, curr.y, p2.x, p2.y)
+    }
+    path.close()
+
+    drawPath(path, fillColor, style = Fill)
+    drawPath(path, strokeColor, style = Stroke(width = strokeWidth))
+}
+
 private fun getCenterOfPoints(points: List<Point>): Point {
     if (points.isEmpty()) return Point(0f, 0f)
     val sumX = points.sumOf { it.x.toDouble() }.toFloat()
@@ -273,6 +312,15 @@ private fun pointInPolygon(point: Point, polygon: List<Point>): Boolean {
     return inside
 }
 
+private fun faceColorIndex(cornerIndex: Int): Int = when (cornerIndex) {
+    0 -> 4
+    1 -> 5
+    2 -> 1
+    3 -> 2
+    4 -> 3
+    else -> 0
+}
+
 @Composable
 fun MegaminxViewer(
     puzzleState: MegaminxState,
@@ -281,6 +329,7 @@ fun MegaminxViewer(
     onRotateCorner: (Int, Int) -> Unit = { _, _ -> },
     onSwapEdges: (Int, Int) -> Unit = { _, _ -> },
     onFlipEdge: (Int) -> Unit = { },
+    colorScheme: MegaminxColorScheme = MegaminxColorScheme.Classic,
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -306,7 +355,7 @@ fun MegaminxViewer(
             return MegaminxColors.Gray
         }
 
-        return StickerColors[CornerColorMap[position][effectiveOrientation]]
+        return colorScheme.stickerColors[CornerColorMap[position][effectiveOrientation]]
     }
 
     fun getEdgeColor(cubieIndex: Int, orientationIndex: Int): Color {
@@ -324,7 +373,7 @@ fun MegaminxViewer(
             return MegaminxColors.Gray
         }
 
-        return StickerColors[EdgeColorMap[position][effectiveOrientation]]
+        return colorScheme.stickerColors[EdgeColorMap[position][effectiveOrientation]]
     }
 
     fun findStickerAt(position: Offset): StickerInfo? {
@@ -440,14 +489,32 @@ fun MegaminxViewer(
         val newSize = minOf(size.width, size.height)
         if (newSize != canvasSize || geometry == null) {
             canvasSize = newSize
-            geometry = calculateGeometry(newSize, newSize)
+            val halfSize = newSize / 2f
+            val rectHeight = newSize * 0.06f
+            val rectWidth = newSize * 0.15f
+            // Distance from center to outer edge midpoint is ~ outerRadius * cos(36)
+            // But we can just use the previous logic maxR.
+
+            // The indicator center is at distance: outerEdgeMidpoint + normal * offset
+            // offset = rectHeight/2 + strokeWidth * 2
+            // reach = offset + rectHeight/2
+
+            val indicatorReach = rectHeight + StrokeWidth * 3f
+            val cos36 = cos(PI / 5.0).toFloat()
+
+            // Ensure R * cos36 + indicatorReach <= halfSize
+            val maxR = (halfSize - indicatorReach) / cos36
+            val outerRadius = minOf(halfSize - 10f, maxR)
+            val padding = halfSize - outerRadius
+
+            geometry = calculateGeometry(newSize, newSize, padding)
         }
 
         val geo = geometry ?: return@Canvas
 
         drawPolygon(
             geo.centerPoints,
-            MegaminxColors.Yellow,
+            colorScheme.uFace,
             StrokeColor,
             StrokeWidth
         )
@@ -533,6 +600,71 @@ fun MegaminxViewer(
 
                 drawPolygon(points, color, strokeCol, strokeW)
             }
+        }
+
+        for (i in 0 until 5) {
+            val faceColor = colorScheme.stickerColors[faceColorIndex(i)]
+            val nextCornerIdx = (i + 1) % 5
+            val outerEdgeMidpoint = Point(
+                (geo.outerCorners[i].x + geo.outerCorners[nextCornerIdx].x) / 2f,
+                (geo.outerCorners[i].y + geo.outerCorners[nextCornerIdx].y) / 2f
+            )
+            val edgeDx = geo.outerCorners[nextCornerIdx].x - geo.outerCorners[i].x
+            val edgeDy = geo.outerCorners[nextCornerIdx].y - geo.outerCorners[i].y
+            val edgeLength = sqrt(edgeDx * edgeDx + edgeDy * edgeDy)
+
+            val normalX = edgeDy / edgeLength
+            val normalY = -edgeDx / edgeLength
+
+            val tangentX = edgeDx / edgeLength
+            val tangentY = edgeDy / edgeLength
+
+            val rectHeight = canvasSize * 0.06f
+            val rectWidth = edgeLength * 0.4f
+
+            val offsetDistance = rectHeight * 0.5f + StrokeWidth * 3f
+
+            val rectCenter = Point(
+                outerEdgeMidpoint.x + normalX * offsetDistance,
+                outerEdgeMidpoint.y + normalY * offsetDistance
+            )
+
+            // Calculate 4 corners of the rotated rectangle
+            // p1: center - width/2 * tangent - height/2 * normal
+            // p2: center + width/2 * tangent - height/2 * normal
+            // p3: center + width/2 * tangent + height/2 * normal
+            // p4: center - width/2 * tangent + height/2 * normal
+            // Wait, "normal" points OUT.
+            // If we want "strip", maybe height is small dimension along normal?
+            // yes.
+
+            val hw = rectWidth / 2f
+            val hh = rectHeight / 2f
+
+            val p1 = Point(
+                rectCenter.x - tangentX * hw - normalX * hh,
+                rectCenter.y - tangentY * hw - normalY * hh
+            )
+            val p2 = Point(
+                rectCenter.x + tangentX * hw - normalX * hh,
+                rectCenter.y + tangentY * hw - normalY * hh
+            )
+            val p3 = Point(
+                rectCenter.x + tangentX * hw + normalX * hh,
+                rectCenter.y + tangentY * hw + normalY * hh
+            )
+            val p4 = Point(
+                rectCenter.x - tangentX * hw + normalX * hh,
+                rectCenter.y - tangentY * hw + normalY * hh
+            )
+
+            drawRoundedPolygon(
+                listOf(p1, p2, p3, p4),
+                faceColor,
+                StrokeColor,
+                StrokeWidth * 0.5f,
+                cornerRadius = rectHeight * 0.3f
+            )
         }
 
         if (isDragging && selectedSticker != null && hoveredSticker != null &&

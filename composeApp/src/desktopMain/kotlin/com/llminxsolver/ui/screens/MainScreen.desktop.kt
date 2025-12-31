@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llminxsolver.ui.StatusBar
+import com.llminxsolver.ui.components.IgnoreOptions
+import com.llminxsolver.ui.dialogs.SettingsDialog
+import com.llminxsolver.ui.megaminx.MegaminxViewer
+import com.llminxsolver.ui.panels.ControlPanel
+import com.llminxsolver.ui.panels.ScoredSolutionsPanel
+import com.llminxsolver.ui.panels.SolutionsPanel
 import com.llminxsolver.viewmodel.SolverViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -82,7 +89,7 @@ actual fun MainScreen(viewModel: SolverViewModel) {
         ) {
             Column(
                 modifier = Modifier
-                    .width(320.dp)
+                    .width(420.dp)
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -97,15 +104,10 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Starting Position",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
                         MegaminxViewer(
                             puzzleState = state.megaminxState,
                             ignoreFlags = state.solverConfig.ignoreFlags,
+                            colorScheme = state.megaminxColorScheme,
                             onSwapCorners = actions.onSwapCorners,
                             onRotateCorner = actions.onRotateCorner,
                             onSwapEdges = actions.onSwapEdges,
@@ -170,12 +172,16 @@ actual fun MainScreen(viewModel: SolverViewModel) {
     }
 
     if (showStorageSettings) {
-        StorageSettingsDialog(
+        SettingsDialog(
             onDismiss = { showStorageSettings = false },
             parallelConfig = state.solverConfig.parallelConfig,
             memoryInfo = state.memoryInfo,
             availableCpus = state.availableCpus,
-            onParallelConfigChange = actions.onParallelConfigChange
+            onParallelConfigChange = actions.onParallelConfigChange,
+            megaminxColorScheme = state.megaminxColorScheme,
+            onMegaminxColorSchemeChange = actions.onMegaminxColorSchemeChange,
+            skipDeletionWarning = state.skipDeletionWarning,
+            onSkipDeletionWarningChange = actions.onSkipDeletionWarningChange
         )
     }
 }

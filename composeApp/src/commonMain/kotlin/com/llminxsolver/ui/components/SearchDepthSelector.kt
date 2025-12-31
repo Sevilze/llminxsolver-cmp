@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

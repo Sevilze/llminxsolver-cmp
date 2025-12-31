@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -12,6 +12,7 @@ import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
 import com.llminxsolver.platform.MemoryInfo
+import com.llminxsolver.theme.MegaminxColorScheme
 import com.llminxsolver.viewmodel.SolverViewModel
 
 data class MainScreenState(
@@ -20,7 +21,9 @@ data class MainScreenState(
     val solverState: SolverState,
     val scoredSolutions: List<ScoredSolution>,
     val memoryInfo: MemoryInfo?,
-    val availableCpus: Int
+    val availableCpus: Int,
+    val megaminxColorScheme: MegaminxColorScheme,
+    val skipDeletionWarning: Boolean
 )
 
 data class MainScreenActions(
@@ -34,6 +37,8 @@ data class MainScreenActions(
     val onMaxDepthChange: (Int) -> Unit,
     val onParallelConfigChange: (ParallelConfig) -> Unit,
     val onIgnoreFlagChange: (String, Boolean) -> Unit,
+    val onMegaminxColorSchemeChange: (MegaminxColorScheme) -> Unit,
+    val onSkipDeletionWarningChange: (Boolean) -> Unit,
     val onReset: () -> Unit,
     val onSolve: () -> Unit,
     val onCancel: () -> Unit
@@ -50,6 +55,8 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
     val scoredSolutions by viewModel.scoredSolutions.collectAsState()
     val memoryInfo by viewModel.memoryInfo.collectAsState()
     val availableCpus by viewModel.availableCpus.collectAsState()
+    val megaminxColorScheme by viewModel.megaminxColorScheme.collectAsState()
+    val skipDeletionWarning by viewModel.skipDeletionWarning.collectAsState()
 
     return MainScreenState(
         megaminxState = megaminxState,
@@ -57,7 +64,9 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
         solverState = solverState,
         scoredSolutions = scoredSolutions,
         memoryInfo = memoryInfo,
-        availableCpus = availableCpus
+        availableCpus = availableCpus,
+        megaminxColorScheme = megaminxColorScheme,
+        skipDeletionWarning = skipDeletionWarning
     )
 }
 
@@ -73,6 +82,8 @@ fun rememberMainScreenActions(viewModel: SolverViewModel): MainScreenActions = M
     onMaxDepthChange = viewModel::setMaxDepth,
     onParallelConfigChange = viewModel::setParallelConfig,
     onIgnoreFlagChange = viewModel::setIgnoreFlag,
+    onMegaminxColorSchemeChange = viewModel::setMegaminxColorScheme,
+    onSkipDeletionWarningChange = viewModel::setSkipDeletionWarning,
     onReset = viewModel::reset,
     onSolve = viewModel::solve,
     onCancel = viewModel::cancelSolve

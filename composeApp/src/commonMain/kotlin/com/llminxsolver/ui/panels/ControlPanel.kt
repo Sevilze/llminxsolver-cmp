@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.ui.panels
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MetricType
 import com.llminxsolver.data.SolverConfig
+import com.llminxsolver.ui.components.MetricSelector
+import com.llminxsolver.ui.components.SearchDepthSelector
+import com.llminxsolver.ui.components.SearchModeSelector
 
 @Composable
 fun ControlPanel(
