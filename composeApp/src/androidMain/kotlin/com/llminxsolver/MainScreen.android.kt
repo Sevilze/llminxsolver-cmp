@@ -1,15 +1,13 @@
-package com.llminxsolver.ui.screens
+package com.llminxsolver
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llminxsolver.ui.StatusBar
+import com.llminxsolver.ui.components.StatusBar
 import com.llminxsolver.ui.components.IgnoreOptions
 import com.llminxsolver.ui.dialogs.SettingsDialog
 import com.llminxsolver.ui.megaminx.MegaminxViewer
@@ -78,96 +76,84 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
+        },
+        bottomBar = {
+            StatusBar(
+                solverState = state.solverState,
+                modifier = Modifier.navigationBarsPadding()
+            )
         }
     ) { paddingValues ->
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .width(420.dp)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
             ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        MegaminxViewer(
-                            puzzleState = state.megaminxState,
-                            ignoreFlags = state.solverConfig.ignoreFlags,
-                            colorScheme = state.megaminxColorScheme,
-                            onSwapCorners = actions.onSwapCorners,
-                            onRotateCorner = actions.onRotateCorner,
-                            onSwapEdges = actions.onSwapEdges,
-                            onFlipEdge = actions.onFlipEdge,
-                            enabled = !state.solverState.isSearching,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        IgnoreOptions(
-                            flags = state.solverConfig.ignoreFlags,
-                            onChange = actions.onIgnoreFlagChange,
-                            enabled = !state.solverState.isSearching,
-                            compact = true
-                        )
-                    }
-                }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    MegaminxViewer(
+                        puzzleState = state.megaminxState,
+                        ignoreFlags = state.solverConfig.ignoreFlags,
+                        colorScheme = state.megaminxColorScheme,
+                        onSwapCorners = actions.onSwapCorners,
+                        onRotateCorner = actions.onRotateCorner,
+                        onSwapEdges = actions.onSwapEdges,
+                        onFlipEdge = actions.onFlipEdge,
+                        enabled = !state.solverState.isSearching,
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
-                ) {
-                    ControlPanel(
-                        config = state.solverConfig,
-                        isSearching = state.solverState.isSearching,
-                        onSelectedModesChange = actions.onSelectedModesChange,
-                        onMetricChange = actions.onMetricChange,
-                        onLimitDepthChange = actions.onLimitDepthChange,
-                        onMaxDepthChange = actions.onMaxDepthChange,
-                        onIgnoreFlagChange = actions.onIgnoreFlagChange,
-                        onReset = actions.onReset,
-                        onSolve = actions.onSolve,
-                        onCancel = actions.onCancel,
-                        modifier = Modifier.padding(16.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    IgnoreOptions(
+                        flags = state.solverConfig.ignoreFlags,
+                        onChange = actions.onIgnoreFlagChange,
+                        enabled = !state.solverState.isSearching,
+                        compact = true
                     )
                 }
+            }
 
-                StatusBar(
-                    solverState = state.solverState
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            ) {
+                ControlPanel(
+                    config = state.solverConfig,
+                    isSearching = state.solverState.isSearching,
+                    onSelectedModesChange = actions.onSelectedModesChange,
+                    onMetricChange = actions.onMetricChange,
+                    onLimitDepthChange = actions.onLimitDepthChange,
+                    onMaxDepthChange = actions.onMaxDepthChange,
+                    onIgnoreFlagChange = actions.onIgnoreFlagChange,
+                    onReset = actions.onReset,
+                    onSolve = actions.onSolve,
+                    onCancel = actions.onCancel,
+                    modifier = Modifier.padding(16.dp)
                 )
             }
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ScoredSolutionsPanel(
-                    scoredSolutions = state.scoredSolutions,
-                    metricLabel = getMetricLabel(state.solverConfig.metric),
-                    modifier = Modifier.weight(1f)
-                )
+            ScoredSolutionsPanel(
+                scoredSolutions = state.scoredSolutions,
+                metricLabel = getMetricLabel(state.solverConfig.metric),
+                modifier = Modifier.height(300.dp)
+            )
 
-                SolutionsPanel(
-                    solverState = state.solverState,
-                    defaultCollapsed = true
-                )
-            }
+            SolutionsPanel(
+                solverState = state.solverState,
+                defaultCollapsed = true
+            )
         }
     }
 

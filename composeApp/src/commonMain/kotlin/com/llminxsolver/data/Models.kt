@@ -37,15 +37,15 @@ data class ParallelConfig(
 ) {
     companion object {
         fun forMobile(): ParallelConfig = ParallelConfig(
-            memoryBudgetMb = 256,
+            memoryBudgetMb = 1024,
             tableGenThreads = 2,
-            searchThreads = 4
+            searchThreads = 2
         )
 
         fun forDesktop(availableCpus: Int, availableMemoryMb: Int): ParallelConfig = ParallelConfig(
-            memoryBudgetMb = (availableMemoryMb * 0.5).toInt().coerceAtLeast(256),
-            tableGenThreads = availableCpus,
-            searchThreads = availableCpus
+            memoryBudgetMb = 8192.coerceAtMost(availableMemoryMb).coerceAtLeast(256),
+            tableGenThreads = 4.coerceAtMost(availableCpus),
+            searchThreads = 4.coerceAtMost(availableCpus)
         )
     }
 }

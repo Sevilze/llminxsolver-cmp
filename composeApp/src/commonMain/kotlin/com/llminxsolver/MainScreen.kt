@@ -1,4 +1,4 @@
-package com.llminxsolver.ui.screens
+package com.llminxsolver
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState

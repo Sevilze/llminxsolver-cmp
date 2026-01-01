@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -34,7 +35,8 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.kotlinx.coroutines.android)
-            implementation("net.java.dev.jna:jna:5.15.0@aar")
+            implementation(libs.datastore.preferences.android)
+            implementation("net.java.dev.jna:jna:5.18.1@aar")
         }
 
         commonMain.dependencies {
@@ -46,6 +48,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.datastore.preferences)
             implementation("org.jetbrains.compose.material3:material3:1.10.0-alpha05")
         }
 
@@ -53,6 +56,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.jna)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

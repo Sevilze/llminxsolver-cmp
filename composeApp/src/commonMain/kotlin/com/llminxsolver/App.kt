@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
