@@ -11,7 +11,7 @@ pub mod solver;
 pub use coordinate::CoordinateUtil;
 pub use data_directory::{get_data_directory, set_data_directory};
 pub use mcc::{calculate_mcc, get_move_count, MCCParams};
-pub use memory_config::MemoryConfig;
+pub use memory_config::{MemoryConfig, MemoryTracker, get_available_memory_mb};
 pub use minx::{LLMinx, Move, Orientation};
 pub use parallel_solver::ParallelSolver;
 pub use pruner::Pruner;

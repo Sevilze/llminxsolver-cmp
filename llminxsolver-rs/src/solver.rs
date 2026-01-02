@@ -1,4 +1,4 @@
-use crate::memory_config::MemoryConfig;
+use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
 use crate::pruner::Pruner;
 use crate::search_mode::{Metric, SearchMode};
@@ -17,6 +17,8 @@ pub enum StatusEventType {
     Message,
     FinishSearch,
     SolutionFound,
+    MemoryWarning,
+    MemoryExceeded,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -583,44 +585,106 @@ impl Solver {
     fn build_pruning_tables(&mut self) {
         self.pruners = self.search_mode.create_pruners();
         self.tables = Vec::with_capacity(self.pruners.len());
+        let memory_tracker = MemoryTracker::from_config(&self.memory_config);
 
-        for pruner in &self.pruners {
+        let total_estimated: usize = self.pruners.iter().map(|p| p.table_size()).sum();
+        self.fire_event(StatusEvent::new(
+            StatusEventType::Message,
+            &format!(
+                "Estimated memory: {} MB (budget: {} MB)",
+                total_estimated / (1024 * 1024),
+                self.memory_config.budget_mb()
+            ),
+            0.0,
+        ));
+
+        if total_estimated > self.memory_config.total_budget_bytes {
+            self.fire_event(StatusEvent::new(
+                StatusEventType::MemoryWarning,
+                &format!(
+                    "Warning: Estimated {} MB exceeds {} MB budget",
+                    total_estimated / (1024 * 1024),
+                    self.memory_config.budget_mb()
+                ),
+                0.0,
+            ));
+        }
+
+        for (idx, pruner) in self.pruners.iter().enumerate() {
             if self.is_interrupted() {
+                break;
+            }
+
+            let table_size_bytes = pruner.table_size();
+            let progress = idx as f64 / self.pruners.len() as f64;
+
+            if !memory_tracker.can_allocate(table_size_bytes) {
+                self.fire_event(StatusEvent::new(
+                    StatusEventType::MemoryExceeded,
+                    &format!(
+                        "Cannot allocate {} MB for {} (used: {} MB, budget: {} MB). Stopping table generation.",
+                        table_size_bytes / (1024 * 1024),
+                        pruner.name(),
+                        memory_tracker.used_mb(),
+                        memory_tracker.budget_mb()
+                    ),
+                    progress,
+                ));
+                self.interrupt();
                 break;
             }
 
             self.fire_event(StatusEvent::new(
                 StatusEventType::Message,
-                &format!("Initializing pruning table {}...", pruner.name()),
-                0.0,
+                &format!(
+                    "Initializing pruning table {}... ({} MB, {} MB remaining)",
+                    pruner.name(),
+                    table_size_bytes / (1024 * 1024),
+                    memory_tracker.remaining_mb()
+                ),
+                progress,
             ));
 
             if pruner.is_precomputed(self.metric) {
                 self.fire_event(StatusEvent::new(
                     StatusEventType::Message,
                     "Reading pruning table from disk...",
-                    0.0,
+                    progress,
                 ));
                 if let Some(table) = pruner.load_table(self.metric) {
+                    memory_tracker.allocate(table.len());
                     self.tables.push(Arc::new(table));
                 } else {
                     let table = self.build_pruning_table(pruner.as_ref());
+                    memory_tracker.allocate(table.len());
                     self.tables.push(Arc::new(table));
                 }
             } else {
                 self.fire_event(StatusEvent::new(
                     StatusEventType::StartBuildingTable,
                     &format!("Building pruning table {}...", pruner.name()),
-                    0.0,
+                    progress,
                 ));
 
                 let table = self.build_pruning_table(pruner.as_ref());
+                memory_tracker.allocate(table.len());
+
+                if memory_tracker.is_at_warning_threshold() {
+                    self.fire_event(StatusEvent::new(
+                        StatusEventType::MemoryWarning,
+                        &format!(
+                            "Memory usage at {:.1}% of budget",
+                            memory_tracker.usage_percentage()
+                        ),
+                        progress,
+                    ));
+                }
 
                 if !self.is_interrupted() {
                     self.fire_event(StatusEvent::new(
                         StatusEventType::Message,
                         "Writing table to disk...",
-                        0.0,
+                        progress,
                     ));
                     pruner.save_table(&table, self.metric);
                 }
@@ -628,7 +692,7 @@ impl Solver {
                 self.fire_event(StatusEvent::new(
                     StatusEventType::EndBuildingTable,
                     &format!("Finished building {}...", pruner.name()),
-                    1.0,
+                    progress,
                 ));
 
                 self.tables.push(Arc::new(table));
