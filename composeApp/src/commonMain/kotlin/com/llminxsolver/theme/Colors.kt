@@ -1,26 +1,28 @@
 package com.llminxsolver.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-object MegaminxColors {
-    val Yellow = Color(0xFFE1E100)
-    val Red = Color(0xFFC80000)
-    val Orange = Color(0xFFE16400)
-    val Green = Color(0xFF00C800)
-    val Pink = Color(0xFFFF9696)
-    val Blue = Color(0xFF000096)
-    val Gray = Color(0xFF808080)
+@Immutable
+data class MegaminxColorScheme(
+    val uFace: Color = Color(0xFF1E1E1C),
+    val fFace: Color = Color(0xFF7EFA03),
+    val lFace: Color = Color(0xFFFEA504),
+    val blFace: Color = Color(0xFF04FDFE),
+    val brFace: Color = Color(0xFFFEF8CD),
+    val rFace: Color = Color(0xFFFFC0CB),
+    val blank: Color = Color(0xFF808080)
+) {
+    val stickerColors: List<Color>
+        get() = listOf(uFace, fFace, lFace, blFace, brFace, rFace)
 }
 
-val StickerColors =
-    listOf(
-        MegaminxColors.Yellow,
-        MegaminxColors.Red,
-        MegaminxColors.Orange,
-        MegaminxColors.Green,
-        MegaminxColors.Pink,
-        MegaminxColors.Blue
-    )
+val LocalMegaminxColorScheme = staticCompositionLocalOf { MegaminxColorScheme() }
+
+@Composable
+fun megaminxColorScheme(): MegaminxColorScheme = LocalMegaminxColorScheme.current
 
 val CornerColorMap =
     listOf(
@@ -43,5 +45,5 @@ val EdgeColorMap =
 val SelectionColor = Color(0xE6800000)
 val HighlightColor = Color(0x26FF0000)
 val StrokeColor = Color.Black
-val StrokeWidth = 1.5f
+val StrokeWidth = 2f
 val StrokeWidthSelected = 3f

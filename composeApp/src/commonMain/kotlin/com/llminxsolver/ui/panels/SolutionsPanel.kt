@@ -39,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,9 +50,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.SolverState
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -65,6 +66,13 @@ fun SolutionsPanel(
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val copiedSolutions = remember { mutableStateMapOf<String, Boolean>() }
+
+    LaunchedEffect(copiedSolutions.keys.toList()) {
+        if (copiedSolutions.isNotEmpty()) {
+            delay(1000)
+            copiedSolutions.clear()
+        }
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -212,8 +220,6 @@ private fun SolutionItem(
             text = solution,
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
 

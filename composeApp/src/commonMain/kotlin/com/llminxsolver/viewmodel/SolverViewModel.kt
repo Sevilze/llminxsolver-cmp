@@ -8,8 +8,10 @@ import com.llminxsolver.data.ParallelConfig
 import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
+import com.llminxsolver.data.createPlatformSettingsRepository
 import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.platform.MemoryMonitor
+import com.llminxsolver.theme.MegaminxColorScheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +19,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uniffi.llminxsolver.Metric
@@ -34,6 +38,7 @@ import uniffi.llminxsolver.getMoveCount
 class SolverViewModel {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val memoryMonitor = MemoryMonitor()
+    private val settingsRepository = createPlatformSettingsRepository()
 
     private val _megaminxState = MutableStateFlow(MegaminxState())
     val megaminxState: StateFlow<MegaminxState> = _megaminxState.asStateFlow()
@@ -53,14 +58,42 @@ class SolverViewModel {
     private val _availableCpus = MutableStateFlow(4)
     val availableCpus: StateFlow<Int> = _availableCpus.asStateFlow()
 
+    private val _megaminxColorScheme = MutableStateFlow(MegaminxColorScheme())
+    val megaminxColorScheme: StateFlow<MegaminxColorScheme> = _megaminxColorScheme.asStateFlow()
+
+    private val _skipDeletionWarning = MutableStateFlow(false)
+    val skipDeletionWarning: StateFlow<Boolean> = _skipDeletionWarning.asStateFlow()
+
     private var solverHandle: SolverHandle? = null
     private var parallelSolverHandle: ParallelSolverHandle? = null
     private var solveJob: Job? = null
+
+    @Volatile
+    private var isSolveCancelled = false
 
     init {
         NativeLib.ensureLoaded()
         initializePlatformInfo()
         startMemoryMonitoring()
+        collectSettings()
+    }
+
+    private fun collectSettings() {
+        settingsRepository.settings
+            .onEach { settings ->
+                _megaminxColorScheme.value = settings.megaminxColorScheme
+                _skipDeletionWarning.value = settings.skipDeletionWarning
+                _solverConfig.update { config ->
+                    config.copy(
+                        parallelConfig = config.parallelConfig.copy(
+                            memoryBudgetMb = settings.memoryBudgetMb,
+                            tableGenThreads = settings.tableGenThreads,
+                            searchThreads = settings.searchThreads
+                        )
+                    )
+                }
+            }
+            .launchIn(scope)
     }
 
     private fun initializePlatformInfo() {
@@ -112,6 +145,29 @@ class SolverViewModel {
 
     fun setParallelConfig(config: ParallelConfig) {
         _solverConfig.update { it.copy(parallelConfig = config) }
+        scope.launch {
+            settingsRepository.updateSettings {
+                it.copy(
+                    memoryBudgetMb = config.memoryBudgetMb,
+                    tableGenThreads = config.tableGenThreads,
+                    searchThreads = config.searchThreads
+                )
+            }
+        }
+    }
+
+    fun setMegaminxColorScheme(scheme: MegaminxColorScheme) {
+        _megaminxColorScheme.value = scheme
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(megaminxColorScheme = scheme) }
+        }
+    }
+
+    fun setSkipDeletionWarning(skip: Boolean) {
+        _skipDeletionWarning.value = skip
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(skipDeletionWarning = skip) }
+        }
     }
 
     fun setIgnoreFlag(flag: String, value: Boolean) {
@@ -246,6 +302,7 @@ class SolverViewModel {
     }
 
     private fun solveSingleMode() {
+        isSolveCancelled = false
         solveJob = scope.launch {
             _solverState.update {
                 it.copy(
@@ -274,6 +331,7 @@ class SolverViewModel {
                     }
 
                     override fun onSolutionFound(solution: String) {
+                        if (isSolveCancelled) return
                         _solverState.update {
                             it.copy(solutions = it.solutions + solution)
                         }
@@ -311,6 +369,7 @@ class SolverViewModel {
 
     private fun solveMultiMode() {
         val config = _solverConfig.value
+        isSolveCancelled = false
         solveJob = scope.launch {
             _solverState.update {
                 it.copy(
@@ -339,6 +398,7 @@ class SolverViewModel {
                     }
 
                     override fun onSolutionFound(solution: String) {
+                        if (isSolveCancelled) return
                         _solverState.update {
                             it.copy(solutions = it.solutions + solution)
                         }
@@ -399,6 +459,7 @@ class SolverViewModel {
     }
 
     fun cancelSolve() {
+        isSolveCancelled = true
         solverHandle?.cancel()
         solverHandle?.close()
         solverHandle = null

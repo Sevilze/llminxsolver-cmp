@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,7 +50,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.ScoredSolution
 import kotlin.math.roundToInt
@@ -61,6 +61,7 @@ fun ScoredSolutionsPanel(
     scoredSolutions: List<ScoredSolution>,
     metricLabel: String = "Moves",
     maxSolutions: Int = 20,
+    listHeight: Int? = null,
     modifier: Modifier = Modifier
 ) {
     var displayCount by remember { mutableIntStateOf(maxSolutions) }
@@ -92,16 +93,16 @@ fun ScoredSolutionsPanel(
         )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = "Scored Algorithms",
@@ -109,10 +110,8 @@ fun ScoredSolutionsPanel(
                     )
                     if (scoredSolutions.isNotEmpty()) {
                         Text(
-                            text = "(${minOf(
-                                displayCount,
-                                scoredSolutions.size
-                            )} of ${scoredSolutions.size})",
+                            text = "(${minOf(displayCount, scoredSolutions.size)}" +
+                                " of ${scoredSolutions.size})",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -198,7 +197,13 @@ fun ScoredSolutionsPanel(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .let {
+                            if (listHeight != null) {
+                                it.height(listHeight.dp)
+                            } else {
+                                it.weight(1f)
+                            }
+                        },
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     itemsIndexed(displayedSolutions) { index, solution ->
@@ -261,8 +266,6 @@ private fun ScoredSolutionRow(
             text = solution.algorithm,
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
 

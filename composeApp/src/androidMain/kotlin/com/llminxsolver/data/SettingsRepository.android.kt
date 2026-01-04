@@ -49,22 +49,22 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
         val colorScheme = MegaminxColorScheme(
             uFace = prefs[PreferencesKeys.MEGAMINX_U_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.uFace,
+                ?: MegaminxColorScheme().uFace,
             fFace = prefs[PreferencesKeys.MEGAMINX_F_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.fFace,
+                ?: MegaminxColorScheme().fFace,
             lFace = prefs[PreferencesKeys.MEGAMINX_L_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.lFace,
+                ?: MegaminxColorScheme().lFace,
             blFace = prefs[PreferencesKeys.MEGAMINX_BL_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.blFace,
+                ?: MegaminxColorScheme().blFace,
             brFace = prefs[PreferencesKeys.MEGAMINX_BR_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.brFace,
+                ?: MegaminxColorScheme().brFace,
             rFace = prefs[PreferencesKeys.MEGAMINX_R_FACE]
                 ?.let { hexStringToColor(it) }
-                ?: MegaminxColorScheme.Classic.rFace
+                ?: MegaminxColorScheme().rFace
         )
 
         AppSettings(
@@ -93,7 +93,7 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
                     ?: AppSettings.Default.searchThreads,
                 skipDeletionWarning = prefs[PreferencesKeys.SKIP_DELETION_WARNING]
                     ?: AppSettings.Default.skipDeletionWarning,
-                megaminxColorScheme = MegaminxColorScheme.Classic,
+                megaminxColorScheme = MegaminxColorScheme(),
                 useDynamicColors = prefs[PreferencesKeys.USE_DYNAMIC_COLORS]
                     ?: AppSettings.Default.useDynamicColors
             )

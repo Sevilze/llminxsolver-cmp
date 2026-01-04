@@ -73,7 +73,7 @@ fun SettingsDialog(
     memoryInfo: MemoryInfo? = null,
     availableCpus: Int = 4,
     onParallelConfigChange: ((ParallelConfig) -> Unit)? = null,
-    megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme.Classic,
+    megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     onMegaminxColorSchemeChange: ((MegaminxColorScheme) -> Unit)? = null,
     skipDeletionWarning: Boolean = false,
     onSkipDeletionWarningChange: ((Boolean) -> Unit)? = null

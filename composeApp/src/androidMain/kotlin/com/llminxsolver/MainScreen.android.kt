@@ -32,8 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llminxsolver.ui.components.StatusBar
 import com.llminxsolver.ui.components.IgnoreOptions
+import com.llminxsolver.ui.components.StatusBar
 import com.llminxsolver.ui.dialogs.SettingsDialog
 import com.llminxsolver.ui.megaminx.MegaminxViewer
 import com.llminxsolver.ui.panels.ControlPanel
@@ -147,7 +147,7 @@ actual fun MainScreen(viewModel: SolverViewModel) {
             ScoredSolutionsPanel(
                 scoredSolutions = state.scoredSolutions,
                 metricLabel = getMetricLabel(state.solverConfig.metric),
-                modifier = Modifier.height(300.dp)
+                listHeight = 400
             )
 
             SolutionsPanel(

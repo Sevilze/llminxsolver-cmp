@@ -1,6 +1,7 @@
 package com.llminxsolver.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -65,7 +66,7 @@ private val md_theme_dark_inverseOnSurface = Color(0xFF313033)
 private val md_theme_dark_inversePrimary = Color(0xFF6750A4)
 private val md_theme_dark_surfaceTint = Color(0xFFD0BCFF)
 
-private val LightColors =
+val LightColors =
     lightColorScheme(
         primary = md_theme_light_primary,
         onPrimary = md_theme_light_onPrimary,
@@ -97,7 +98,7 @@ private val LightColors =
         surfaceTint = md_theme_light_surfaceTint
     )
 
-private val DarkColors =
+val DarkColors =
     darkColorScheme(
         primary = md_theme_dark_primary,
         onPrimary = md_theme_dark_onPrimary,
@@ -130,8 +131,20 @@ private val DarkColors =
     )
 
 @Composable
-fun LLMinxTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+expect fun getDynamicColorScheme(darkTheme: Boolean): ColorScheme?
+
+@Composable
+fun LLMinxTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    useDynamicColors: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val fallbackScheme = if (darkTheme) DarkColors else LightColors
+    val colorScheme = if (useDynamicColors) {
+        getDynamicColorScheme(darkTheme) ?: fallbackScheme
+    } else {
+        fallbackScheme
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

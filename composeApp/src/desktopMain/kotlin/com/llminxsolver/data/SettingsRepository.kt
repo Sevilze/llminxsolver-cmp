@@ -73,17 +73,17 @@ class JsonSettingsRepository : PlatformSettingsRepository {
     private fun SettingsJson.toAppSettings(): AppSettings {
         val colorScheme = MegaminxColorScheme(
             uFace = hexStringToColor(megaminxUFace)
-                ?: MegaminxColorScheme.Classic.uFace,
+                ?: MegaminxColorScheme().uFace,
             fFace = hexStringToColor(megaminxFFace)
-                ?: MegaminxColorScheme.Classic.fFace,
+                ?: MegaminxColorScheme().fFace,
             lFace = hexStringToColor(megaminxLFace)
-                ?: MegaminxColorScheme.Classic.lFace,
+                ?: MegaminxColorScheme().lFace,
             blFace = hexStringToColor(megaminxBlFace)
-                ?: MegaminxColorScheme.Classic.blFace,
+                ?: MegaminxColorScheme().blFace,
             brFace = hexStringToColor(megaminxBrFace)
-                ?: MegaminxColorScheme.Classic.brFace,
+                ?: MegaminxColorScheme().brFace,
             rFace = hexStringToColor(megaminxRFace)
-                ?: MegaminxColorScheme.Classic.rFace
+                ?: MegaminxColorScheme().rFace
         )
         return AppSettings(
             memoryBudgetMb = memoryBudgetMb,

@@ -14,9 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import com.llminxsolver.data.IgnoreFlags
 import com.llminxsolver.data.MegaminxState
@@ -26,291 +23,14 @@ import com.llminxsolver.theme.CornerColorMap
 import com.llminxsolver.theme.EdgeColorMap
 import com.llminxsolver.theme.HighlightColor
 import com.llminxsolver.theme.MegaminxColorScheme
-import com.llminxsolver.theme.MegaminxColors
 import com.llminxsolver.theme.SelectionColor
-import com.llminxsolver.theme.StickerColors
 import com.llminxsolver.theme.StrokeColor
 import com.llminxsolver.theme.StrokeWidth
 import com.llminxsolver.theme.StrokeWidthSelected
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.math.sqrt
-
-data class Point(val x: Float, val y: Float)
-
-data class EdgeSticker(val top: List<Point>, val bottom: List<Point>)
-
-data class CornerSticker(
-    val top: List<Point>,
-    val leftSide: List<Point>,
-    val rightSide: List<Point>
-)
-
-data class MegaminxGeometry(
-    val centerPoints: List<Point>,
-    val innerCorners: List<Point>,
-    val middleCorners: List<Point>,
-    val outerCorners: List<Point>,
-    val middleEdgesLeft: List<Point>,
-    val middleEdgesRight: List<Point>,
-    val edgeStickers: List<EdgeSticker>,
-    val cornerStickers: List<CornerSticker>
-)
-
-private fun pointAt(center: Point, distance: Float, angle: Float): Point = Point(
-    x = center.x + distance * cos(angle),
-    y = center.y + distance * sin(angle)
-)
-
-private fun lerp(p1: Point, p2: Point, fraction: Float): Point = Point(
-    x = p1.x * (1 - fraction) + p2.x * fraction,
-    y = p1.y * (1 - fraction) + p2.y * fraction
-)
-
-private fun distance(p1: Point, p2: Point): Float {
-    val dx = p2.x - p1.x
-    val dy = p2.y - p1.y
-    return sqrt(dx * dx + dy * dy)
-}
-
-private fun lineIntersection(
-    x1: Float,
-    y1: Float,
-    x2: Float,
-    y2: Float,
-    x3: Float,
-    y3: Float,
-    x4: Float,
-    y4: Float
-): Point {
-    fun det(a: Float, b: Float, c: Float, d: Float) = a * d - b * c
-    val denom = det(x1 - x2, y1 - y2, x3 - x4, y3 - y4)
-    val det12 = det(x1, y1, x2, y2)
-    val det34 = det(x3, y3, x4, y4)
-    return Point(
-        x = det(det12, x1 - x2, det34, x3 - x4) / denom,
-        y = det(det12, y1 - y2, det34, y3 - y4) / denom
-    )
-}
-
-private fun calculateGeometry(width: Float, height: Float, padding: Float = 10f): MegaminxGeometry {
-    val halfWidth = width / 2f
-    val halfHeight = height / 2f
-    val outerRadius = minOf(halfHeight, halfWidth) - padding
-    val middleRadius = (3f * outerRadius) / 4f
-    val innerRadius = outerRadius / 3f
-    val center = Point(halfWidth, halfHeight)
-
-    val innerCorners = mutableListOf<Point>()
-    val middleCorners = mutableListOf<Point>()
-    val outerCorners = mutableListOf<Point>()
-    val centerPoints = mutableListOf<Point>()
-
-    for (i in 0 until 5) {
-        val angle = (-PI / 2.0 + (i.toDouble() / 5.0) * PI * 2.0).toFloat()
-        innerCorners.add(pointAt(center, innerRadius, angle))
-        middleCorners.add(pointAt(center, middleRadius, angle))
-        outerCorners.add(pointAt(center, outerRadius, angle))
-        centerPoints.add(pointAt(center, innerRadius, angle))
-    }
-
-    val middleEdgesLeft = MutableList(5) { Point(0f, 0f) }
-    val middleEdgesRight = MutableList(5) { Point(0f, 0f) }
-
-    for (i in 0 until 5) {
-        val prevCorner = (i + 4) % 5
-        val nextCorner = (i + 1) % 5
-
-        val intersectionRight =
-            lineIntersection(
-                innerCorners[prevCorner].x,
-                innerCorners[prevCorner].y,
-                innerCorners[i].x,
-                innerCorners[i].y,
-                middleCorners[i].x,
-                middleCorners[i].y,
-                middleCorners[nextCorner].x,
-                middleCorners[nextCorner].y
-            )
-        middleEdgesRight[i] = intersectionRight
-
-        val intersectionLeft =
-            lineIntersection(
-                innerCorners[i].x,
-                innerCorners[i].y,
-                innerCorners[nextCorner].x,
-                innerCorners[nextCorner].y,
-                middleCorners[prevCorner].x,
-                middleCorners[prevCorner].y,
-                middleCorners[i].x,
-                middleCorners[i].y
-            )
-        middleEdgesLeft[prevCorner] = intersectionLeft
-    }
-
-    val edgeStickers = MutableList(5) { EdgeSticker(emptyList(), emptyList()) }
-    val cornerStickers = mutableListOf<CornerSticker>()
-
-    for (i in 0 until 5) {
-        val prevCorner = (i + 4) % 5
-        val nextCorner = (i + 1) % 5
-
-        val fraction =
-            distance(middleEdgesLeft[prevCorner], innerCorners[i]) /
-                distance(middleEdgesLeft[prevCorner], middleEdgesRight[nextCorner])
-
-        val leftOuterCorner = lerp(outerCorners[i], outerCorners[nextCorner], fraction)
-        val rightOuterCorner = lerp(outerCorners[i], outerCorners[prevCorner], fraction)
-        val leftOuterEdge = lerp(outerCorners[nextCorner], outerCorners[i], fraction)
-
-        val edgeIndex = (i + 3) % 5
-        edgeStickers[edgeIndex] =
-            EdgeSticker(
-                top =
-                    listOf(
-                        innerCorners[i],
-                        innerCorners[nextCorner],
-                        middleEdgesLeft[i],
-                        middleEdgesRight[i]
-                    ),
-                bottom =
-                    listOf(
-                        leftOuterCorner,
-                        middleEdgesRight[i],
-                        middleEdgesLeft[i],
-                        leftOuterEdge
-                    )
-            )
-
-        cornerStickers.add(
-            CornerSticker(
-                top =
-                    listOf(
-                        innerCorners[i],
-                        middleEdgesLeft[prevCorner],
-                        middleCorners[i],
-                        middleEdgesRight[i]
-                    ),
-                leftSide =
-                    listOf(
-                        middleCorners[i],
-                        middleEdgesRight[i],
-                        leftOuterCorner,
-                        outerCorners[i]
-                    ),
-                rightSide =
-                    listOf(
-                        middleCorners[i],
-                        middleEdgesLeft[prevCorner],
-                        rightOuterCorner,
-                        outerCorners[i]
-                    )
-            )
-        )
-    }
-
-    return MegaminxGeometry(
-        centerPoints = centerPoints,
-        innerCorners = innerCorners,
-        middleCorners = middleCorners,
-        outerCorners = outerCorners,
-        middleEdgesLeft = middleEdgesLeft,
-        middleEdgesRight = middleEdgesRight,
-        edgeStickers = edgeStickers,
-        cornerStickers = cornerStickers
-    )
-}
-
-private fun DrawScope.drawPolygon(
-    points: List<Point>,
-    fillColor: Color,
-    strokeColor: Color,
-    strokeWidth: Float
-) {
-    if (points.isEmpty()) return
-
-    val path =
-        Path().apply {
-            moveTo(points[0].x, points[0].y)
-            for (i in 1 until points.size) {
-                lineTo(points[i].x, points[i].y)
-            }
-            close()
-        }
-
-    drawPath(path, fillColor, style = Fill)
-    drawPath(path, strokeColor, style = Stroke(width = strokeWidth))
-}
-
-private fun DrawScope.drawRoundedPolygon(
-    points: List<Point>,
-    fillColor: Color,
-    strokeColor: Color,
-    strokeWidth: Float,
-    cornerRadius: Float
-) {
-    if (points.isEmpty()) return
-
-    val path = Path()
-    for (i in points.indices) {
-        val curr = points[i]
-        val prev = points[(i - 1 + points.size) % points.size]
-        val next = points[(i + 1) % points.size]
-
-        val dx1 = prev.x - curr.x
-        val dy1 = prev.y - curr.y
-        val len1 = sqrt(dx1 * dx1 + dy1 * dy1)
-        val p1 = Point(curr.x + dx1 / len1 * cornerRadius, curr.y + dy1 / len1 * cornerRadius)
-
-        val dx2 = next.x - curr.x
-        val dy2 = next.y - curr.y
-        val len2 = sqrt(dx2 * dx2 + dy2 * dy2)
-        val p2 = Point(curr.x + dx2 / len2 * cornerRadius, curr.y + dy2 / len2 * cornerRadius)
-
-        if (i == 0) {
-            path.moveTo(p1.x, p1.y)
-        } else {
-            path.lineTo(p1.x, p1.y)
-        }
-        path.quadraticTo(curr.x, curr.y, p2.x, p2.y)
-    }
-    path.close()
-
-    drawPath(path, fillColor, style = Fill)
-    drawPath(path, strokeColor, style = Stroke(width = strokeWidth))
-}
-
-private fun getCenterOfPoints(points: List<Point>): Point {
-    if (points.isEmpty()) return Point(0f, 0f)
-    val sumX = points.sumOf { it.x.toDouble() }.toFloat()
-    val sumY = points.sumOf { it.y.toDouble() }.toFloat()
-    return Point(sumX / points.size, sumY / points.size)
-}
-
-private fun pointInPolygon(point: Point, polygon: List<Point>): Boolean {
-    if (polygon.size < 3) return false
-
-    var inside = false
-    var j = polygon.size - 1
-
-    for (i in polygon.indices) {
-        val xi = polygon[i].x
-        val yi = polygon[i].y
-        val xj = polygon[j].x
-        val yj = polygon[j].y
-
-        val intersect =
-            ((yi > point.y) != (yj > point.y)) &&
-                (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
-
-        if (intersect) inside = !inside
-        j = i
-    }
-
-    return inside
-}
 
 private fun faceColorIndex(cornerIndex: Int): Int = when (cornerIndex) {
     0 -> 4
@@ -329,7 +49,7 @@ fun MegaminxViewer(
     onRotateCorner: (Int, Int) -> Unit = { _, _ -> },
     onSwapEdges: (Int, Int) -> Unit = { _, _ -> },
     onFlipEdge: (Int) -> Unit = { },
-    colorScheme: MegaminxColorScheme = MegaminxColorScheme.Classic,
+    colorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -347,12 +67,12 @@ fun MegaminxViewer(
 
         if (ignoreFlags.cornerPositions) {
             if (effectiveOrientation != 0 || ignoreFlags.cornerOrientations) {
-                return MegaminxColors.Gray
+                return colorScheme.blank
             }
         }
 
         if (ignoreFlags.cornerOrientations) {
-            return MegaminxColors.Gray
+            return colorScheme.blank
         }
 
         return colorScheme.stickerColors[CornerColorMap[position][effectiveOrientation]]
@@ -365,12 +85,12 @@ fun MegaminxViewer(
 
         if (ignoreFlags.edgePositions) {
             if (effectiveOrientation != 0 || ignoreFlags.edgeOrientations) {
-                return MegaminxColors.Gray
+                return colorScheme.blank
             }
         }
 
         if (ignoreFlags.edgeOrientations) {
-            return MegaminxColors.Gray
+            return colorScheme.blank
         }
 
         return colorScheme.stickerColors[EdgeColorMap[position][effectiveOrientation]]
@@ -381,7 +101,7 @@ fun MegaminxViewer(
         val point = Point(position.x, position.y)
 
         for ((cubieIndex, corner) in geo.cornerStickers.withIndex()) {
-            val sides = listOf(corner.top to 0, corner.rightSide to 1, corner.leftSide to 2)
+            val sides = listOf(corner.top to 0, corner.rightSticker to 1, corner.leftSticker to 2)
             for ((polygon, orientationIndex) in sides) {
                 if (pointInPolygon(point, polygon)) {
                     return StickerInfo(StickerType.Corner, cubieIndex, orientationIndex)
@@ -491,18 +211,10 @@ fun MegaminxViewer(
             canvasSize = newSize
             val halfSize = newSize / 2f
             val rectHeight = newSize * 0.06f
-            val rectWidth = newSize * 0.15f
-            // Distance from center to outer edge midpoint is ~ outerRadius * cos(36)
-            // But we can just use the previous logic maxR.
-
-            // The indicator center is at distance: outerEdgeMidpoint + normal * offset
-            // offset = rectHeight/2 + strokeWidth * 2
-            // reach = offset + rectHeight/2
 
             val indicatorReach = rectHeight + StrokeWidth * 3f
             val cos36 = cos(PI / 5.0).toFloat()
 
-            // Ensure R * cos36 + indicatorReach <= halfSize
             val maxR = (halfSize - indicatorReach) / cos36
             val outerRadius = minOf(halfSize - 10f, maxR)
             val padding = halfSize - outerRadius
@@ -523,7 +235,6 @@ fun MegaminxViewer(
         for ((cubieIndex, edge) in geo.edgeStickers.withIndex()) {
             for ((sideName, orientationIndex) in edgeSides) {
                 val points = if (sideName == "top") edge.top else edge.bottom
-                val info = StickerInfo(StickerType.Edge, cubieIndex, orientationIndex)
 
                 val isSelected =
                     selectedSticker?.type == StickerType.Edge &&
@@ -565,8 +276,8 @@ fun MegaminxViewer(
                 val points =
                     when (sideName) {
                         "top" -> corner.top
-                        "right" -> corner.rightSide
-                        else -> corner.leftSide
+                        "right" -> corner.rightSticker
+                        else -> corner.leftSticker
                     }
 
                 val isSelected =
@@ -588,8 +299,8 @@ fun MegaminxViewer(
                     val highlightPoints =
                         when (selectedSticker!!.orientationIndex) {
                             0 -> corner.top
-                            1 -> corner.rightSide
-                            else -> corner.leftSide
+                            1 -> corner.rightSticker
+                            else -> corner.leftSticker
                         }
                     drawPolygon(highlightPoints, HighlightColor, Color.Transparent, 0f)
                 }
@@ -628,15 +339,6 @@ fun MegaminxViewer(
                 outerEdgeMidpoint.x + normalX * offsetDistance,
                 outerEdgeMidpoint.y + normalY * offsetDistance
             )
-
-            // Calculate 4 corners of the rotated rectangle
-            // p1: center - width/2 * tangent - height/2 * normal
-            // p2: center + width/2 * tangent - height/2 * normal
-            // p3: center + width/2 * tangent + height/2 * normal
-            // p4: center - width/2 * tangent + height/2 * normal
-            // Wait, "normal" points OUT.
-            // If we want "strip", maybe height is small dimension along normal?
-            // yes.
 
             val hw = rectWidth / 2f
             val hh = rectHeight / 2f
@@ -683,14 +385,14 @@ fun MegaminxViewer(
                     startPoints =
                         when (selected.orientationIndex) {
                             0 -> startCorner.top
-                            1 -> startCorner.rightSide
-                            else -> startCorner.leftSide
+                            1 -> startCorner.rightSticker
+                            else -> startCorner.leftSticker
                         }
                     endPoints =
                         when (hovered.orientationIndex) {
                             0 -> endCorner.top
-                            1 -> endCorner.rightSide
-                            else -> endCorner.leftSide
+                            1 -> endCorner.rightSticker
+                            else -> endCorner.leftSticker
                         }
                 }
 
@@ -724,11 +426,11 @@ fun MegaminxViewer(
                     moveTo(end.x, end.y)
                     lineTo(
                         end.x - arrowSize * cos(angle - PI.toFloat() / 6),
-                        end.y - arrowSize * sin(angle - PI.toFloat() / 6)
+                        end.y - arrowSize * kotlin.math.sin(angle - PI.toFloat() / 6)
                     )
                     lineTo(
                         end.x - arrowSize * cos(angle + PI.toFloat() / 6),
-                        end.y - arrowSize * sin(angle + PI.toFloat() / 6)
+                        end.y - arrowSize * kotlin.math.sin(angle + PI.toFloat() / 6)
                     )
                     close()
                 }
@@ -740,11 +442,11 @@ fun MegaminxViewer(
                         moveTo(start.x, start.y)
                         lineTo(
                             start.x + arrowSize * cos(angle - PI.toFloat() / 6),
-                            start.y + arrowSize * sin(angle - PI.toFloat() / 6)
+                            start.y + arrowSize * kotlin.math.sin(angle - PI.toFloat() / 6)
                         )
                         lineTo(
                             start.x + arrowSize * cos(angle + PI.toFloat() / 6),
-                            start.y + arrowSize * sin(angle + PI.toFloat() / 6)
+                            start.y + arrowSize * kotlin.math.sin(angle + PI.toFloat() / 6)
                         )
                         close()
                     }

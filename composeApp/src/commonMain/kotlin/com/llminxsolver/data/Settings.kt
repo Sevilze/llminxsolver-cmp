@@ -9,7 +9,7 @@ data class AppSettings(
     val tableGenThreads: Int = 4,
     val searchThreads: Int = 4,
     val skipDeletionWarning: Boolean = false,
-    val megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme.Classic,
+    val megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     val useDynamicColors: Boolean = true
 ) {
     companion object {
