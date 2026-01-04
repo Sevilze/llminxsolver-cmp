@@ -4,6 +4,137 @@ use std::sync::{Arc, RwLock};
 
 uniffi::include_scaffolding!("llminxsolver");
 
+#[derive(Debug, Clone)]
+pub struct ThemeColors {
+    pub primary: String,
+    pub on_primary: String,
+    pub primary_container: String,
+    pub on_primary_container: String,
+    pub secondary: String,
+    pub on_secondary: String,
+    pub secondary_container: String,
+    pub on_secondary_container: String,
+    pub tertiary: String,
+    pub on_tertiary: String,
+    pub tertiary_container: String,
+    pub on_tertiary_container: String,
+    pub error: String,
+    pub on_error: String,
+    pub error_container: String,
+    pub on_error_container: String,
+    pub background: String,
+    pub on_background: String,
+    pub surface: String,
+    pub on_surface: String,
+    pub surface_variant: String,
+    pub on_surface_variant: String,
+    pub outline: String,
+    pub outline_variant: String,
+    pub inverse_surface: String,
+    pub inverse_on_surface: String,
+    pub inverse_primary: String,
+    pub surface_tint: String,
+    pub surface_dim: String,
+    pub surface_bright: String,
+    pub surface_container_lowest: String,
+    pub surface_container_low: String,
+    pub surface_container: String,
+    pub surface_container_high: String,
+    pub surface_container_highest: String,
+}
+
+impl From<llminxsolver_rs::ThemeColors> for ThemeColors {
+    fn from(colors: llminxsolver_rs::ThemeColors) -> Self {
+        Self {
+            primary: colors.primary,
+            on_primary: colors.on_primary,
+            primary_container: colors.primary_container,
+            on_primary_container: colors.on_primary_container,
+            secondary: colors.secondary,
+            on_secondary: colors.on_secondary,
+            secondary_container: colors.secondary_container,
+            on_secondary_container: colors.on_secondary_container,
+            tertiary: colors.tertiary,
+            on_tertiary: colors.on_tertiary,
+            tertiary_container: colors.tertiary_container,
+            on_tertiary_container: colors.on_tertiary_container,
+            error: colors.error,
+            on_error: colors.on_error,
+            error_container: colors.error_container,
+            on_error_container: colors.on_error_container,
+            background: colors.background,
+            on_background: colors.on_background,
+            surface: colors.surface,
+            on_surface: colors.on_surface,
+            surface_variant: colors.surface_variant,
+            on_surface_variant: colors.on_surface_variant,
+            outline: colors.outline,
+            outline_variant: colors.outline_variant,
+            inverse_surface: colors.inverse_surface,
+            inverse_on_surface: colors.inverse_on_surface,
+            inverse_primary: colors.inverse_primary,
+            surface_tint: colors.surface_tint,
+            surface_dim: colors.surface_dim,
+            surface_bright: colors.surface_bright,
+            surface_container_lowest: colors.surface_container_lowest,
+            surface_container_low: colors.surface_container_low,
+            surface_container: colors.surface_container,
+            surface_container_high: colors.surface_container_high,
+            surface_container_highest: colors.surface_container_highest,
+        }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SchemeType {
+    #[default]
+    TonalSpot,
+    Content,
+    Expressive,
+    Fidelity,
+    FruitSalad,
+    Monochrome,
+    Neutral,
+    Rainbow,
+    Vibrant,
+}
+
+impl From<SchemeType> for llminxsolver_rs::SchemeType {
+    fn from(scheme_type: SchemeType) -> Self {
+        match scheme_type {
+            SchemeType::TonalSpot => llminxsolver_rs::SchemeType::TonalSpot,
+            SchemeType::Content => llminxsolver_rs::SchemeType::Content,
+            SchemeType::Expressive => llminxsolver_rs::SchemeType::Expressive,
+            SchemeType::Fidelity => llminxsolver_rs::SchemeType::Fidelity,
+            SchemeType::FruitSalad => llminxsolver_rs::SchemeType::FruitSalad,
+            SchemeType::Monochrome => llminxsolver_rs::SchemeType::Monochrome,
+            SchemeType::Neutral => llminxsolver_rs::SchemeType::Neutral,
+            SchemeType::Rainbow => llminxsolver_rs::SchemeType::Rainbow,
+            SchemeType::Vibrant => llminxsolver_rs::SchemeType::Vibrant,
+        }
+    }
+}
+
+pub fn generate_theme_from_image(
+    image_path: String,
+    dark_theme: bool,
+    scheme_type: SchemeType,
+) -> Option<ThemeColors> {
+    llminxsolver_rs::generate_theme_from_image(&image_path, dark_theme, scheme_type.into())
+        .map(Into::into)
+}
+
+pub fn generate_theme_from_wallpaper(
+    dark_theme: bool,
+    scheme_type: SchemeType,
+) -> Option<ThemeColors> {
+    llminxsolver_rs::generate_theme_from_wallpaper(dark_theme, scheme_type.into())
+        .map(Into::into)
+}
+
+pub fn detect_wallpaper_path() -> Option<String> {
+    llminxsolver_rs::detect_wallpaper_path()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SearchMode {
     RU,

@@ -7,6 +7,8 @@ pub mod parallel_solver;
 pub mod pruner;
 pub mod search_mode;
 pub mod solver;
+pub mod theme_gen;
+pub mod wallpaper;
 
 pub use coordinate::CoordinateUtil;
 pub use data_directory::{get_data_directory, set_data_directory};
@@ -17,4 +19,5 @@ pub use parallel_solver::ParallelSolver;
 pub use pruner::Pruner;
 pub use search_mode::{Metric, SearchMode};
 pub use solver::{Solver, StatusCallback, StatusEvent, StatusEventType};
-
+pub use theme_gen::{generate_theme_from_image, generate_theme_from_wallpaper, SchemeType, ThemeColors};
+pub use wallpaper::detect_wallpaper_path;

@@ -4,6 +4,60 @@ namespace llminxsolver {
     u32 get_move_count(string algorithm, string metric);
     u32 get_available_cpus();
     u32 get_available_memory_mb();
+    ThemeColors? generate_theme_from_image(string image_path, boolean dark_theme, SchemeType scheme_type);
+    ThemeColors? generate_theme_from_wallpaper(boolean dark_theme, SchemeType scheme_type);
+    string? detect_wallpaper_path();
+};
+
+[Enum]
+interface SchemeType {
+    TonalSpot();
+    Content();
+    Expressive();
+    Fidelity();
+    FruitSalad();
+    Monochrome();
+    Neutral();
+    Rainbow();
+    Vibrant();
+};
+
+dictionary ThemeColors {
+    string primary;
+    string on_primary;
+    string primary_container;
+    string on_primary_container;
+    string secondary;
+    string on_secondary;
+    string secondary_container;
+    string on_secondary_container;
+    string tertiary;
+    string on_tertiary;
+    string tertiary_container;
+    string on_tertiary_container;
+    string error;
+    string on_error;
+    string error_container;
+    string on_error_container;
+    string background;
+    string on_background;
+    string surface;
+    string on_surface;
+    string surface_variant;
+    string on_surface_variant;
+    string outline;
+    string outline_variant;
+    string inverse_surface;
+    string inverse_on_surface;
+    string inverse_primary;
+    string surface_tint;
+    string surface_dim;
+    string surface_bright;
+    string surface_container_lowest;
+    string surface_container_low;
+    string surface_container;
+    string surface_container_high;
+    string surface_container_highest;
 };
 
 [Enum]
