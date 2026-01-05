@@ -1,0 +1,85 @@
+name: Linux Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux Build (Deb, Rpm, Tar.gz) & AUR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Native Library
+        run: |
+          cargo build -p llminxsolver-uniffi --release
+          mkdir -p composeApp/src/desktopMain/resources
+          cp target/release/libllminxsolver_uniffi.so composeApp/src/desktopMain/resources/
+
+      - name: Build Desktop Packages
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+        run: |
+          export APP_VERSION=${APP_VERSION#v}
+          chmod +x gradlew
+          ./gradlew :composeApp:packageDeb :composeApp:packageRpm :composeApp:createDistributable
+
+      - name: Prepare Artifacts
+        run: |
+          mkdir -p dist
+
+          cp -r composeApp/build/compose/binaries/main/app/* dist/
+
+          cd dist
+          tar -czvf ../llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz *
+          cd ..
+
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          echo "SHA256=$(sha256sum llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz | awk '{print $1}')" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz
+            composeApp/build/compose/binaries/main/deb/*.deb
+            composeApp/build/compose/binaries/main/rpm/*.rpm
+          generate_release_notes: true
+
+      - name: Update PKGBUILD
+        run: |
+          sed -i "s/^pkgver=.*/pkgver=${{ env.VERSION }}/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('${{ env.SHA256 }}')/" PKGBUILD
+          cat PKGBUILD
+
+      - name: Update AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v2.2.5
+        with:
+          pkgname: llminxsolver-bin
+          pkgbuild: ./PKGBUILD
+          commit_username: Sevilze
+          commit_email: sevilzcubing@gmail.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to v${{ env.VERSION }}"
+          force_push: false
+          ssh_keyscan_types: rsa,ecdsa,ed25519
+
+      - name: Update 'latest' tag
+        run: |
+          git tag -f latest
+          git push -f origin latest
