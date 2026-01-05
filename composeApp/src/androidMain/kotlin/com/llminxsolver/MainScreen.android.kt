@@ -167,7 +167,14 @@ actual fun MainScreen(viewModel: SolverViewModel) {
             megaminxColorScheme = state.megaminxColorScheme,
             onMegaminxColorSchemeChange = actions.onMegaminxColorSchemeChange,
             skipDeletionWarning = state.skipDeletionWarning,
-            onSkipDeletionWarningChange = actions.onSkipDeletionWarningChange
+            onSkipDeletionWarningChange = actions.onSkipDeletionWarningChange,
+            showDynamicColorModeConfig = true,
+            dynamicColorMode = state.dynamicColorMode,
+            onDynamicColorModeChange = actions.onDynamicColorModeChange,
+            schemeType = state.schemeType,
+            onSchemeTypeChange = actions.onSchemeTypeChange,
+            themeMode = state.themeMode,
+            onThemeModeChange = actions.onThemeModeChange
         )
     }
 }

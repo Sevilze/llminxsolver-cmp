@@ -4,13 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import com.llminxsolver.data.DynamicColorMode
 import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.data.MetricType
 import com.llminxsolver.data.ParallelConfig
+import com.llminxsolver.data.SchemeType
 import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
+import com.llminxsolver.data.ThemeMode
 import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.theme.MegaminxColorScheme
 import com.llminxsolver.viewmodel.SolverViewModel
@@ -23,7 +26,11 @@ data class MainScreenState(
     val memoryInfo: MemoryInfo?,
     val availableCpus: Int,
     val megaminxColorScheme: MegaminxColorScheme,
-    val skipDeletionWarning: Boolean
+    val skipDeletionWarning: Boolean,
+    val wallpaperPath: String?,
+    val dynamicColorMode: DynamicColorMode,
+    val themeMode: ThemeMode,
+    val schemeType: SchemeType
 )
 
 data class MainScreenActions(
@@ -39,6 +46,10 @@ data class MainScreenActions(
     val onIgnoreFlagChange: (String, Boolean) -> Unit,
     val onMegaminxColorSchemeChange: (MegaminxColorScheme) -> Unit,
     val onSkipDeletionWarningChange: (Boolean) -> Unit,
+    val onWallpaperPathChange: (String?) -> Unit,
+    val onDynamicColorModeChange: (DynamicColorMode) -> Unit,
+    val onSchemeTypeChange: (SchemeType) -> Unit,
+    val onThemeModeChange: (ThemeMode) -> Unit,
     val onReset: () -> Unit,
     val onSolve: () -> Unit,
     val onCancel: () -> Unit
@@ -57,6 +68,10 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
     val availableCpus by viewModel.availableCpus.collectAsState()
     val megaminxColorScheme by viewModel.megaminxColorScheme.collectAsState()
     val skipDeletionWarning by viewModel.skipDeletionWarning.collectAsState()
+    val wallpaperPath by viewModel.wallpaperPath.collectAsState()
+    val dynamicColorMode by viewModel.dynamicColorMode.collectAsState()
+    val schemeType by viewModel.schemeType.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
 
     return MainScreenState(
         megaminxState = megaminxState,
@@ -66,7 +81,11 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
         memoryInfo = memoryInfo,
         availableCpus = availableCpus,
         megaminxColorScheme = megaminxColorScheme,
-        skipDeletionWarning = skipDeletionWarning
+        skipDeletionWarning = skipDeletionWarning,
+        wallpaperPath = wallpaperPath,
+        dynamicColorMode = dynamicColorMode,
+        schemeType = schemeType,
+        themeMode = themeMode
     )
 }
 
@@ -84,6 +103,10 @@ fun rememberMainScreenActions(viewModel: SolverViewModel): MainScreenActions = M
     onIgnoreFlagChange = viewModel::setIgnoreFlag,
     onMegaminxColorSchemeChange = viewModel::setMegaminxColorScheme,
     onSkipDeletionWarningChange = viewModel::setSkipDeletionWarning,
+    onWallpaperPathChange = viewModel::setWallpaperPath,
+    onDynamicColorModeChange = viewModel::setDynamicColorMode,
+    onSchemeTypeChange = viewModel::setSchemeType,
+    onThemeModeChange = viewModel::setThemeMode,
     onReset = viewModel::reset,
     onSolve = viewModel::solve,
     onCancel = viewModel::cancelSolve

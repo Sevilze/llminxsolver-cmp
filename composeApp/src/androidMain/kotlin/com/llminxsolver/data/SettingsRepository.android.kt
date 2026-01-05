@@ -28,6 +28,9 @@ private object PreferencesKeys {
     val SEARCH_THREADS = intPreferencesKey("search_threads")
     val SKIP_DELETION_WARNING = booleanPreferencesKey("skip_deletion_warning")
     val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
+    val DYNAMIC_COLOR_MODE = stringPreferencesKey("dynamic_color_mode")
+    val SCHEME_TYPE = stringPreferencesKey("scheme_type")
+    val THEME_MODE = stringPreferencesKey("theme_mode")
 
     val MEGAMINX_U_FACE = stringPreferencesKey("megaminx_u_face")
     val MEGAMINX_F_FACE = stringPreferencesKey("megaminx_f_face")
@@ -78,12 +81,42 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
                 ?: AppSettings.Default.skipDeletionWarning,
             megaminxColorScheme = colorScheme,
             useDynamicColors = prefs[PreferencesKeys.USE_DYNAMIC_COLORS]
-                ?: AppSettings.Default.useDynamicColors
+                ?: AppSettings.Default.useDynamicColors,
+            dynamicColorMode = prefs[PreferencesKeys.DYNAMIC_COLOR_MODE]
+                ?.let { DynamicColorMode.entries.find { mode -> mode.name == it } }
+                ?: DynamicColorMode.BuiltIn,
+            schemeType = prefs[PreferencesKeys.SCHEME_TYPE]
+                ?.let { SchemeType.entries.find { type -> type.name == it } }
+                ?: SchemeType.TonalSpot,
+            themeMode = prefs[PreferencesKeys.THEME_MODE]
+                ?.let { ThemeMode.entries.find { mode -> mode.name == it } }
+                ?: ThemeMode.System
         )
     }
 
     override suspend fun updateSettings(transform: (AppSettings) -> AppSettings) {
         dataStore.edit { prefs ->
+            val colorScheme = MegaminxColorScheme(
+                uFace = prefs[PreferencesKeys.MEGAMINX_U_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().uFace,
+                fFace = prefs[PreferencesKeys.MEGAMINX_F_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().fFace,
+                lFace = prefs[PreferencesKeys.MEGAMINX_L_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().lFace,
+                blFace = prefs[PreferencesKeys.MEGAMINX_BL_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().blFace,
+                brFace = prefs[PreferencesKeys.MEGAMINX_BR_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().brFace,
+                rFace = prefs[PreferencesKeys.MEGAMINX_R_FACE]
+                    ?.let { hexStringToColor(it) }
+                    ?: MegaminxColorScheme().rFace
+            )
+
             val currentSettings = AppSettings(
                 memoryBudgetMb = prefs[PreferencesKeys.MEMORY_BUDGET_MB]
                     ?: AppSettings.Default.memoryBudgetMb,
@@ -93,9 +126,18 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
                     ?: AppSettings.Default.searchThreads,
                 skipDeletionWarning = prefs[PreferencesKeys.SKIP_DELETION_WARNING]
                     ?: AppSettings.Default.skipDeletionWarning,
-                megaminxColorScheme = MegaminxColorScheme(),
+                megaminxColorScheme = colorScheme,
                 useDynamicColors = prefs[PreferencesKeys.USE_DYNAMIC_COLORS]
-                    ?: AppSettings.Default.useDynamicColors
+                    ?: AppSettings.Default.useDynamicColors,
+                dynamicColorMode = prefs[PreferencesKeys.DYNAMIC_COLOR_MODE]
+                    ?.let { DynamicColorMode.entries.find { mode -> mode.name == it } }
+                    ?: DynamicColorMode.BuiltIn,
+                schemeType = prefs[PreferencesKeys.SCHEME_TYPE]
+                    ?.let { SchemeType.entries.find { type -> type.name == it } }
+                    ?: SchemeType.TonalSpot,
+                themeMode = prefs[PreferencesKeys.THEME_MODE]
+                    ?.let { ThemeMode.entries.find { mode -> mode.name == it } }
+                    ?: ThemeMode.System
             )
 
             val newSettings = transform(currentSettings)
@@ -105,6 +147,9 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
             prefs[PreferencesKeys.SEARCH_THREADS] = newSettings.searchThreads
             prefs[PreferencesKeys.SKIP_DELETION_WARNING] = newSettings.skipDeletionWarning
             prefs[PreferencesKeys.USE_DYNAMIC_COLORS] = newSettings.useDynamicColors
+            prefs[PreferencesKeys.DYNAMIC_COLOR_MODE] = newSettings.dynamicColorMode.name
+            prefs[PreferencesKeys.SCHEME_TYPE] = newSettings.schemeType.name
+            prefs[PreferencesKeys.THEME_MODE] = newSettings.themeMode.name
             prefs[PreferencesKeys.MEGAMINX_U_FACE] =
                 newSettings.megaminxColorScheme.uFace.toHexString()
             prefs[PreferencesKeys.MEGAMINX_F_FACE] =

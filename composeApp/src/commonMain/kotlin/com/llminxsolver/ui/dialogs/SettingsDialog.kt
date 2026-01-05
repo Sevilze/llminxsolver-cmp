@@ -26,16 +26,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +50,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.llminxsolver.data.DynamicColorMode
 import com.llminxsolver.data.ParallelConfig
+import com.llminxsolver.data.SchemeType
+import com.llminxsolver.data.ThemeMode
 import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.platform.PruningTableInfo
 import com.llminxsolver.platform.StorageManager
@@ -76,7 +81,17 @@ fun SettingsDialog(
     megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     onMegaminxColorSchemeChange: ((MegaminxColorScheme) -> Unit)? = null,
     skipDeletionWarning: Boolean = false,
-    onSkipDeletionWarningChange: ((Boolean) -> Unit)? = null
+    onSkipDeletionWarningChange: ((Boolean) -> Unit)? = null,
+    wallpaperPath: String? = null,
+    onWallpaperPathChange: ((String?) -> Unit)? = null,
+    showWallpaperConfig: Boolean = false,
+    showDynamicColorModeConfig: Boolean = false,
+    dynamicColorMode: DynamicColorMode = DynamicColorMode.BuiltIn,
+    onDynamicColorModeChange: ((DynamicColorMode) -> Unit)? = null,
+    schemeType: SchemeType = SchemeType.TonalSpot,
+    onSchemeTypeChange: ((SchemeType) -> Unit)? = null,
+    themeMode: ThemeMode = ThemeMode.System,
+    onThemeModeChange: ((ThemeMode) -> Unit)? = null
 ) {
     val storageManager = remember { StorageManager() }
     var tables by remember { mutableStateOf(storageManager.getPruningTables()) }
@@ -132,7 +147,7 @@ fun SettingsDialog(
         ) {
             Surface(
                 modifier = Modifier
-                    .width(360.dp)
+                    .width(400.dp)
                     .fillMaxHeight(0.85f)
                     .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)),
                 color = MaterialTheme.colorScheme.surface,
@@ -141,35 +156,48 @@ fun SettingsDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        PrimaryTabRow(
+                            selectedTabIndex = selectedTab,
+                            modifier = Modifier.weight(1f),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            divider = {},
+                            indicator = {
+                                TabRowDefaults.PrimaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(selectedTab),
+                                    width = 32.dp,
+                                    shape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        ) {
+                            SettingsTab.entries.forEachIndexed { index, tab ->
+                                Tab(
+                                    selected = selectedTab == index,
+                                    onClick = { selectedTab = index },
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp)),
+                                    text = {
+                                        Text(
+                                            text = tab.label,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
                         IconButton(onClick = handleDismiss) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close"
                             )
-                        }
-                    }
-
-                    @Suppress("DEPRECATION")
-                    ButtonGroup(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        SettingsTab.entries.forEachIndexed { index, tab ->
-                            ToggleButton(
-                                checked = selectedTab == index,
-                                onCheckedChange = { selectedTab = index },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = tab.label,
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
                         }
                     }
 
@@ -217,7 +245,17 @@ fun SettingsDialog(
 
                             SettingsTab.Graphics -> GraphicsTabContent(
                                 colorScheme = megaminxColorScheme,
-                                onColorSchemeChange = onMegaminxColorSchemeChange
+                                onColorSchemeChange = onMegaminxColorSchemeChange,
+                                wallpaperPath = wallpaperPath,
+                                onWallpaperPathChange = onWallpaperPathChange,
+                                showWallpaperConfig = showWallpaperConfig,
+                                showDynamicColorModeConfig = showDynamicColorModeConfig,
+                                dynamicColorMode = dynamicColorMode,
+                                onDynamicColorModeChange = onDynamicColorModeChange,
+                                schemeType = schemeType,
+                                onSchemeTypeChange = onSchemeTypeChange,
+                                themeMode = themeMode,
+                                onThemeModeChange = onThemeModeChange
                             )
                         }
                     }

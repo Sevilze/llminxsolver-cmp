@@ -6,6 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import com.llminxsolver.data.DynamicColorMode
+import com.llminxsolver.data.SchemeType
 import java.io.File
 
 private data class MatugenColors(
@@ -36,7 +38,14 @@ private data class MatugenColors(
     val inverseSurface: Color,
     val inverseOnSurface: Color,
     val inversePrimary: Color,
-    val surfaceTint: Color
+    val surfaceTint: Color,
+    val surfaceDim: Color,
+    val surfaceBright: Color,
+    val surfaceContainerLowest: Color,
+    val surfaceContainerLow: Color,
+    val surfaceContainer: Color,
+    val surfaceContainerHigh: Color,
+    val surfaceContainerHighest: Color
 )
 
 private fun parseHexColor(hex: String): Color? = try {
@@ -92,7 +101,14 @@ private fun parseMatugenColorsFromJson(json: String, isDark: Boolean): MatugenCo
             inverseSurface = extractColor("inverse_surface"),
             inverseOnSurface = extractColor("inverse_on_surface"),
             inversePrimary = extractColor("inverse_primary"),
-            surfaceTint = extractColor("primary")
+            surfaceTint = extractColor("primary"),
+            surfaceDim = extractColor("surface_dim"),
+            surfaceBright = extractColor("surface_bright"),
+            surfaceContainerLowest = extractColor("surface_container_lowest"),
+            surfaceContainerLow = extractColor("surface_container_low"),
+            surfaceContainer = extractColor("surface_container"),
+            surfaceContainerHigh = extractColor("surface_container_high"),
+            surfaceContainerHighest = extractColor("surface_container_highest")
         )
     } catch (_: Exception) {
         null
@@ -129,7 +145,14 @@ private fun matugenColorsToColorScheme(colors: MatugenColors, isDark: Boolean): 
             inverseSurface = colors.inverseSurface,
             inverseOnSurface = colors.inverseOnSurface,
             inversePrimary = colors.inversePrimary,
-            surfaceTint = colors.surfaceTint
+            surfaceTint = colors.surfaceTint,
+            surfaceDim = colors.surfaceDim,
+            surfaceBright = colors.surfaceBright,
+            surfaceContainerLowest = colors.surfaceContainerLowest,
+            surfaceContainerLow = colors.surfaceContainerLow,
+            surfaceContainer = colors.surfaceContainer,
+            surfaceContainerHigh = colors.surfaceContainerHigh,
+            surfaceContainerHighest = colors.surfaceContainerHighest
         )
     } else {
         lightColorScheme(
@@ -160,13 +183,82 @@ private fun matugenColorsToColorScheme(colors: MatugenColors, isDark: Boolean): 
             inverseSurface = colors.inverseSurface,
             inverseOnSurface = colors.inverseOnSurface,
             inversePrimary = colors.inversePrimary,
-            surfaceTint = colors.surfaceTint
+            surfaceTint = colors.surfaceTint,
+            surfaceDim = colors.surfaceDim,
+            surfaceBright = colors.surfaceBright,
+            surfaceContainerLowest = colors.surfaceContainerLowest,
+            surfaceContainerLow = colors.surfaceContainerLow,
+            surfaceContainer = colors.surfaceContainer,
+            surfaceContainerHigh = colors.surfaceContainerHigh,
+            surfaceContainerHighest = colors.surfaceContainerHighest
         )
     }
 
+private fun nativeThemeColorsToScheme(
+    colors: uniffi.llminxsolver.ThemeColors,
+    isDark: Boolean
+): ColorScheme {
+    val scheme = MatugenColors(
+        primary = parseHexColor(colors.primary) ?: Color.Magenta,
+        onPrimary = parseHexColor(colors.onPrimary) ?: Color.White,
+        primaryContainer = parseHexColor(colors.primaryContainer) ?: Color.Magenta,
+        onPrimaryContainer = parseHexColor(colors.onPrimaryContainer) ?: Color.White,
+        secondary = parseHexColor(colors.secondary) ?: Color.Magenta,
+        onSecondary = parseHexColor(colors.onSecondary) ?: Color.White,
+        secondaryContainer = parseHexColor(colors.secondaryContainer) ?: Color.Magenta,
+        onSecondaryContainer = parseHexColor(colors.onSecondaryContainer) ?: Color.White,
+        tertiary = parseHexColor(colors.tertiary) ?: Color.Magenta,
+        onTertiary = parseHexColor(colors.onTertiary) ?: Color.White,
+        tertiaryContainer = parseHexColor(colors.tertiaryContainer) ?: Color.Magenta,
+        onTertiaryContainer = parseHexColor(colors.onTertiaryContainer) ?: Color.White,
+        error = parseHexColor(colors.error) ?: Color.Red,
+        onError = parseHexColor(colors.onError) ?: Color.White,
+        errorContainer = parseHexColor(colors.errorContainer) ?: Color.Red,
+        onErrorContainer = parseHexColor(colors.onErrorContainer) ?: Color.White,
+        background = parseHexColor(colors.background) ?: Color.White,
+        onBackground = parseHexColor(colors.onBackground) ?: Color.Black,
+        surface = parseHexColor(colors.surface) ?: Color.White,
+        onSurface = parseHexColor(colors.onSurface) ?: Color.Black,
+        surfaceVariant = parseHexColor(colors.surfaceVariant) ?: Color.LightGray,
+        onSurfaceVariant = parseHexColor(colors.onSurfaceVariant) ?: Color.Black,
+        outline = parseHexColor(colors.outline) ?: Color.Gray,
+        outlineVariant = parseHexColor(colors.outlineVariant) ?: Color.LightGray,
+        inverseSurface = parseHexColor(colors.inverseSurface) ?: Color.Black,
+        inverseOnSurface = parseHexColor(colors.inverseOnSurface) ?: Color.White,
+        inversePrimary = parseHexColor(colors.inversePrimary) ?: Color.Magenta,
+        surfaceTint = parseHexColor(colors.surfaceTint) ?: Color.Magenta,
+        surfaceDim = parseHexColor(colors.surfaceDim) ?: Color.Gray,
+        surfaceBright = parseHexColor(colors.surfaceBright) ?: Color.White,
+        surfaceContainerLowest = parseHexColor(colors.surfaceContainerLowest) ?: Color.White,
+        surfaceContainerLow = parseHexColor(colors.surfaceContainerLow) ?: Color.White,
+        surfaceContainer = parseHexColor(colors.surfaceContainer) ?: Color.White,
+        surfaceContainerHigh = parseHexColor(colors.surfaceContainerHigh) ?: Color.LightGray,
+        surfaceContainerHighest = parseHexColor(colors.surfaceContainerHighest) ?: Color.LightGray
+    )
+    return matugenColorsToColorScheme(scheme, isDark)
+}
+
 @Composable
-actual fun getDynamicColorScheme(darkTheme: Boolean): ColorScheme? = remember(darkTheme) {
+actual fun getDynamicColorScheme(
+    darkTheme: Boolean,
+    wallpaperPath: String?,
+    dynamicColorMode: DynamicColorMode,
+    schemeType: SchemeType
+): ColorScheme? = remember(darkTheme, wallpaperPath, schemeType) {
     try {
+        val imagePath = wallpaperPath
+            ?: uniffi.llminxsolver.detectWallpaperPath()
+
+        if (imagePath != null) {
+            uniffi.llminxsolver.generateThemeFromImage(
+                imagePath,
+                darkTheme,
+                schemeType.toNative()
+            )?.let {
+                return@remember nativeThemeColorsToScheme(it, darkTheme)
+            }
+        }
+
         val homeDir = System.getProperty("user.home")
         val colorsFile = File(homeDir, ".cache/matugen/colors.json")
         if (colorsFile.exists()) {

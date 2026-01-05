@@ -670,6 +670,12 @@ internal object IntegrityCheckingUniffiLib {
     }
     external fun uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_detect_wallpaper_path(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_image(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_wallpaper(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_get_available_cpus(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_get_available_memory_mb(
@@ -755,6 +761,12 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(`sequence`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Double
+    external fun uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_image(`imagePath`: RustBuffer.ByValue,`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_wallpaper(`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_llminxsolver_uniffi_fn_func_get_available_cpus(uniffi_out_err: UniffiRustCallStatus, 
     ): Int
     external fun uniffi_llminxsolver_uniffi_fn_func_get_available_memory_mb(uniffi_out_err: UniffiRustCallStatus, 
@@ -883,6 +895,15 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc() != 64330.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_detect_wallpaper_path() != 11360.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_image() != 23817.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_wallpaper() != 26945.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_available_cpus() != 50983.toShort()) {
@@ -2147,6 +2168,207 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
 
 
 
+data class ThemeColors (
+    var `primary`: kotlin.String
+    , 
+    var `onPrimary`: kotlin.String
+    , 
+    var `primaryContainer`: kotlin.String
+    , 
+    var `onPrimaryContainer`: kotlin.String
+    , 
+    var `secondary`: kotlin.String
+    , 
+    var `onSecondary`: kotlin.String
+    , 
+    var `secondaryContainer`: kotlin.String
+    , 
+    var `onSecondaryContainer`: kotlin.String
+    , 
+    var `tertiary`: kotlin.String
+    , 
+    var `onTertiary`: kotlin.String
+    , 
+    var `tertiaryContainer`: kotlin.String
+    , 
+    var `onTertiaryContainer`: kotlin.String
+    , 
+    var `error`: kotlin.String
+    , 
+    var `onError`: kotlin.String
+    , 
+    var `errorContainer`: kotlin.String
+    , 
+    var `onErrorContainer`: kotlin.String
+    , 
+    var `background`: kotlin.String
+    , 
+    var `onBackground`: kotlin.String
+    , 
+    var `surface`: kotlin.String
+    , 
+    var `onSurface`: kotlin.String
+    , 
+    var `surfaceVariant`: kotlin.String
+    , 
+    var `onSurfaceVariant`: kotlin.String
+    , 
+    var `outline`: kotlin.String
+    , 
+    var `outlineVariant`: kotlin.String
+    , 
+    var `inverseSurface`: kotlin.String
+    , 
+    var `inverseOnSurface`: kotlin.String
+    , 
+    var `inversePrimary`: kotlin.String
+    , 
+    var `surfaceTint`: kotlin.String
+    , 
+    var `surfaceDim`: kotlin.String
+    , 
+    var `surfaceBright`: kotlin.String
+    , 
+    var `surfaceContainerLowest`: kotlin.String
+    , 
+    var `surfaceContainerLow`: kotlin.String
+    , 
+    var `surfaceContainer`: kotlin.String
+    , 
+    var `surfaceContainerHigh`: kotlin.String
+    , 
+    var `surfaceContainerHighest`: kotlin.String
+    
+){
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeThemeColors: FfiConverterRustBuffer<ThemeColors> {
+    override fun read(buf: ByteBuffer): ThemeColors {
+        return ThemeColors(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ThemeColors) = (
+            FfiConverterString.allocationSize(value.`primary`) +
+            FfiConverterString.allocationSize(value.`onPrimary`) +
+            FfiConverterString.allocationSize(value.`primaryContainer`) +
+            FfiConverterString.allocationSize(value.`onPrimaryContainer`) +
+            FfiConverterString.allocationSize(value.`secondary`) +
+            FfiConverterString.allocationSize(value.`onSecondary`) +
+            FfiConverterString.allocationSize(value.`secondaryContainer`) +
+            FfiConverterString.allocationSize(value.`onSecondaryContainer`) +
+            FfiConverterString.allocationSize(value.`tertiary`) +
+            FfiConverterString.allocationSize(value.`onTertiary`) +
+            FfiConverterString.allocationSize(value.`tertiaryContainer`) +
+            FfiConverterString.allocationSize(value.`onTertiaryContainer`) +
+            FfiConverterString.allocationSize(value.`error`) +
+            FfiConverterString.allocationSize(value.`onError`) +
+            FfiConverterString.allocationSize(value.`errorContainer`) +
+            FfiConverterString.allocationSize(value.`onErrorContainer`) +
+            FfiConverterString.allocationSize(value.`background`) +
+            FfiConverterString.allocationSize(value.`onBackground`) +
+            FfiConverterString.allocationSize(value.`surface`) +
+            FfiConverterString.allocationSize(value.`onSurface`) +
+            FfiConverterString.allocationSize(value.`surfaceVariant`) +
+            FfiConverterString.allocationSize(value.`onSurfaceVariant`) +
+            FfiConverterString.allocationSize(value.`outline`) +
+            FfiConverterString.allocationSize(value.`outlineVariant`) +
+            FfiConverterString.allocationSize(value.`inverseSurface`) +
+            FfiConverterString.allocationSize(value.`inverseOnSurface`) +
+            FfiConverterString.allocationSize(value.`inversePrimary`) +
+            FfiConverterString.allocationSize(value.`surfaceTint`) +
+            FfiConverterString.allocationSize(value.`surfaceDim`) +
+            FfiConverterString.allocationSize(value.`surfaceBright`) +
+            FfiConverterString.allocationSize(value.`surfaceContainerLowest`) +
+            FfiConverterString.allocationSize(value.`surfaceContainerLow`) +
+            FfiConverterString.allocationSize(value.`surfaceContainer`) +
+            FfiConverterString.allocationSize(value.`surfaceContainerHigh`) +
+            FfiConverterString.allocationSize(value.`surfaceContainerHighest`)
+    )
+
+    override fun write(value: ThemeColors, buf: ByteBuffer) {
+            FfiConverterString.write(value.`primary`, buf)
+            FfiConverterString.write(value.`onPrimary`, buf)
+            FfiConverterString.write(value.`primaryContainer`, buf)
+            FfiConverterString.write(value.`onPrimaryContainer`, buf)
+            FfiConverterString.write(value.`secondary`, buf)
+            FfiConverterString.write(value.`onSecondary`, buf)
+            FfiConverterString.write(value.`secondaryContainer`, buf)
+            FfiConverterString.write(value.`onSecondaryContainer`, buf)
+            FfiConverterString.write(value.`tertiary`, buf)
+            FfiConverterString.write(value.`onTertiary`, buf)
+            FfiConverterString.write(value.`tertiaryContainer`, buf)
+            FfiConverterString.write(value.`onTertiaryContainer`, buf)
+            FfiConverterString.write(value.`error`, buf)
+            FfiConverterString.write(value.`onError`, buf)
+            FfiConverterString.write(value.`errorContainer`, buf)
+            FfiConverterString.write(value.`onErrorContainer`, buf)
+            FfiConverterString.write(value.`background`, buf)
+            FfiConverterString.write(value.`onBackground`, buf)
+            FfiConverterString.write(value.`surface`, buf)
+            FfiConverterString.write(value.`onSurface`, buf)
+            FfiConverterString.write(value.`surfaceVariant`, buf)
+            FfiConverterString.write(value.`onSurfaceVariant`, buf)
+            FfiConverterString.write(value.`outline`, buf)
+            FfiConverterString.write(value.`outlineVariant`, buf)
+            FfiConverterString.write(value.`inverseSurface`, buf)
+            FfiConverterString.write(value.`inverseOnSurface`, buf)
+            FfiConverterString.write(value.`inversePrimary`, buf)
+            FfiConverterString.write(value.`surfaceTint`, buf)
+            FfiConverterString.write(value.`surfaceDim`, buf)
+            FfiConverterString.write(value.`surfaceBright`, buf)
+            FfiConverterString.write(value.`surfaceContainerLowest`, buf)
+            FfiConverterString.write(value.`surfaceContainerLow`, buf)
+            FfiConverterString.write(value.`surfaceContainer`, buf)
+            FfiConverterString.write(value.`surfaceContainerHigh`, buf)
+            FfiConverterString.write(value.`surfaceContainerHighest`, buf)
+    }
+}
+
+
+
 
 enum class Metric {
     
@@ -2169,6 +2391,43 @@ public object FfiConverterTypeMetric: FfiConverterRustBuffer<Metric> {
     override fun allocationSize(value: Metric) = 4UL
 
     override fun write(value: Metric, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class SchemeType {
+    
+    TONAL_SPOT,
+    CONTENT,
+    EXPRESSIVE,
+    FIDELITY,
+    FRUIT_SALAD,
+    MONOCHROME,
+    NEUTRAL,
+    RAINBOW,
+    VIBRANT;
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSchemeType: FfiConverterRustBuffer<SchemeType> {
+    override fun read(buf: ByteBuffer) = try {
+        SchemeType.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SchemeType) = 4UL
+
+    override fun write(value: SchemeType, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -2306,6 +2565,38 @@ public object FfiConverterTypeSolverCallback: FfiConverterCallbackInterface<Solv
 /**
  * @suppress
  */
+public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
+    override fun read(buf: ByteBuffer): kotlin.String? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterString.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.String?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterString.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.String?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeParallelConfig: FfiConverterRustBuffer<ParallelConfig?> {
     override fun read(buf: ByteBuffer): ParallelConfig? {
         if (buf.get().toInt() == 0) {
@@ -2328,6 +2619,38 @@ public object FfiConverterOptionalTypeParallelConfig: FfiConverterRustBuffer<Par
         } else {
             buf.put(1)
             FfiConverterTypeParallelConfig.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeThemeColors: FfiConverterRustBuffer<ThemeColors?> {
+    override fun read(buf: ByteBuffer): ThemeColors? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeThemeColors.read(buf)
+    }
+
+    override fun allocationSize(value: ThemeColors?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeThemeColors.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ThemeColors?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeThemeColors.write(value, buf)
         }
     }
 }
@@ -2392,6 +2715,36 @@ public object FfiConverterSequenceTypeSearchMode: FfiConverterRustBuffer<List<Se
     UniffiLib.uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(
     
         FfiConverterString.lower(`sequence`),_status)
+}
+    )
+    }
+    
+ fun `detectWallpaperPath`(): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `generateThemeFromImage`(`imagePath`: kotlin.String, `darkTheme`: kotlin.Boolean, `schemeType`: SchemeType): ThemeColors? {
+            return FfiConverterOptionalTypeThemeColors.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_image(
+    
+        FfiConverterString.lower(`imagePath`),FfiConverterBoolean.lower(`darkTheme`),FfiConverterTypeSchemeType.lower(`schemeType`),_status)
+}
+    )
+    }
+    
+ fun `generateThemeFromWallpaper`(`darkTheme`: kotlin.Boolean, `schemeType`: SchemeType): ThemeColors? {
+            return FfiConverterOptionalTypeThemeColors.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_wallpaper(
+    
+        FfiConverterBoolean.lower(`darkTheme`),FfiConverterTypeSchemeType.lower(`schemeType`),_status)
 }
     )
     }

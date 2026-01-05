@@ -7,6 +7,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.llminxsolver.data.DynamicColorMode
+import com.llminxsolver.data.SchemeType
 
 private val md_theme_light_primary = Color(0xFF6750A4)
 private val md_theme_light_onPrimary = Color(0xFFFFFFFF)
@@ -131,17 +133,30 @@ val DarkColors =
     )
 
 @Composable
-expect fun getDynamicColorScheme(darkTheme: Boolean): ColorScheme?
+expect fun getDynamicColorScheme(
+    darkTheme: Boolean,
+    wallpaperPath: String? = null,
+    dynamicColorMode: DynamicColorMode = DynamicColorMode.BuiltIn,
+    schemeType: SchemeType = SchemeType.TonalSpot
+): ColorScheme?
 
 @Composable
 fun LLMinxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     useDynamicColors: Boolean = true,
+    wallpaperPath: String? = null,
+    dynamicColorMode: DynamicColorMode = DynamicColorMode.BuiltIn,
+    schemeType: SchemeType = SchemeType.TonalSpot,
     content: @Composable () -> Unit
 ) {
     val fallbackScheme = if (darkTheme) DarkColors else LightColors
     val colorScheme = if (useDynamicColors) {
-        getDynamicColorScheme(darkTheme) ?: fallbackScheme
+        getDynamicColorScheme(
+            darkTheme,
+            wallpaperPath,
+            dynamicColorMode,
+            schemeType
+        ) ?: fallbackScheme
     } else {
         fallbackScheme
     }

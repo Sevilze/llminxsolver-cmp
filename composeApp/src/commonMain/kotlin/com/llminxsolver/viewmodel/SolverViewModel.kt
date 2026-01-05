@@ -1,13 +1,16 @@
 package com.llminxsolver.viewmodel
 
 import com.llminxsolver.NativeLib
+import com.llminxsolver.data.DynamicColorMode
 import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.data.MetricType
 import com.llminxsolver.data.ParallelConfig
+import com.llminxsolver.data.SchemeType
 import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
+import com.llminxsolver.data.ThemeMode
 import com.llminxsolver.data.createPlatformSettingsRepository
 import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.platform.MemoryMonitor
@@ -64,6 +67,18 @@ class SolverViewModel {
     private val _skipDeletionWarning = MutableStateFlow(false)
     val skipDeletionWarning: StateFlow<Boolean> = _skipDeletionWarning.asStateFlow()
 
+    private val _wallpaperPath = MutableStateFlow<String?>(null)
+    val wallpaperPath: StateFlow<String?> = _wallpaperPath.asStateFlow()
+
+    private val _dynamicColorMode = MutableStateFlow(DynamicColorMode.BuiltIn)
+    val dynamicColorMode: StateFlow<DynamicColorMode> = _dynamicColorMode.asStateFlow()
+
+    private val _schemeType = MutableStateFlow(SchemeType.TonalSpot)
+    val schemeType: StateFlow<SchemeType> = _schemeType.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(ThemeMode.System)
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
     private var solverHandle: SolverHandle? = null
     private var parallelSolverHandle: ParallelSolverHandle? = null
     private var solveJob: Job? = null
@@ -83,6 +98,10 @@ class SolverViewModel {
             .onEach { settings ->
                 _megaminxColorScheme.value = settings.megaminxColorScheme
                 _skipDeletionWarning.value = settings.skipDeletionWarning
+                _wallpaperPath.value = settings.wallpaperPath
+                _dynamicColorMode.value = settings.dynamicColorMode
+                _schemeType.value = settings.schemeType
+                _themeMode.value = settings.themeMode
                 _solverConfig.update { config ->
                     config.copy(
                         parallelConfig = config.parallelConfig.copy(
@@ -167,6 +186,34 @@ class SolverViewModel {
         _skipDeletionWarning.value = skip
         scope.launch {
             settingsRepository.updateSettings { it.copy(skipDeletionWarning = skip) }
+        }
+    }
+
+    fun setWallpaperPath(path: String?) {
+        _wallpaperPath.value = path
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(wallpaperPath = path) }
+        }
+    }
+
+    fun setDynamicColorMode(mode: DynamicColorMode) {
+        _dynamicColorMode.value = mode
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(dynamicColorMode = mode) }
+        }
+    }
+
+    fun setSchemeType(type: SchemeType) {
+        _schemeType.value = type
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(schemeType = type) }
+        }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _themeMode.value = mode
+        scope.launch {
+            settingsRepository.updateSettings { it.copy(themeMode = mode) }
         }
     }
 

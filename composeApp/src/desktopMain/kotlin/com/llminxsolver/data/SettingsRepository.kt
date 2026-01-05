@@ -15,6 +15,10 @@ private data class SettingsJson(
     val searchThreads: Int = 4,
     val skipDeletionWarning: Boolean = false,
     val useDynamicColors: Boolean = true,
+    val wallpaperPath: String? = null,
+    val dynamicColorMode: String = "BuiltIn",
+    val schemeType: String = "TonalSpot",
+    val themeMode: String = "System",
     val megaminxUFace: String = "#FFE1E100",
     val megaminxFFace: String = "#FFC80000",
     val megaminxLFace: String = "#FFE16400",
@@ -91,7 +95,13 @@ class JsonSettingsRepository : PlatformSettingsRepository {
             searchThreads = searchThreads,
             skipDeletionWarning = skipDeletionWarning,
             megaminxColorScheme = colorScheme,
-            useDynamicColors = useDynamicColors
+            useDynamicColors = useDynamicColors,
+            wallpaperPath = wallpaperPath,
+            dynamicColorMode = DynamicColorMode.entries.find {
+                it.name == dynamicColorMode
+            } ?: DynamicColorMode.BuiltIn,
+            schemeType = SchemeType.entries.find { it.name == schemeType } ?: SchemeType.TonalSpot,
+            themeMode = ThemeMode.entries.find { it.name == themeMode } ?: ThemeMode.System
         )
     }
 
@@ -101,6 +111,10 @@ class JsonSettingsRepository : PlatformSettingsRepository {
         searchThreads = searchThreads,
         skipDeletionWarning = skipDeletionWarning,
         useDynamicColors = useDynamicColors,
+        wallpaperPath = wallpaperPath,
+        dynamicColorMode = dynamicColorMode.name,
+        schemeType = schemeType.name,
+        themeMode = themeMode.name,
         megaminxUFace = megaminxColorScheme.uFace.toHexString(),
         megaminxFFace = megaminxColorScheme.fFace.toHexString(),
         megaminxLFace = megaminxColorScheme.lFace.toHexString(),

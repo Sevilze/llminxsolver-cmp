@@ -43,17 +43,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.ScoredSolution
+import com.llminxsolver.util.setPlainText
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -81,9 +83,8 @@ fun ScoredSolutionsPanel(
         }
     }
 
-    @Suppress("DEPRECATION")
-    val clipboardManager = LocalClipboardManager.current
-
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val displayedSolutions = scoredSolutions.take(displayCount)
 
     Card(
@@ -213,7 +214,7 @@ fun ScoredSolutionsPanel(
                             isCopied = copiedIndex == index,
                             onCopy = {
                                 val algorithmOnly = solution.algorithm.substringBefore("(").trim()
-                                clipboardManager.setText(AnnotatedString(algorithmOnly))
+                                scope.launch { clipboard.setPlainText(algorithmOnly) }
                                 copiedIndex = index
                             }
                         )

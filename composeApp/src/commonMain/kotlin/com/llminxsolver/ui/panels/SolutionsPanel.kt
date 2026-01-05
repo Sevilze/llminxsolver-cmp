@@ -44,15 +44,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.SolverState
+import com.llminxsolver.util.setPlainText
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -63,8 +65,8 @@ fun SolutionsPanel(
 ) {
     var isExpanded by remember { mutableStateOf(!defaultCollapsed) }
 
-    @Suppress("DEPRECATION")
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val copiedSolutions = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(copiedSolutions.keys.toList()) {
@@ -184,7 +186,7 @@ fun SolutionsPanel(
                                 solution = solution,
                                 isCopied = copiedSolutions[solution] == true,
                                 onCopy = {
-                                    clipboardManager.setText(AnnotatedString(solution))
+                                    scope.launch { clipboard.setPlainText(solution) }
                                     copiedSolutions[solution] = true
                                 }
                             )

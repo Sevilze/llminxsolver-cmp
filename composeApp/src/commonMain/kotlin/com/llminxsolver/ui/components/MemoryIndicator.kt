@@ -83,7 +83,7 @@ fun MemoryIndicator(modifier: Modifier = Modifier, pollingIntervalMs: Long = 200
                 .width(70.dp)
                 .height(12.dp)
                 .clip(trackShape)
-                .background(Color(0xFF1A1A1A))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                 .border(
                     width = 1.5.dp,
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
