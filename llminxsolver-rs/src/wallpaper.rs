@@ -1,5 +1,6 @@
 #[cfg(target_os = "windows")]
 pub fn detect_wallpaper_path() -> Option<String> {
+    use std::path::PathBuf;
     use windows::Win32::UI::WindowsAndMessaging::{
         SPI_GETDESKWALLPAPER, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SystemParametersInfoW,
     };
@@ -26,6 +27,7 @@ pub fn detect_wallpaper_path() -> Option<String> {
 
 #[cfg(target_os = "macos")]
 pub fn detect_wallpaper_path() -> Option<String> {
+    use std::path::PathBuf;
     use std::process::Command;
 
     let output = Command::new("osascript")
