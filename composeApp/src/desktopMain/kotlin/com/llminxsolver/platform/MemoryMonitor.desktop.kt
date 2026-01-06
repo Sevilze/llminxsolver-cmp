@@ -146,66 +146,21 @@ actual class MemoryMonitor actual constructor() {
     }
 
     private fun getWindowsMemoryInfo(): MemoryInfo {
-        try {
-            val wmicOutput = runCommand(
-                listOf(
-                    "wmic",
-                    "OS",
-                    "get",
-                    "FreePhysicalMemory,TotalVisibleMemorySize",
-                    "/VALUE"
-                )
-            ) ?: return getFallbackMemoryInfo()
-
-            var totalKb = 0L
-            var freeKb = 0L
-
-            wmicOutput.lines().forEach { line ->
-                when {
-                    line.startsWith("TotalVisibleMemorySize=") ->
-                        totalKb = line.substringAfter("=").trim().toLongOrNull() ?: 0L
-
-                    line.startsWith("FreePhysicalMemory=") ->
-                        freeKb = line.substringAfter("=").trim().toLongOrNull() ?: 0L
-                }
-            }
-
-            val totalBytes = totalKb * 1024
-            val usedBytes = (totalKb - freeKb) * 1024
-
-            return MemoryInfo(
-                usedMemoryBytes = usedBytes,
-                totalMemoryBytes = totalBytes,
-                usagePercent = if (totalBytes > 0) usedBytes.toFloat() / totalBytes else 0f
-            )
-        } catch (e: Exception) {
-            return getFallbackMemoryInfo()
-        }
+        val osBean = java.lang.management.ManagementFactory.getOperatingSystemMXBean()
+            as com.sun.management.OperatingSystemMXBean
+        val total = osBean.totalMemorySize
+        val free = osBean.freeMemorySize
+        val used = total - free
+        return MemoryInfo(
+            usedMemoryBytes = used,
+            totalMemoryBytes = total,
+            usagePercent = if (total > 0) used.toFloat() / total else 0f
+        )
     }
 
     private fun getWindowsAppMemory(): Long {
-        try {
-            val wmicOutput = runCommand(
-                listOf(
-                    "wmic",
-                    "process",
-                    "where",
-                    "processid=$pid",
-                    "get",
-                    "WorkingSetSize",
-                    "/VALUE"
-                )
-            )
-            wmicOutput?.lines()?.forEach { line ->
-                if (line.startsWith("WorkingSetSize=")) {
-                    val bytes = line.substringAfter("=").trim().toLongOrNull()
-                    if (bytes != null) return bytes
-                }
-            }
-        } catch (e: Exception) {
-            // Fall through
-        }
-        return getJvmAppMemory()
+        val runtime = Runtime.getRuntime()
+        return runtime.totalMemory() - runtime.freeMemory()
     }
 
     private fun getJvmAppMemory(): Long {

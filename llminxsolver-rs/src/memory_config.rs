@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const DEFAULT_MOBILE_BUDGET_MB: usize = 256;
 const DEFAULT_DESKTOP_BUDGET_PERCENT: f64 = 0.5;
@@ -88,19 +88,21 @@ impl MemoryConfig {
 }
 
 fn get_system_memory_bytes() -> usize {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
             for line in meminfo.lines() {
                 if line.starts_with("MemTotal:") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 2 && let Ok(kb) = parts[1].parse::<usize>() {
+                    if parts.len() >= 2
+                        && let Ok(kb) = parts[1].parse::<usize>()
+                    {
                         return kb * 1024;
                     }
                 }
             }
         }
-        4 * 1024 * BYTES_PER_MB
+        2 * 1024 * BYTES_PER_MB
     }
 
     #[cfg(target_os = "macos")]
@@ -118,12 +120,17 @@ fn get_system_memory_bytes() -> usize {
 
     #[cfg(target_os = "windows")]
     {
-        8 * 1024 * BYTES_PER_MB
-    }
+        use windows::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 
-    #[cfg(target_os = "android")]
-    {
-        2 * 1024 * BYTES_PER_MB
+        let mut mem_status = MEMORYSTATUSEX {
+            dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+            ..Default::default()
+        };
+
+        unsafe {
+            GlobalMemoryStatusEx(&mut mem_status).expect("Failed to get system memory info");
+            mem_status.ullTotalPhys as usize
+        }
     }
 
     #[cfg(not(any(
@@ -144,7 +151,9 @@ pub fn get_available_system_memory_bytes() -> usize {
             for line in meminfo.lines() {
                 if line.starts_with("MemAvailable:") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 2 && let Ok(kb) = parts[1].parse::<usize>() {
+                    if parts.len() >= 2
+                        && let Ok(kb) = parts[1].parse::<usize>()
+                    {
                         return kb * 1024;
                     }
                 }
@@ -180,7 +189,17 @@ pub fn get_available_system_memory_bytes() -> usize {
 
     #[cfg(target_os = "windows")]
     {
-        get_system_memory_bytes() / 2
+        use windows::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+
+        let mut mem_status = MEMORYSTATUSEX {
+            dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+            ..Default::default()
+        };
+
+        unsafe {
+            GlobalMemoryStatusEx(&mut mem_status).expect("Failed to get available memory info");
+            mem_status.ullAvailPhys as usize
+        }
     }
 
     #[cfg(not(any(
@@ -230,12 +249,16 @@ impl MemoryTracker {
             if current + bytes > self.budget_bytes {
                 return false;
             }
-            if self.used_bytes.compare_exchange_weak(
-                current,
-                current + bytes,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            ).is_ok() {
+            if self
+                .used_bytes
+                .compare_exchange_weak(
+                    current,
+                    current + bytes,
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                )
+                .is_ok()
+            {
                 return true;
             }
         }
@@ -308,4 +331,3 @@ mod tests {
         assert_eq!(config.search_threads, 1);
     }
 }
-

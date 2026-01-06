@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -88,9 +89,27 @@ android {
         }
     }
 
+    val localProperties = Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            load(localPropertiesFile.inputStream())
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile =
+                file(localProperties.getProperty("RELEASE_STORE_FILE", "../release-keystore.jks"))
+            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
+            keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "release")
+            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -125,6 +144,7 @@ compose.desktop {
             }
 
             windows {
+                modules("java.management", "jdk.management")
                 iconFile.set(project.file("icons/manimicon.ico"))
                 menuGroup = "LLMinx Solver"
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
