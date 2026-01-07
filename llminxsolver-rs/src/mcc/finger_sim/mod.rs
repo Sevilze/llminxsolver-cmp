@@ -1,13 +1,13 @@
 use super::types::MCCParams;
 
-mod r_moves;
-mod l_moves;
-mod u_moves;
-mod d_moves;
-mod f_moves;
 mod bl_moves;
 mod br_moves;
+mod d_moves;
+mod f_moves;
+mod l_moves;
+mod r_moves;
 mod rotation_moves;
+mod u_moves;
 
 #[derive(Clone, Copy)]
 pub struct FingerState {
@@ -173,7 +173,11 @@ pub fn test(
             "X2" => rotation_moves::handle_x2(&mut ctx, j),
             "Y" | "Y'" | "Z" | "Z'" => rotation_moves::handle_y_z(&mut ctx, j),
             "Y2" | "Z2" => rotation_moves::handle_y2_z2(&mut ctx, j),
-            _ => MoveResult::EarlyReturn(ctx.make_early_return(j, ctx.l_wrist as f64, ctx.r_wrist as f64)),
+            _ => MoveResult::EarlyReturn(ctx.make_early_return(
+                j,
+                ctx.l_wrist as f64,
+                ctx.r_wrist as f64,
+            )),
         };
 
         match result {

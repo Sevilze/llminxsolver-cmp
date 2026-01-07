@@ -1,10 +1,10 @@
+use crate::StatusCallback;
 use crate::memory_config::MemoryConfig;
 use crate::minx::LLMinx;
 use crate::search_mode::{Metric, SearchMode};
 use crate::solver::{Solver, StatusEvent, StatusEventType};
-use crate::StatusCallback;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub struct ParallelSolver {
     modes: Vec<SearchMode>,
@@ -199,11 +199,8 @@ impl ParallelSolver {
                             return;
                         }
 
-                        let mut solver = Solver::with_parallel_config(
-                            mode,
-                            max_depth,
-                            mode_config_clone,
-                        );
+                        let mut solver =
+                            Solver::with_parallel_config(mode, max_depth, mode_config_clone);
                         solver.set_metric(metric);
                         solver.set_limit_depth(limit_depth);
                         solver.set_start(start_clone);
@@ -266,13 +263,12 @@ impl ParallelSolver {
         solver.set_ignore_edge_orientations(self.ignore_edge_orientations);
 
         if let Some(ref callback) = self.status_callback {
-            let callback_clone: Arc<dyn Fn(StatusEvent) + Send + Sync> =
-                Arc::from(unsafe {
-                    std::mem::transmute::<
-                        &(dyn Fn(StatusEvent) + Send + Sync),
-                        &'static (dyn Fn(StatusEvent) + Send + Sync),
-                    >(callback.as_ref())
-                });
+            let callback_clone: Arc<dyn Fn(StatusEvent) + Send + Sync> = Arc::from(unsafe {
+                std::mem::transmute::<
+                    &(dyn Fn(StatusEvent) + Send + Sync),
+                    &'static (dyn Fn(StatusEvent) + Send + Sync),
+                >(callback.as_ref())
+            });
             solver.set_status_callback(move |event| callback_clone(event));
         }
 

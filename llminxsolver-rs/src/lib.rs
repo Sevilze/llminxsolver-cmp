@@ -7,17 +7,24 @@ pub mod parallel_solver;
 pub mod pruner;
 pub mod search_mode;
 pub mod solver;
-pub mod theme_gen;
-pub mod wallpaper;
+pub mod util;
 
 pub use coordinate::CoordinateUtil;
 pub use data_directory::{get_data_directory, set_data_directory};
-pub use mcc::{calculate_mcc, get_move_count, MCCParams};
+pub use mcc::{MCCParams, calculate_mcc, get_move_count};
 pub use memory_config::{MemoryConfig, MemoryTracker, get_available_memory_mb};
 pub use minx::{LLMinx, Move, Orientation};
 pub use parallel_solver::ParallelSolver;
 pub use pruner::Pruner;
 pub use search_mode::{Metric, SearchMode};
 pub use solver::{Solver, StatusCallback, StatusEvent, StatusEventType};
-pub use theme_gen::{generate_theme_from_image, generate_theme_from_wallpaper, SchemeType, ThemeColors};
+pub use util::{tempfile, theme_gen, wallpaper, xlsx_export};
+
+pub use tempfile::{TempFile, cleanup_stale_temp_files};
+pub use theme_gen::{
+    SchemeType, ThemeColors, generate_theme_from_image, generate_theme_from_wallpaper,
+};
 pub use wallpaper::detect_wallpaper_path;
+pub use xlsx_export::{
+    ScoredSolutionExport, export_raw_xlsx, export_raw_xlsx_from_file, export_scored_xlsx,
+};

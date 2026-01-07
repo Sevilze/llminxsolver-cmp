@@ -1,4 +1,4 @@
-use super::{overwork, FingerState, MoveResult, SimulationContext};
+use super::{FingerState, MoveResult, SimulationContext, overwork};
 
 pub fn handle_br(ctx: &mut SimulationContext, j: usize, prev_move: &str) -> MoveResult {
     if ctx.r_wrist == 1 {
@@ -207,20 +207,14 @@ pub fn handle_br2(ctx: &mut SimulationContext, j: usize, prev_move: &str) -> Mov
         };
     } else if ctx.l_wrist == -1
         && (ctx.r_wrist != -1
-            || overwork(&ctx.r_middle, "home", ctx.speed, ctx.params.over_work_mult)
-                .max(overwork(
-                    &ctx.r_ring,
-                    "home",
-                    ctx.speed,
-                    ctx.params.over_work_mult,
-                ))
-                > overwork(&ctx.l_middle, "home", ctx.speed, ctx.params.over_work_mult)
-                    .max(overwork(
-                        &ctx.l_ring,
-                        "home",
-                        ctx.speed,
-                        ctx.params.over_work_mult,
-                    )))
+            || overwork(&ctx.r_middle, "home", ctx.speed, ctx.params.over_work_mult).max(overwork(
+                &ctx.r_ring,
+                "home",
+                ctx.speed,
+                ctx.params.over_work_mult,
+            )) > overwork(&ctx.l_middle, "home", ctx.speed, ctx.params.over_work_mult).max(
+                overwork(&ctx.l_ring, "home", ctx.speed, ctx.params.over_work_mult),
+            ))
     {
         ctx.speed += overwork(&ctx.l_middle, "home", ctx.speed, ctx.params.over_work_mult);
         ctx.speed += overwork(&ctx.l_ring, "home", ctx.speed, ctx.params.over_work_mult);

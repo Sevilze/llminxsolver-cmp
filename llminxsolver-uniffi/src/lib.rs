@@ -127,8 +127,7 @@ pub fn generate_theme_from_wallpaper(
     dark_theme: bool,
     scheme_type: SchemeType,
 ) -> Option<ThemeColors> {
-    llminxsolver_rs::generate_theme_from_wallpaper(dark_theme, scheme_type.into())
-        .map(Into::into)
+    llminxsolver_rs::generate_theme_from_wallpaper(dark_theme, scheme_type.into()).map(Into::into)
 }
 
 pub fn detect_wallpaper_path() -> Option<String> {
@@ -454,19 +453,21 @@ impl ParallelSolverHandle {
 
             if let Some(ref cb) = callback {
                 let cb_clone = Arc::clone(cb);
-                parallel_solver.set_status_callback(move |event: StatusEvent| match event.event_type {
-                    StatusEventType::SolutionFound => {
-                        cb_clone.on_solution_found(event.message.clone());
-                    }
-                    StatusEventType::FinishSearch => {
-                        cb_clone.on_complete();
-                    }
-                    _ => {
-                        cb_clone.on_progress(ProgressEvent {
-                            event_type: format!("{:?}", event.event_type),
-                            message: event.message.clone(),
-                            progress: event.progress,
-                        });
+                parallel_solver.set_status_callback(move |event: StatusEvent| {
+                    match event.event_type {
+                        StatusEventType::SolutionFound => {
+                            cb_clone.on_solution_found(event.message.clone());
+                        }
+                        StatusEventType::FinishSearch => {
+                            cb_clone.on_complete();
+                        }
+                        _ => {
+                            cb_clone.on_progress(ProgressEvent {
+                                event_type: format!("{:?}", event.event_type),
+                                message: event.message.clone(),
+                                progress: event.progress,
+                            });
+                        }
                     }
                 });
             }
@@ -504,4 +505,131 @@ pub fn get_available_cpus() -> u32 {
 
 pub fn get_available_memory_mb() -> u32 {
     MemoryConfig::available_memory_mb() as u32
+}
+
+#[derive(Debug, Clone)]
+pub struct ScoredSolutionExport {
+    pub mcc: f64,
+    pub move_count: u32,
+    pub algorithm: String,
+}
+
+impl From<ScoredSolutionExport> for llminxsolver_rs::ScoredSolutionExport {
+    fn from(export: ScoredSolutionExport) -> Self {
+        Self {
+            mcc: export.mcc,
+            move_count: export.move_count,
+            algorithm: export.algorithm,
+        }
+    }
+}
+
+pub fn export_scored_xlsx(
+    output_path: String,
+    solutions: Vec<ScoredSolutionExport>,
+    image_png_bytes: Option<Vec<u8>>,
+    image_size: u32,
+) -> Option<String> {
+    let rs_solutions: Vec<llminxsolver_rs::ScoredSolutionExport> =
+        solutions.into_iter().map(Into::into).collect();
+
+    match llminxsolver_rs::export_scored_xlsx(
+        &output_path,
+        &rs_solutions,
+        image_png_bytes.as_deref(),
+        image_size,
+    ) {
+        Ok(()) => None,
+        Err(e) => Some(e),
+    }
+}
+
+pub fn export_raw_xlsx(
+    output_path: String,
+    algorithms: Vec<String>,
+    image_png_bytes: Option<Vec<u8>>,
+    image_size: u32,
+) -> Option<String> {
+    match llminxsolver_rs::export_raw_xlsx(
+        &output_path,
+        &algorithms,
+        image_png_bytes.as_deref(),
+        image_size,
+    ) {
+        Ok(()) => None,
+        Err(e) => Some(e),
+    }
+}
+
+pub fn export_raw_xlsx_from_file(
+    output_path: String,
+    solutions_file_path: String,
+    image_png_bytes: Option<Vec<u8>>,
+    image_size: u32,
+) -> Option<String> {
+    match llminxsolver_rs::export_raw_xlsx_from_file(
+        &output_path,
+        &solutions_file_path,
+        image_png_bytes.as_deref(),
+        image_size,
+    ) {
+        Ok(()) => None,
+        Err(e) => Some(e),
+    }
+}
+
+pub struct TempFile {
+    inner: std::sync::Mutex<llminxsolver_rs::TempFile>,
+}
+
+impl TempFile {
+    pub fn new() -> Self {
+        let file =
+            llminxsolver_rs::TempFile::new().expect("Failed to create raw solutions temp file");
+        Self {
+            inner: std::sync::Mutex::new(file),
+        }
+    }
+
+    pub fn append(&self, solution: String) -> Option<String> {
+        let mut file = match self.inner.lock() {
+            Ok(f) => f,
+            Err(e) => return Some(e.to_string()),
+        };
+        match file.append(&solution) {
+            Ok(()) => None,
+            Err(e) => Some(e),
+        }
+    }
+
+    pub fn get_path(&self) -> String {
+        let file = self.inner.lock().unwrap();
+        file.get_path().to_string_lossy().to_string()
+    }
+
+    pub fn count(&self) -> u64 {
+        let file = self.inner.lock().unwrap();
+        file.count() as u64
+    }
+
+    pub fn flush_file(&self) {
+        let file = self.inner.lock().unwrap();
+        file.flush_file();
+    }
+
+    pub fn delete_file(&self) {
+        let mut file = self.inner.lock().unwrap();
+        file.delete_file();
+    }
+
+    pub fn read_page(&self, offset: u64, limit: u64) -> Vec<String> {
+        self.flush_file();
+        let file = self.inner.lock().unwrap();
+        file.read_page(offset as usize, limit as usize)
+            .unwrap_or_default()
+    }
+}
+
+pub fn cleanup_stale_temp_files() {
+    llminxsolver_rs::cleanup_stale_temp_files();
 }

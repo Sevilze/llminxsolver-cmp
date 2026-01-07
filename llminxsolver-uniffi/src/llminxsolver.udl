@@ -4,9 +4,28 @@ namespace llminxsolver {
     u32 get_move_count(string algorithm, string metric);
     u32 get_available_cpus();
     u32 get_available_memory_mb();
+    void cleanup_stale_temp_files();
     ThemeColors? generate_theme_from_image(string image_path, boolean dark_theme, SchemeType scheme_type);
     ThemeColors? generate_theme_from_wallpaper(boolean dark_theme, SchemeType scheme_type);
     string? detect_wallpaper_path();
+    string? export_scored_xlsx(
+        string output_path,
+        sequence<ScoredSolutionExport> solutions,
+        sequence<u8>? image_png_bytes,
+        u32 image_size
+    );
+    string? export_raw_xlsx(
+        string output_path,
+        sequence<string> algorithms,
+        sequence<u8>? image_png_bytes,
+        u32 image_size
+    );
+    string? export_raw_xlsx_from_file(
+        string output_path,
+        string solutions_file_path,
+        sequence<u8>? image_png_bytes,
+        u32 image_size
+    );
 };
 
 [Enum]
@@ -58,6 +77,12 @@ dictionary ThemeColors {
     string surface_container;
     string surface_container_high;
     string surface_container_highest;
+};
+
+dictionary ScoredSolutionExport {
+    f64 mcc;
+    u32 move_count;
+    string algorithm;
 };
 
 [Enum]
@@ -141,4 +166,14 @@ interface ParallelSolverHandle {
     void start();
     void cancel();
     boolean is_running();
+};
+
+interface TempFile {
+    constructor();
+    string? append(string solution);
+    string get_path();
+    u64 count();
+    void flush_file();
+    void delete_file();
+    sequence<string> read_page(u64 offset, u64 limit);
 };
