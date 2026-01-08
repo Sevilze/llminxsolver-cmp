@@ -11,49 +11,29 @@ import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
 import com.llminxsolver.data.ThemeMode
-import com.llminxsolver.data.createPlatformSettingsRepository
 import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.platform.MemoryMonitor
 import com.llminxsolver.theme.MegaminxColorScheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import uniffi.llminxsolver.Metric
-import uniffi.llminxsolver.ParallelSolverConfig
-import uniffi.llminxsolver.ParallelSolverHandle
-import uniffi.llminxsolver.ProgressEvent
-import uniffi.llminxsolver.SearchMode
-import uniffi.llminxsolver.SolverCallback
-import uniffi.llminxsolver.SolverHandle
-import uniffi.llminxsolver.calculateMcc
 import uniffi.llminxsolver.getAvailableCpus
 import uniffi.llminxsolver.getAvailableMemoryMb
-import uniffi.llminxsolver.getMoveCount
 
 class SolverViewModel {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val memoryMonitor = MemoryMonitor()
-    private val settingsRepository = createPlatformSettingsRepository()
 
-    private val _megaminxState = MutableStateFlow(MegaminxState())
-    val megaminxState: StateFlow<MegaminxState> = _megaminxState.asStateFlow()
+    private val settingsViewModel = SettingsViewModel(scope)
+    private val megaminxViewModel = MegaminxViewModel()
+    private val solverOperations = SolverOperations(scope)
 
     private val _solverConfig = MutableStateFlow(SolverConfig())
     val solverConfig: StateFlow<SolverConfig> = _solverConfig.asStateFlow()
-
-    private val _solverState = MutableStateFlow(SolverState())
-    val solverState: StateFlow<SolverState> = _solverState.asStateFlow()
-
-    private val _scoredSolutions = MutableStateFlow<List<ScoredSolution>>(emptyList())
-    val scoredSolutions: StateFlow<List<ScoredSolution>> = _scoredSolutions.asStateFlow()
 
     private val _memoryInfo = MutableStateFlow<MemoryInfo?>(null)
     val memoryInfo: StateFlow<MemoryInfo?> = _memoryInfo.asStateFlow()
@@ -61,58 +41,33 @@ class SolverViewModel {
     private val _availableCpus = MutableStateFlow(4)
     val availableCpus: StateFlow<Int> = _availableCpus.asStateFlow()
 
-    private val _megaminxColorScheme = MutableStateFlow(MegaminxColorScheme())
-    val megaminxColorScheme: StateFlow<MegaminxColorScheme> = _megaminxColorScheme.asStateFlow()
-
-    private val _skipDeletionWarning = MutableStateFlow(false)
-    val skipDeletionWarning: StateFlow<Boolean> = _skipDeletionWarning.asStateFlow()
-
-    private val _wallpaperPath = MutableStateFlow<String?>(null)
-    val wallpaperPath: StateFlow<String?> = _wallpaperPath.asStateFlow()
-
-    private val _dynamicColorMode = MutableStateFlow(DynamicColorMode.BuiltIn)
-    val dynamicColorMode: StateFlow<DynamicColorMode> = _dynamicColorMode.asStateFlow()
-
-    private val _schemeType = MutableStateFlow(SchemeType.TonalSpot)
-    val schemeType: StateFlow<SchemeType> = _schemeType.asStateFlow()
-
-    private val _themeMode = MutableStateFlow(ThemeMode.System)
-    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
-
-    private var solverHandle: SolverHandle? = null
-    private var parallelSolverHandle: ParallelSolverHandle? = null
-    private var solveJob: Job? = null
-
-    @Volatile
-    private var isSolveCancelled = false
+    val megaminxState: StateFlow<MegaminxState> = megaminxViewModel.megaminxState
+    val solverState: StateFlow<SolverState> = solverOperations.solverState
+    val scoredSolutions: StateFlow<List<ScoredSolution>> = solverOperations.scoredSolutions
+    val tempFilePath: StateFlow<String?> = solverOperations.tempFilePath
+    val megaminxColorScheme: StateFlow<MegaminxColorScheme> = settingsViewModel.megaminxColorScheme
+    val skipDeletionWarning: StateFlow<Boolean> = settingsViewModel.skipDeletionWarning
+    val wallpaperPath: StateFlow<String?> = settingsViewModel.wallpaperPath
+    val dynamicColorMode: StateFlow<DynamicColorMode> = settingsViewModel.dynamicColorMode
+    val schemeType: StateFlow<SchemeType> = settingsViewModel.schemeType
+    val themeMode: StateFlow<ThemeMode> = settingsViewModel.themeMode
 
     init {
         NativeLib.ensureLoaded()
+        uniffi.llminxsolver.cleanupStaleTempFiles()
         initializePlatformInfo()
         startMemoryMonitoring()
-        collectSettings()
-    }
-
-    private fun collectSettings() {
-        settingsRepository.settings
-            .onEach { settings ->
-                _megaminxColorScheme.value = settings.megaminxColorScheme
-                _skipDeletionWarning.value = settings.skipDeletionWarning
-                _wallpaperPath.value = settings.wallpaperPath
-                _dynamicColorMode.value = settings.dynamicColorMode
-                _schemeType.value = settings.schemeType
-                _themeMode.value = settings.themeMode
-                _solverConfig.update { config ->
-                    config.copy(
-                        parallelConfig = config.parallelConfig.copy(
-                            memoryBudgetMb = settings.memoryBudgetMb,
-                            tableGenThreads = settings.tableGenThreads,
-                            searchThreads = settings.searchThreads
-                        )
+        settingsViewModel.collectSettings { memoryBudgetMb, tableGenThreads, searchThreads ->
+            _solverConfig.update { config ->
+                config.copy(
+                    parallelConfig = config.parallelConfig.copy(
+                        memoryBudgetMb = memoryBudgetMb,
+                        tableGenThreads = tableGenThreads,
+                        searchThreads = searchThreads
                     )
-                }
+                )
             }
-            .launchIn(scope)
+        }
     }
 
     private fun initializePlatformInfo() {
@@ -164,57 +119,31 @@ class SolverViewModel {
 
     fun setParallelConfig(config: ParallelConfig) {
         _solverConfig.update { it.copy(parallelConfig = config) }
-        scope.launch {
-            settingsRepository.updateSettings {
-                it.copy(
-                    memoryBudgetMb = config.memoryBudgetMb,
-                    tableGenThreads = config.tableGenThreads,
-                    searchThreads = config.searchThreads
-                )
-            }
-        }
+        settingsViewModel.saveParallelConfig(config)
     }
 
     fun setMegaminxColorScheme(scheme: MegaminxColorScheme) {
-        _megaminxColorScheme.value = scheme
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(megaminxColorScheme = scheme) }
-        }
+        settingsViewModel.setMegaminxColorScheme(scheme)
     }
 
     fun setSkipDeletionWarning(skip: Boolean) {
-        _skipDeletionWarning.value = skip
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(skipDeletionWarning = skip) }
-        }
+        settingsViewModel.setSkipDeletionWarning(skip)
     }
 
     fun setWallpaperPath(path: String?) {
-        _wallpaperPath.value = path
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(wallpaperPath = path) }
-        }
+        settingsViewModel.setWallpaperPath(path)
     }
 
     fun setDynamicColorMode(mode: DynamicColorMode) {
-        _dynamicColorMode.value = mode
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(dynamicColorMode = mode) }
-        }
+        settingsViewModel.setDynamicColorMode(mode)
     }
 
     fun setSchemeType(type: SchemeType) {
-        _schemeType.value = type
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(schemeType = type) }
-        }
+        settingsViewModel.setSchemeType(type)
     }
 
     fun setThemeMode(mode: ThemeMode) {
-        _themeMode.value = mode
-        scope.launch {
-            settingsRepository.updateSettings { it.copy(themeMode = mode) }
-        }
+        settingsViewModel.setThemeMode(mode)
     }
 
     fun setIgnoreFlag(flag: String, value: Boolean) {
@@ -231,296 +160,34 @@ class SolverViewModel {
     }
 
     fun swapCorners(i: Int, j: Int) {
-        _megaminxState.update { state ->
-            val newPositions = state.cornerPositions.toMutableList()
-            val temp = newPositions[i]
-            newPositions[i] = newPositions[j]
-            newPositions[j] = temp
-            state.copy(cornerPositions = newPositions)
-        }
+        megaminxViewModel.swapCorners(i, j)
     }
 
     fun rotateCorner(index: Int, direction: Int) {
-        _megaminxState.update { state ->
-            val newOrientations = state.cornerOrientations.toMutableList()
-            newOrientations[index] = (newOrientations[index] + direction + 3) % 3
-            state.copy(cornerOrientations = newOrientations)
-        }
+        megaminxViewModel.rotateCorner(index, direction)
     }
 
     fun swapEdges(i: Int, j: Int) {
-        _megaminxState.update { state ->
-            val newPositions = state.edgePositions.toMutableList()
-            val temp = newPositions[i]
-            newPositions[i] = newPositions[j]
-            newPositions[j] = temp
-            state.copy(edgePositions = newPositions)
-        }
+        megaminxViewModel.swapEdges(i, j)
     }
 
     fun flipEdge(index: Int) {
-        _megaminxState.update { state ->
-            val newOrientations = state.edgeOrientations.toMutableList()
-            newOrientations[index] = (newOrientations[index] + 1) % 2
-            state.copy(edgeOrientations = newOrientations)
-        }
+        megaminxViewModel.flipEdge(index)
     }
 
     fun reset() {
-        _megaminxState.value = MegaminxState()
-        _solverState.value = SolverState()
-        _scoredSolutions.value = emptyList()
-    }
-
-    private fun mapGeneratorModesToSearchMode(mode: GeneratorMode): SearchMode = when (mode) {
-        GeneratorMode.R_U -> SearchMode.RU
-        GeneratorMode.R_U_L -> SearchMode.RUL
-        GeneratorMode.R_U_F -> SearchMode.RUF
-        GeneratorMode.R_U_D -> SearchMode.RUD
-        GeneratorMode.R_U_BL -> SearchMode.R_UB_L
-        GeneratorMode.R_U_BR -> SearchMode.R_UB_R
-        GeneratorMode.R_U_L_F -> SearchMode.RUFL
-        GeneratorMode.R_U_L_F_BL -> SearchMode.RUF_LB_L
-    }
-
-    private fun mapMetricType(metric: MetricType): Metric = when (metric) {
-        MetricType.FTM -> Metric.FACE
-        MetricType.FFTM -> Metric.FIFTH
-    }
-
-    private fun buildUniffiMegaminxState(): uniffi.llminxsolver.MegaminxState {
-        val state = _megaminxState.value
-        return uniffi.llminxsolver.MegaminxState(
-            cornerPositions = state.cornerPositions.map { it.toUByte() },
-            cornerOrientations = state.cornerOrientations.map { it.toUByte() },
-            edgePositions = state.edgePositions.map { it.toUByte() },
-            edgeOrientations = state.edgeOrientations.map { it.toUByte() }
-        )
-    }
-
-    private fun buildUniffiParallelConfig(): uniffi.llminxsolver.ParallelConfig {
-        val config = _solverConfig.value.parallelConfig
-        return uniffi.llminxsolver.ParallelConfig(
-            memoryBudgetMb = config.memoryBudgetMb.toUInt(),
-            tableGenThreads = config.tableGenThreads.toUInt(),
-            searchThreads = config.searchThreads.toUInt()
-        )
-    }
-
-    private fun buildUniffiSolverConfig(): uniffi.llminxsolver.SolverConfig {
-        val config = _solverConfig.value
-        return uniffi.llminxsolver.SolverConfig(
-            searchMode = mapGeneratorModesToSearchMode(config.generatorMode),
-            metric = mapMetricType(config.metric),
-            limitDepth = config.limitDepth,
-            maxDepth = config.maxDepth.toUInt(),
-            ignoreCornerPositions = config.ignoreFlags.cornerPositions,
-            ignoreEdgePositions = config.ignoreFlags.edgePositions,
-            ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
-            ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations,
-            parallelConfig = buildUniffiParallelConfig()
-        )
-    }
-
-    private fun buildUniffiParallelSolverConfig(): ParallelSolverConfig {
-        val config = _solverConfig.value
-        return ParallelSolverConfig(
-            searchModes = config.selectedModes.map { mapGeneratorModesToSearchMode(it) },
-            metric = mapMetricType(config.metric),
-            limitDepth = config.limitDepth,
-            maxDepth = config.maxDepth.toUInt(),
-            ignoreCornerPositions = config.ignoreFlags.cornerPositions,
-            ignoreEdgePositions = config.ignoreFlags.edgePositions,
-            ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
-            ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations,
-            parallelConfig = buildUniffiParallelConfig()
-        )
+        megaminxViewModel.reset()
+        solverOperations.reset()
     }
 
     fun solve() {
-        if (_solverState.value.isSearching) return
-
-        val config = _solverConfig.value
-        if (config.isMultiMode) {
-            solveMultiMode()
-        } else {
-            solveSingleMode()
-        }
+        solverOperations.solve(megaminxViewModel.currentState(), _solverConfig.value)
     }
 
-    private fun solveSingleMode() {
-        isSolveCancelled = false
-        solveJob = scope.launch {
-            _solverState.update {
-                it.copy(
-                    isSearching = true,
-                    status = "Starting search...",
-                    progress = 0f,
-                    solutions = emptyList()
-                )
-            }
-            _scoredSolutions.value = emptyList()
+    fun cancelSolve() = solverOperations.cancelSolve()
 
-            try {
-                val uniffiConfig = buildUniffiSolverConfig()
-                val uniffiState = buildUniffiMegaminxState()
-
-                solverHandle = SolverHandle(uniffiConfig, uniffiState)
-
-                val callback = object : SolverCallback {
-                    override fun onProgress(event: ProgressEvent) {
-                        _solverState.update {
-                            it.copy(
-                                status = event.message,
-                                progress = event.progress.toFloat()
-                            )
-                        }
-                    }
-
-                    override fun onSolutionFound(solution: String) {
-                        if (isSolveCancelled) return
-                        _solverState.update {
-                            it.copy(solutions = it.solutions + solution)
-                        }
-                        updateScoredSolutions()
-                    }
-
-                    override fun onComplete() {
-                        val solutionCount = _solverState.value.solutions.size
-                        _solverState.update {
-                            it.copy(
-                                isSearching = false,
-                                status = "Found $solutionCount solutions.",
-                                progress = 1f
-                            )
-                        }
-                        solverHandle?.close()
-                        solverHandle = null
-                    }
-                }
-
-                solverHandle?.setCallback(callback)
-                solverHandle?.start()
-            } catch (e: Exception) {
-                _solverState.update {
-                    it.copy(
-                        isSearching = false,
-                        status = "Error: ${e.message}"
-                    )
-                }
-                solverHandle?.close()
-                solverHandle = null
-            }
-        }
-    }
-
-    private fun solveMultiMode() {
-        val config = _solverConfig.value
-        isSolveCancelled = false
-        solveJob = scope.launch {
-            _solverState.update {
-                it.copy(
-                    isSearching = true,
-                    status = "Starting multi-mode search (${config.selectedModes.size} modes)...",
-                    progress = 0f,
-                    solutions = emptyList()
-                )
-            }
-            _scoredSolutions.value = emptyList()
-
-            try {
-                val uniffiConfig = buildUniffiParallelSolverConfig()
-                val uniffiState = buildUniffiMegaminxState()
-
-                parallelSolverHandle = ParallelSolverHandle(uniffiConfig, uniffiState)
-
-                val callback = object : SolverCallback {
-                    override fun onProgress(event: ProgressEvent) {
-                        _solverState.update {
-                            it.copy(
-                                status = event.message,
-                                progress = event.progress.toFloat()
-                            )
-                        }
-                    }
-
-                    override fun onSolutionFound(solution: String) {
-                        if (isSolveCancelled) return
-                        _solverState.update {
-                            it.copy(solutions = it.solutions + solution)
-                        }
-                        updateScoredSolutions()
-                    }
-
-                    override fun onComplete() {
-                        val solutionCount = _solverState.value.solutions.size
-                        _solverState.update {
-                            it.copy(
-                                isSearching = false,
-                                status = "Found $solutionCount solutions (multi-mode).",
-                                progress = 1f
-                            )
-                        }
-                        parallelSolverHandle?.close()
-                        parallelSolverHandle = null
-                    }
-                }
-
-                parallelSolverHandle?.setCallback(callback)
-                parallelSolverHandle?.start()
-            } catch (e: Exception) {
-                _solverState.update {
-                    it.copy(
-                        isSearching = false,
-                        status = "Error: ${e.message}"
-                    )
-                }
-                parallelSolverHandle?.close()
-                parallelSolverHandle = null
-            }
-        }
-    }
-
-    private fun updateScoredSolutions() {
-        val solutions = _solverState.value.solutions
-        val metricStr = when (_solverConfig.value.metric) {
-            MetricType.FTM -> "FTM"
-            MetricType.FFTM -> "FFTM"
-        }
-
-        val scored = solutions.mapNotNull { alg ->
-            try {
-                val mcc = calculateMcc(alg).toFloat()
-                val moveCount = getMoveCount(alg, metricStr).toInt()
-                ScoredSolution(
-                    algorithm = alg,
-                    mcc = mcc,
-                    moveCount = moveCount
-                )
-            } catch (e: Exception) {
-                null
-            }
-        }.sortedBy { it.mcc }
-
-        _scoredSolutions.value = scored
-    }
-
-    fun cancelSolve() {
-        isSolveCancelled = true
-        solverHandle?.cancel()
-        solverHandle?.close()
-        solverHandle = null
-        parallelSolverHandle?.cancel()
-        parallelSolverHandle?.close()
-        parallelSolverHandle = null
-        solveJob?.cancel()
-        _solverState.update {
-            it.copy(
-                isSearching = false,
-                status = "Search cancelled"
-            )
-        }
-    }
+    fun readSolutionsPage(offset: Int, limit: Int): List<String> =
+        solverOperations.readSolutionsPage(offset, limit)
 
     fun onCleared() {
         cancelSolve()
