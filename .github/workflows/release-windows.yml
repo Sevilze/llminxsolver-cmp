@@ -21,8 +21,14 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Build Native Library
         run: |
@@ -39,7 +45,7 @@ jobs:
           APP_VERSION: ${{ github.ref_name }}
         run: |
           $env:APP_VERSION = $env:APP_VERSION -replace '^v', ''
-          .\gradlew.bat :composeApp:packageExe
+          .\gradlew.bat :composeApp:packageReleaseExe
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
