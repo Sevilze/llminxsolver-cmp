@@ -68,7 +68,7 @@ jobs:
         run: |
           mkdir -p dist
 
-          cp -r composeApp/build/compose/binaries/main/app/* dist/
+          cp -r composeApp/build/compose/binaries/main-release/app/* dist/
 
           cd dist
           tar -czvf ../llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz *
@@ -82,8 +82,8 @@ jobs:
         with:
           files: |
             llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz
-            composeApp/build/compose/binaries/main/deb/*.deb
-            composeApp/build/compose/binaries/main/rpm/*.rpm
+            composeApp/build/compose/binaries/main-release/deb/*.deb
+            composeApp/build/compose/binaries/main-release/rpm/*.rpm
           generate_release_notes: true
 
       - name: Update PKGBUILD

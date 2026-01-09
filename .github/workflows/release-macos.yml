@@ -61,13 +61,13 @@ jobs:
 
       - name: Rename DMG
         run: |
-          cd composeApp/build/compose/binaries/main/dmg
+          cd composeApp/build/compose/binaries/main-release/dmg
           for f in *.dmg; do mv "$f" "${f%.dmg}-x86_64.dmg"; done
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/main/dmg/*.dmg
+          files: composeApp/build/compose/binaries/main-release/dmg/*.dmg
 
   macos-arm:
     name: macOS Build (Apple Silicon)
@@ -121,10 +121,10 @@ jobs:
 
       - name: Rename DMG
         run: |
-          cd composeApp/build/compose/binaries/main/dmg
+          cd composeApp/build/compose/binaries/main-release/dmg
           for f in *.dmg; do mv "$f" "${f%.dmg}-arm64.dmg"; done
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/main/dmg/*.dmg
+          files: composeApp/build/compose/binaries/main-release/dmg/*.dmg
