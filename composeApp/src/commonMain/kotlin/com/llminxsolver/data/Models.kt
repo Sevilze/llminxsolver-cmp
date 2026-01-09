@@ -67,7 +67,7 @@ data class SolverState(
     val isSearching: Boolean = false,
     val progress: Float = 0f,
     val status: String = "",
-    val solutions: List<String> = emptyList()
+    val solutionCount: Int = 0
 )
 
 data class ScoredSolution(val algorithm: String, val mcc: Float, val moveCount: Int)

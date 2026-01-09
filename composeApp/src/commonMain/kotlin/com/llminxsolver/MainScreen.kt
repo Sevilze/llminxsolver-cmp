@@ -23,6 +23,7 @@ data class MainScreenState(
     val solverConfig: SolverConfig,
     val solverState: SolverState,
     val scoredSolutions: List<ScoredSolution>,
+    val tempFilePath: String?,
     val memoryInfo: MemoryInfo?,
     val availableCpus: Int,
     val megaminxColorScheme: MegaminxColorScheme,
@@ -52,7 +53,8 @@ data class MainScreenActions(
     val onThemeModeChange: (ThemeMode) -> Unit,
     val onReset: () -> Unit,
     val onSolve: () -> Unit,
-    val onCancel: () -> Unit
+    val onCancel: () -> Unit,
+    val readSolutionsPage: (Int, Int) -> List<String>
 )
 
 @Composable
@@ -64,6 +66,7 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
     val solverConfig by viewModel.solverConfig.collectAsState()
     val solverState by viewModel.solverState.collectAsState()
     val scoredSolutions by viewModel.scoredSolutions.collectAsState()
+    val tempFilePath by viewModel.tempFilePath.collectAsState()
     val memoryInfo by viewModel.memoryInfo.collectAsState()
     val availableCpus by viewModel.availableCpus.collectAsState()
     val megaminxColorScheme by viewModel.megaminxColorScheme.collectAsState()
@@ -78,6 +81,7 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
         solverConfig = solverConfig,
         solverState = solverState,
         scoredSolutions = scoredSolutions,
+        tempFilePath = tempFilePath,
         memoryInfo = memoryInfo,
         availableCpus = availableCpus,
         megaminxColorScheme = megaminxColorScheme,
@@ -109,7 +113,8 @@ fun rememberMainScreenActions(viewModel: SolverViewModel): MainScreenActions = M
     onThemeModeChange = viewModel::setThemeMode,
     onReset = viewModel::reset,
     onSolve = viewModel::solve,
-    onCancel = viewModel::cancelSolve
+    onCancel = viewModel::cancelSolve,
+    readSolutionsPage = viewModel::readSolutionsPage
 )
 
 fun getMetricLabel(metric: MetricType): String = when (metric) {

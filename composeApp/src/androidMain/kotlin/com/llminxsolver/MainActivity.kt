@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.llminxsolver.data.initDataStore
 import com.llminxsolver.platform.MemoryMonitor
 import com.llminxsolver.platform.StorageManager
+import com.llminxsolver.util.initializeFileExport
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,6 +18,7 @@ class MainActivity : ComponentActivity() {
 
         MemoryMonitor.initialize(this)
         StorageManager.initialize(this)
+        initializeFileExport(this)
         initDataStore(this)
 
         val tablesDir = filesDir.resolve("pruning_tables")

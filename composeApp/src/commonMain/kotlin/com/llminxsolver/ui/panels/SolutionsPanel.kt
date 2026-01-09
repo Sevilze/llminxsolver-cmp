@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Done
@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,18 +57,76 @@ import com.llminxsolver.util.setPlainText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private const val PAGE_SIZE = 50
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SolutionsPanel(
     solverState: SolverState,
+    readSolutionsPage: (Int, Int) -> List<String> = { _, _ -> emptyList() },
     defaultCollapsed: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(!defaultCollapsed) }
+    val pageCache = remember { mutableStateMapOf<Int, List<String>>() }
+    val loadingPages = remember { mutableStateOf(setOf<Int>()) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
     val copiedSolutions = remember { mutableStateMapOf<String, Boolean>() }
+
+    val totalCount = solverState.solutionCount
+
+    LaunchedEffect(totalCount) {
+        if (totalCount == 0) {
+            pageCache.clear()
+        }
+    }
+
+    fun ensurePageLoaded(pageIndex: Int) {
+        if (pageCache.containsKey(pageIndex)) return
+        if (loadingPages.value.contains(pageIndex)) return
+
+        val offset = pageIndex * PAGE_SIZE
+        if (offset >= totalCount) return
+
+        loadingPages.value = loadingPages.value + pageIndex
+        val page = readSolutionsPage(offset, PAGE_SIZE)
+        if (page.isNotEmpty()) {
+            pageCache[pageIndex] = page
+        }
+        loadingPages.value = loadingPages.value - pageIndex
+    }
+
+    LaunchedEffect(isExpanded, totalCount) {
+        if (isExpanded && totalCount > 0) {
+            ensurePageLoaded(0)
+        }
+    }
+
+    val visiblePageIndices by remember {
+        derivedStateOf {
+            val items = listState.layoutInfo.visibleItemsInfo
+            if (items.isEmpty()) {
+                setOf(0)
+            } else {
+                val first = items.first().index / PAGE_SIZE
+                val last = items.last().index / PAGE_SIZE
+                (first..last).toSet()
+            }
+        }
+    }
+
+    LaunchedEffect(visiblePageIndices, totalCount) {
+        if (!isExpanded || totalCount <= 0) return@LaunchedEffect
+        visiblePageIndices.forEach { pageIndex ->
+            ensurePageLoaded(pageIndex)
+            if (pageIndex > 0) ensurePageLoaded(pageIndex - 1)
+            val maxPage = (totalCount - 1) / PAGE_SIZE
+            if (pageIndex < maxPage) ensurePageLoaded(pageIndex + 1)
+        }
+    }
 
     LaunchedEffect(copiedSolutions.keys.toList()) {
         if (copiedSolutions.isNotEmpty()) {
@@ -99,9 +158,9 @@ fun SolutionsPanel(
                         text = "Raw Solutions",
                         style = MaterialTheme.typography.titleSmall
                     )
-                    if (solverState.solutions.isNotEmpty()) {
+                    if (solverState.solutionCount > 0) {
                         Text(
-                            text = "(${solverState.solutions.size})",
+                            text = "(${solverState.solutionCount})",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -158,38 +217,56 @@ fun SolutionsPanel(
                     animationSpec = spring(stiffness = Spring.StiffnessLow)
                 )
             ) {
-                if (solverState.solutions.isEmpty()) {
-                    Text(
-                        text = if (solverState.isSearching) {
-                            "Searching..."
-                        } else {
-                            "No solutions found yet."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(400.dp),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 16.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(solverState.solutions) { solution ->
-                            SolutionItem(
-                                solution = solution,
-                                isCopied = copiedSolutions[solution] == true,
-                                onCopy = {
-                                    scope.launch { clipboard.setPlainText(solution) }
-                                    copiedSolutions[solution] = true
+                when {
+                    pageCache.isEmpty() && totalCount == 0 -> {
+                        Text(
+                            text = if (solverState.isSearching) {
+                                "Searching..."
+                            } else {
+                                "No solutions found yet."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(400.dp),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(totalCount, key = { it }) { index ->
+                                val pageIndex = index / PAGE_SIZE
+                                val pageOffset = index % PAGE_SIZE
+                                val solution = pageCache[pageIndex]?.getOrNull(pageOffset)
+
+                                if (solution != null) {
+                                    SolutionItem(
+                                        solution = solution,
+                                        isCopied = copiedSolutions[solution] == true,
+                                        onCopy = {
+                                            scope.launch { clipboard.setPlainText(solution) }
+                                            copiedSolutions[solution] = true
+                                        }
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Loading...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 6.dp)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }

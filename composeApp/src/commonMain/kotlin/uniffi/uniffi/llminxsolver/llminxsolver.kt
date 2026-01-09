@@ -670,7 +670,15 @@ internal object IntegrityCheckingUniffiLib {
     }
     external fun uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_temp_files(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_detect_wallpaper_path(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_export_raw_xlsx(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_export_raw_xlsx_from_file(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_export_scored_xlsx(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_image(
     ): Short
@@ -700,9 +708,23 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_solverhandle_start(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_append(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_count(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_delete_file(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_flush_file(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_get_path(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_solverhandle_new(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_constructor_tempfile_new(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress(
     ): Short
@@ -730,157 +752,183 @@ internal object UniffiLib {
         
     }
     external fun uniffi_llminxsolver_uniffi_fn_clone_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_llminxsolver_uniffi_fn_free_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_constructor_parallelsolverhandle_new(`config`: RustBuffer.ByValue,`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_is_running(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Byte
-    external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_set_callback(`ptr`: Long,`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_start(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_clone_solverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_llminxsolver_uniffi_fn_free_solverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_constructor_solverhandle_new(`config`: RustBuffer.ByValue,`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_is_running(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Byte
-    external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_set_callback(`ptr`: Long,`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_start(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_init_callback_vtable_solvercallback(`vtable`: UniffiVTableCallbackInterfaceSolverCallback,
-    ): Unit
-    external fun uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(`sequence`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Double
-    external fun uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_image(`imagePath`: RustBuffer.ByValue,`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_wallpaper(`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun uniffi_llminxsolver_uniffi_fn_func_get_available_cpus(uniffi_out_err: UniffiRustCallStatus, 
-    ): Int
-    external fun uniffi_llminxsolver_uniffi_fn_func_get_available_memory_mb(uniffi_out_err: UniffiRustCallStatus, 
-    ): Int
-    external fun uniffi_llminxsolver_uniffi_fn_func_get_move_count(`algorithm`: RustBuffer.ByValue,`metric`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Int
-    external fun uniffi_llminxsolver_uniffi_fn_func_set_data_directory(`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun ffi_llminxsolver_uniffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun ffi_llminxsolver_uniffi_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_u8(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_u8(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Byte
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_i8(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_i8(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Byte
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_u16(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_u16(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Short
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_i16(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_i16(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Short
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_u32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_u32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Int
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_i32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_i32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Int
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_u64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_u64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_i64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_i64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_f32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_f32(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Float
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_f64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_f64(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Double
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_rust_buffer(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_rust_buffer(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    external fun ffi_llminxsolver_uniffi_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_cancel_void(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_free_void(`handle`: Long,
-    ): Unit
-    external fun ffi_llminxsolver_uniffi_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_free_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_constructor_parallelsolverhandle_new(`config`: RustBuffer.ByValue,`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_is_running(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_set_callback(`ptr`: Long,`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_parallelsolverhandle_start(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_clone_solverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_free_solverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_constructor_solverhandle_new(`config`: RustBuffer.ByValue,`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_is_running(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_set_callback(`ptr`: Long,`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_solverhandle_start(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_clone_tempfile(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_free_tempfile(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_constructor_tempfile_new(uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_append(`ptr`: Long,`solution`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_count(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_delete_file(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_flush_file(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_get_path(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_read_page(`ptr`: Long,`offset`: Long,`limit`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_init_callback_vtable_solvercallback(`vtable`: UniffiVTableCallbackInterfaceSolverCallback,
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(`sequence`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Double
+external fun uniffi_llminxsolver_uniffi_fn_func_cleanup_stale_temp_files(uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_export_raw_xlsx(`outputPath`: RustBuffer.ByValue,`algorithms`: RustBuffer.ByValue,`imagePngBytes`: RustBuffer.ByValue,`imageSize`: Int,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_export_raw_xlsx_from_file(`outputPath`: RustBuffer.ByValue,`solutionsFilePath`: RustBuffer.ByValue,`imagePngBytes`: RustBuffer.ByValue,`imageSize`: Int,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_export_scored_xlsx(`outputPath`: RustBuffer.ByValue,`solutions`: RustBuffer.ByValue,`imagePngBytes`: RustBuffer.ByValue,`imageSize`: Int,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_image(`imagePath`: RustBuffer.ByValue,`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_generate_theme_from_wallpaper(`darkTheme`: Byte,`schemeType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_func_get_available_cpus(uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun uniffi_llminxsolver_uniffi_fn_func_get_available_memory_mb(uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun uniffi_llminxsolver_uniffi_fn_func_get_move_count(`algorithm`: RustBuffer.ByValue,`metric`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun uniffi_llminxsolver_uniffi_fn_func_set_data_directory(`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun ffi_llminxsolver_uniffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun ffi_llminxsolver_uniffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun ffi_llminxsolver_uniffi_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun ffi_llminxsolver_uniffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun ffi_llminxsolver_uniffi_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_u8(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_u8(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun ffi_llminxsolver_uniffi_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_i8(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_i8(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun ffi_llminxsolver_uniffi_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_u16(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_u16(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Short
+external fun ffi_llminxsolver_uniffi_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_i16(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_i16(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Short
+external fun ffi_llminxsolver_uniffi_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_u32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_u32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun ffi_llminxsolver_uniffi_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_i32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_i32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun ffi_llminxsolver_uniffi_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_u64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_u64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun ffi_llminxsolver_uniffi_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_i64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_i64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun ffi_llminxsolver_uniffi_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_f32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_f32(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Float
+external fun ffi_llminxsolver_uniffi_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_f64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_f64(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Double
+external fun ffi_llminxsolver_uniffi_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_rust_buffer(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_rust_buffer(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun ffi_llminxsolver_uniffi_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_cancel_void(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_free_void(`handle`: Long,
+): Unit
+external fun ffi_llminxsolver_uniffi_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+
     
-        
 }
 
 private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
@@ -897,7 +945,19 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc() != 64330.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_temp_files() != 62133.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_detect_wallpaper_path() != 11360.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_export_raw_xlsx() != 53383.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_export_raw_xlsx_from_file() != 24285.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_export_scored_xlsx() != 50210.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_generate_theme_from_image() != 23817.toShort()) {
@@ -942,10 +1002,31 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_start() != 58938.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_append() != 41910.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_count() != 16756.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_delete_file() != 4541.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_flush_file() != 16624.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_get_path() != 56340.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page() != 5457.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new() != 29738.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_solverhandle_new() != 35128.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_tempfile_new() != 33414.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress() != 17400.toShort()) {
@@ -1188,6 +1269,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterULong: FfiConverter<ULong, Long> {
+    override fun lift(value: Long): ULong {
+        return value.toULong()
+    }
+
+    override fun read(buf: ByteBuffer): ULong {
+        return lift(buf.getLong())
+    }
+
+    override fun lower(value: ULong): Long {
+        return value.toLong()
+    }
+
+    override fun allocationSize(value: ULong) = 8UL
+
+    override fun write(value: ULong, buf: ByteBuffer) {
+        buf.putLong(value.toLong())
     }
 }
 
@@ -1897,6 +2001,338 @@ public object FfiConverterTypeSolverHandle: FfiConverter<SolverHandle, Long> {
 }
 
 
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+//
+public interface TempFileInterface {
+    
+    fun `append`(`solution`: kotlin.String): kotlin.String?
+    
+    fun `count`(): kotlin.ULong
+    
+    fun `deleteFile`()
+    
+    fun `flushFile`()
+    
+    fun `getPath`(): kotlin.String
+    
+    fun `readPage`(`offset`: kotlin.ULong, `limit`: kotlin.ULong): List<kotlin.String>
+    
+    companion object
+}
+
+open class TempFile: Disposable, AutoCloseable, TempFileInterface
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+    constructor() :
+        this(UniffiWithHandle, 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_constructor_tempfile_new(
+    
+        _status)
+}
+    )
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_llminxsolver_uniffi_fn_free_tempfile(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_llminxsolver_uniffi_fn_clone_tempfile(handle, status)
+        }
+    }
+
+    override fun `append`(`solution`: kotlin.String): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_append(
+        it,
+        FfiConverterString.lower(`solution`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `count`(): kotlin.ULong {
+            return FfiConverterULong.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_count(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `deleteFile`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_delete_file(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    override fun `flushFile`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_flush_file(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    override fun `getPath`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_get_path(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `readPage`(`offset`: kotlin.ULong, `limit`: kotlin.ULong): List<kotlin.String> {
+            return FfiConverterSequenceString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_tempfile_read_page(
+        it,
+        FfiConverterULong.lower(`offset`),FfiConverterULong.lower(`limit`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeTempFile: FfiConverter<TempFile, Long> {
+    override fun lower(value: TempFile): Long {
+        return value.uniffiCloneHandle()
+    }
+
+    override fun lift(value: Long): TempFile {
+        return TempFile(UniffiWithHandle, value)
+    }
+
+    override fun read(buf: ByteBuffer): TempFile {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: TempFile) = 8UL
+
+    override fun write(value: TempFile, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
 
 data class MegaminxState (
     var `cornerPositions`: List<kotlin.UByte>
@@ -2092,6 +2528,47 @@ public object FfiConverterTypeProgressEvent: FfiConverterRustBuffer<ProgressEven
             FfiConverterString.write(value.`eventType`, buf)
             FfiConverterString.write(value.`message`, buf)
             FfiConverterDouble.write(value.`progress`, buf)
+    }
+}
+
+
+
+data class ScoredSolutionExport (
+    var `mcc`: kotlin.Double
+    , 
+    var `moveCount`: kotlin.UInt
+    , 
+    var `algorithm`: kotlin.String
+    
+){
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeScoredSolutionExport: FfiConverterRustBuffer<ScoredSolutionExport> {
+    override fun read(buf: ByteBuffer): ScoredSolutionExport {
+        return ScoredSolutionExport(
+            FfiConverterDouble.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ScoredSolutionExport) = (
+            FfiConverterDouble.allocationSize(value.`mcc`) +
+            FfiConverterUInt.allocationSize(value.`moveCount`) +
+            FfiConverterString.allocationSize(value.`algorithm`)
+    )
+
+    override fun write(value: ScoredSolutionExport, buf: ByteBuffer) {
+            FfiConverterDouble.write(value.`mcc`, buf)
+            FfiConverterUInt.write(value.`moveCount`, buf)
+            FfiConverterString.write(value.`algorithm`, buf)
     }
 }
 
@@ -2661,6 +3138,38 @@ public object FfiConverterOptionalTypeThemeColors: FfiConverterRustBuffer<ThemeC
 /**
  * @suppress
  */
+public object FfiConverterOptionalSequenceUByte: FfiConverterRustBuffer<List<kotlin.UByte>?> {
+    override fun read(buf: ByteBuffer): List<kotlin.UByte>? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterSequenceUByte.read(buf)
+    }
+
+    override fun allocationSize(value: List<kotlin.UByte>?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterSequenceUByte.allocationSize(value)
+        }
+    }
+
+    override fun write(value: List<kotlin.UByte>?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterSequenceUByte.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceUByte: FfiConverterRustBuffer<List<kotlin.UByte>> {
     override fun read(buf: ByteBuffer): List<kotlin.UByte> {
         val len = buf.getInt()
@@ -2679,6 +3188,62 @@ public object FfiConverterSequenceUByte: FfiConverterRustBuffer<List<kotlin.UByt
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterUByte.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
+    override fun read(buf: ByteBuffer): List<kotlin.String> {
+        val len = buf.getInt()
+        return List<kotlin.String>(len) {
+            FfiConverterString.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.String>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.String>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeScoredSolutionExport: FfiConverterRustBuffer<List<ScoredSolutionExport>> {
+    override fun read(buf: ByteBuffer): List<ScoredSolutionExport> {
+        val len = buf.getInt()
+        return List<ScoredSolutionExport>(len) {
+            FfiConverterTypeScoredSolutionExport.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<ScoredSolutionExport>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeScoredSolutionExport.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<ScoredSolutionExport>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeScoredSolutionExport.write(it, buf)
         }
     }
 }
@@ -2719,12 +3284,51 @@ public object FfiConverterSequenceTypeSearchMode: FfiConverterRustBuffer<List<Se
     )
     }
     
+ fun `cleanupStaleTempFiles`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_cleanup_stale_temp_files(
+    
+        _status)
+}
+    
+    
  fun `detectWallpaperPath`(): kotlin.String? {
             return FfiConverterOptionalString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(
     
         _status)
+}
+    )
+    }
+    
+ fun `exportRawXlsx`(`outputPath`: kotlin.String, `algorithms`: List<kotlin.String>, `imagePngBytes`: List<kotlin.UByte>?, `imageSize`: kotlin.UInt): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_export_raw_xlsx(
+    
+        FfiConverterString.lower(`outputPath`),FfiConverterSequenceString.lower(`algorithms`),FfiConverterOptionalSequenceUByte.lower(`imagePngBytes`),FfiConverterUInt.lower(`imageSize`),_status)
+}
+    )
+    }
+    
+ fun `exportRawXlsxFromFile`(`outputPath`: kotlin.String, `solutionsFilePath`: kotlin.String, `imagePngBytes`: List<kotlin.UByte>?, `imageSize`: kotlin.UInt): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_export_raw_xlsx_from_file(
+    
+        FfiConverterString.lower(`outputPath`),FfiConverterString.lower(`solutionsFilePath`),FfiConverterOptionalSequenceUByte.lower(`imagePngBytes`),FfiConverterUInt.lower(`imageSize`),_status)
+}
+    )
+    }
+    
+ fun `exportScoredXlsx`(`outputPath`: kotlin.String, `solutions`: List<ScoredSolutionExport>, `imagePngBytes`: List<kotlin.UByte>?, `imageSize`: kotlin.UInt): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_export_scored_xlsx(
+    
+        FfiConverterString.lower(`outputPath`),FfiConverterSequenceTypeScoredSolutionExport.lower(`solutions`),FfiConverterOptionalSequenceUByte.lower(`imagePngBytes`),FfiConverterUInt.lower(`imageSize`),_status)
 }
     )
     }

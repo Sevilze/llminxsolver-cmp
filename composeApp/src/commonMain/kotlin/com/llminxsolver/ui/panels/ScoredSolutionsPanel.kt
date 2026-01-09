@@ -24,11 +24,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -47,28 +49,60 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.llminxsolver.data.IgnoreFlags
+import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.data.ScoredSolution
+import com.llminxsolver.theme.MegaminxColorScheme
+import com.llminxsolver.ui.components.SplitExportButton
+import com.llminxsolver.ui.megaminx.renderMegaminxToImageBitmap
+import com.llminxsolver.util.getDownloadDirectory
+import com.llminxsolver.util.imageBitmapToPng
 import com.llminxsolver.util.setPlainText
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uniffi.llminxsolver.ScoredSolutionExport
+import uniffi.llminxsolver.exportRawXlsxFromFile
+import uniffi.llminxsolver.exportScoredXlsx
+
+enum class SortOption(val label: String) {
+    MCC("MCC"),
+    MOVE_COUNT("Moves")
+}
+
+enum class ExportOption(val label: String, val filenamePrefix: String) {
+    SCORED("Scored", "scored_solutions"),
+    RAW("Raw", "raw_solutions")
+}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ScoredSolutionsPanel(
     scoredSolutions: List<ScoredSolution>,
+    tempFilePath: String? = null,
+    megaminxState: MegaminxState? = null,
+    colorScheme: MegaminxColorScheme = MegaminxColorScheme(),
+    ignoreFlags: IgnoreFlags = IgnoreFlags(),
+    imageResolution: Int = 200,
     metricLabel: String = "Moves",
-    maxSolutions: Int = 20,
+    maxSolutions: Int = 5,
     listHeight: Int? = null,
+    onExportSuccess: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var displayCount by remember { mutableIntStateOf(maxSolutions) }
     var copiedIndex by remember { mutableStateOf<Int?>(null) }
     var displayMetricLabel by remember { mutableStateOf(metricLabel) }
+    var sortOption by remember { mutableStateOf(SortOption.MCC) }
+    var exportOption by remember { mutableStateOf(ExportOption.SCORED) }
 
     LaunchedEffect(scoredSolutions.isEmpty()) {
         if (scoredSolutions.isEmpty()) {
@@ -85,7 +119,65 @@ fun ScoredSolutionsPanel(
 
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    val displayedSolutions = scoredSolutions.take(displayCount)
+
+    val sortedSolutions = remember(scoredSolutions, sortOption) {
+        when (sortOption) {
+            SortOption.MCC -> scoredSolutions.sortedBy { it.mcc }
+            SortOption.MOVE_COUNT -> scoredSolutions.sortedBy { it.moveCount }
+        }
+    }
+    val displayedSolutions = sortedSolutions.take(displayCount)
+
+    fun generateTimestamp(): String {
+        val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+        return LocalDateTime.now().format(formatter)
+    }
+
+    fun performExport() {
+        val timestamp = generateTimestamp()
+        val xlsxFilename = "${exportOption.filenamePrefix}_$timestamp.xlsx"
+        val outputPath = "${getDownloadDirectory()}/$xlsxFilename"
+
+        val imagePngBytes = megaminxState?.let {
+            val bitmap = renderMegaminxToImageBitmap(
+                puzzleState = it,
+                colorScheme = colorScheme,
+                ignoreFlags = ignoreFlags,
+                size = imageResolution
+            )
+            imageBitmapToPng(bitmap).map { b -> b.toUByte() }
+        }
+
+        val error = when (exportOption) {
+            ExportOption.SCORED -> {
+                val exports = sortedSolutions.map { solution ->
+                    ScoredSolutionExport(
+                        mcc = solution.mcc.toDouble(),
+                        moveCount = solution.moveCount.toUInt(),
+                        algorithm = solution.algorithm.substringBefore("(").trim()
+                    )
+                }
+                exportScoredXlsx(outputPath, exports, imagePngBytes, imageResolution.toUInt())
+            }
+
+            ExportOption.RAW -> {
+                if (tempFilePath != null) {
+                    exportRawXlsxFromFile(
+                        outputPath,
+                        tempFilePath,
+                        imagePngBytes,
+                        imageResolution.toUInt()
+                    )
+                } else {
+                    "No solutions file available"
+                }
+            }
+        }
+
+        if (error == null) {
+            onExportSuccess?.invoke(xlsxFilename)
+        }
+    }
 
     Card(
         modifier = modifier.fillMaxSize(),
@@ -120,25 +212,80 @@ fun ScoredSolutionsPanel(
                 }
 
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = "Top",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Slider(
                         value = displayCount.toFloat(),
                         onValueChange = { displayCount = it.roundToInt() },
                         valueRange = 5f..100f,
                         modifier = Modifier.width(100.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = displayCount.toString(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            val showHeadersAndButton = scoredSolutions.isNotEmpty() || tempFilePath != null
+
+            if (showHeadersAndButton) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier.width(60.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        SortableHeaderCell(
+                            text = "MCC",
+                            isSelected = sortOption == SortOption.MCC,
+                            onClick = { sortOption = SortOption.MCC },
+                            modifier = Modifier.wrapContentWidth()
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier.width(60.dp).padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        SortableHeaderCell(
+                            text = displayMetricLabel,
+                            isSelected = sortOption == SortOption.MOVE_COUNT,
+                            onClick = { sortOption = SortOption.MOVE_COUNT },
+                            modifier = Modifier.wrapContentWidth()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Algorithm",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SplitExportButton(
+                        options = ExportOption.entries.toList(),
+                        selectedOption = exportOption,
+                        onOptionSelected = { exportOption = it },
+                        onExport = { performExport() },
+                        optionLabel = { it.label },
+                        enabled = true
                     )
                 }
             }
@@ -167,34 +314,6 @@ fun ScoredSolutionsPanel(
                     }
                 }
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "MCC",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(48.dp)
-                    )
-                    Text(
-                        text = displayMetricLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(48.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Algorithm",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Box(modifier = Modifier.width(40.dp))
-                }
-
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -225,6 +344,42 @@ fun ScoredSolutionsPanel(
     }
 }
 
+@Composable
+private fun SortableHeaderCell(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Start
+            )
+
+            if (isSelected) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ScoredSolutionRow(
@@ -245,22 +400,32 @@ private fun ScoredSolutionRow(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = String.format("%.1f", solution.mcc),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.tertiary,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.width(48.dp)
-        )
+        Box(
+            modifier = Modifier.width(60.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = String.format("%.1f", solution.mcc),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.tertiary,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
 
-        Text(
-            text = solution.moveCount.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.width(48.dp)
-        )
+        Box(
+            modifier = Modifier.width(60.dp).padding(horizontal = 12.dp)
+        ) {
+            Text(
+                text = solution.moveCount.toString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center
+            )
+        }
+
         Spacer(modifier = Modifier.width(8.dp))
 
         Text(
@@ -278,7 +443,8 @@ private fun ScoredSolutionRow(
                         scaleOut(spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
                     )
             },
-            modifier = Modifier.width(40.dp)
+            modifier = Modifier.width(40.dp),
+            contentAlignment = Alignment.CenterEnd
         ) { copied ->
             if (copied) {
                 Icon(

@@ -43,47 +43,17 @@ fun StatusBar(solverState: SolverState, modifier: Modifier = Modifier) {
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    AnimatedContent(
-                        targetState = solverState.isSearching,
-                        transitionSpec = {
-                            val enterAnim = scaleIn(
-                                MotionScheme.expressive().defaultSpatialSpec()
-                            ) + fadeIn()
-                            val exitAnim = scaleOut(
-                                MotionScheme.expressive().defaultSpatialSpec()
-                            ) + fadeOut()
-                            enterAnim.togetherWith(exitAnim)
-                        },
-                        label = "loading_icon"
-                    ) { isSearching ->
-                        if (isSearching) {
-                            LoadingIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = solverState.status.ifEmpty { "Ready" },
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Text(
+                text = solverState.status.ifEmpty { "Ready" },
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
             AnimatedContent(
                 targetState = solverState.isSearching,
