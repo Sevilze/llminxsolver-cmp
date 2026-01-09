@@ -79,8 +79,8 @@ android {
             libs.versions.android.targetSdk
                 .get()
                 .toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.1.1"
     }
 
     packaging {
@@ -108,7 +108,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
@@ -121,6 +126,20 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+}
+
+tasks.register("renameReleaseBundle") {
+    dependsOn("bundleRelease")
+    doLast {
+        val bundleDir = layout.buildDirectory.dir("outputs/bundle/release").get().asFile
+        val originalFile = bundleDir.resolve("composeApp-release.aab")
+        if (originalFile.exists()) {
+            val versionName = android.defaultConfig.versionName
+            val newFile = bundleDir.resolve("llminxsolver-v$versionName-release.aab")
+            originalFile.renameTo(newFile)
+            println("Renamed bundle to: ${newFile.name}")
+        }
+    }
 }
 
 compose.desktop {
@@ -154,6 +173,12 @@ compose.desktop {
                 iconFile.set(project.file("icons/icon.icns"))
                 bundleID = "com.llminxsolver"
                 dockName = "LLMinx Solver"
+            }
+        }
+
+        buildTypes.release {
+            proguard {
+                configurationFiles.from(project.file("proguard-rules.pro"))
             }
         }
     }
