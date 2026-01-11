@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "llminxsolver-rs/**"
+      - "llminxsolver-uniffi/**"
+      - "composeApp/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+  workflow_dispatch:
+
+jobs:
+  cache-linux:
+    name: Cache (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Rust Library
+        run: cargo build -p llminxsolver-uniffi --release
+
+      - name: Warm Gradle Cache
+        run: |
+          chmod +x gradlew
+          ./gradlew :composeApp:compileKotlinDesktop --no-daemon
+
+  cache-macos:
+    name: Cache (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Rust Library
+        run: cargo build -p llminxsolver-uniffi --release
+
+      - name: Warm Gradle Cache
+        run: |
+          chmod +x gradlew
+          ./gradlew :composeApp:compileKotlinDesktop --no-daemon
+
+  cache-windows:
+    name: Cache (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Rust Library
+        run: cargo build -p llminxsolver-uniffi --release
+
+      - name: Warm Gradle Cache
+        run: .\gradlew.bat :composeApp:compileKotlinDesktop --no-daemon

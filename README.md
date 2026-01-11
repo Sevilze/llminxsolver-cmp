@@ -1,5 +1,7 @@
 # LLMinx Solver - Compose Multiplatform
 
+[![Linux Release](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-linux.yml/badge.svg)](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-linux.yml) [![macOS Release](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-macos.yml/badge.svg)](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-macos.yml) [![Windows Release](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-windows.yml/badge.svg)](https://github.com/Sevilze/llminxsolver-cmp/actions/workflows/release-windows.yml)
+
 llminxsolver-cmp is a Megaminx Last Layer solver written in **Rust** with a **Compose Multiplatform** GUI, designed to run on both Mobile and Desktop platforms with a heavy focus on **Material 3 Expressive** theme. The solver uses an IDA\* search algorithm with precomputed pruning tables for finding optimal solutions.
 
 The Rust solver library is exposed to Kotlin via [Mozilla's UniFFI](https://github.com/mozilla/uniffi-rs), providing non-blocking solve operations with callback-based progress reporting and thread-safe cancellation support.
