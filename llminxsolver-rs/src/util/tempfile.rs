@@ -41,7 +41,7 @@ impl TempFile {
                 .map_err(|e| format!("Failed to write solution: {}", e))?;
             self.count += 1;
 
-            if self.count % 100 == 0 {
+            if self.count.is_multiple_of(100) {
                 let _ = writer.flush();
             }
             Ok(())

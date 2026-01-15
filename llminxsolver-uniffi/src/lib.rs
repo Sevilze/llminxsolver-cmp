@@ -243,6 +243,8 @@ pub struct ProgressEvent {
     pub event_type: String,
     pub message: String,
     pub progress: f64,
+    pub search_mode: Option<String>,
+    pub current_depth: u32,
 }
 
 pub trait SolverCallback: Send + Sync {
@@ -360,6 +362,8 @@ impl SolverHandle {
                             event_type: format!("{:?}", event.event_type),
                             message: event.message.clone(),
                             progress: event.progress,
+                            search_mode: event.search_mode.clone(),
+                            current_depth: event.current_depth,
                         });
                     }
                 });
@@ -466,6 +470,8 @@ impl ParallelSolverHandle {
                                 event_type: format!("{:?}", event.event_type),
                                 message: event.message.clone(),
                                 progress: event.progress,
+                                search_mode: event.search_mode.clone(),
+                                current_depth: event.current_depth,
                             });
                         }
                     }
@@ -533,15 +539,12 @@ pub fn export_scored_xlsx(
     let rs_solutions: Vec<llminxsolver_rs::ScoredSolutionExport> =
         solutions.into_iter().map(Into::into).collect();
 
-    match llminxsolver_rs::export_scored_xlsx(
+    llminxsolver_rs::export_scored_xlsx(
         &output_path,
         &rs_solutions,
         image_png_bytes.as_deref(),
         image_size,
-    ) {
-        Ok(()) => None,
-        Err(e) => Some(e),
-    }
+    ).err()
 }
 
 pub fn export_raw_xlsx(
@@ -550,15 +553,12 @@ pub fn export_raw_xlsx(
     image_png_bytes: Option<Vec<u8>>,
     image_size: u32,
 ) -> Option<String> {
-    match llminxsolver_rs::export_raw_xlsx(
+    llminxsolver_rs::export_raw_xlsx(
         &output_path,
         &algorithms,
         image_png_bytes.as_deref(),
         image_size,
-    ) {
-        Ok(()) => None,
-        Err(e) => Some(e),
-    }
+    ).err()
 }
 
 pub fn export_raw_xlsx_from_file(
@@ -567,19 +567,22 @@ pub fn export_raw_xlsx_from_file(
     image_png_bytes: Option<Vec<u8>>,
     image_size: u32,
 ) -> Option<String> {
-    match llminxsolver_rs::export_raw_xlsx_from_file(
+    llminxsolver_rs::export_raw_xlsx_from_file(
         &output_path,
         &solutions_file_path,
         image_png_bytes.as_deref(),
         image_size,
-    ) {
-        Ok(()) => None,
-        Err(e) => Some(e),
-    }
+    ).err()
 }
 
 pub struct TempFile {
     inner: std::sync::Mutex<llminxsolver_rs::TempFile>,
+}
+
+impl Default for TempFile {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TempFile {
@@ -596,10 +599,7 @@ impl TempFile {
             Ok(f) => f,
             Err(e) => return Some(e.to_string()),
         };
-        match file.append(&solution) {
-            Ok(()) => None,
-            Err(e) => Some(e),
-        }
+        file.append(&solution).err()
     }
 
     pub fn get_path(&self) -> String {

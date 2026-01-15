@@ -220,10 +220,16 @@ impl ParallelSolver {
 
                         if let Some(ref cb) = callback_clone {
                             let cb_ref = Arc::clone(cb);
+                            let mode_name = format!("{:?}", mode);
                             solver.set_status_callback(move |event| {
-                                if event.event_type == StatusEventType::SolutionFound {
-                                    cb_ref(event);
-                                }
+                                let event_with_mode = StatusEvent::with_context(
+                                    event.event_type,
+                                    &event.message,
+                                    event.progress,
+                                    Some(mode_name.clone()),
+                                    event.current_depth,
+                                );
+                                cb_ref(event_with_mode);
                             });
                         }
 

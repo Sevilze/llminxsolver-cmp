@@ -144,6 +144,8 @@ dictionary ProgressEvent {
     string event_type;
     string message;
     f64 progress;
+    string? search_mode;
+    u32 current_depth;
 };
 
 callback interface SolverCallback {

@@ -5,7 +5,7 @@ use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StatusEventType {
@@ -26,14 +26,28 @@ pub struct StatusEvent {
     pub event_type: StatusEventType,
     pub message: String,
     pub progress: f64,
+    pub search_mode: Option<String>,
+    pub current_depth: u32,
 }
 
 impl StatusEvent {
     pub fn new(event_type: StatusEventType, message: &str, progress: f64) -> Self {
+        Self::with_context(event_type, message, progress, None, 0)
+    }
+
+    pub fn with_context(
+        event_type: StatusEventType,
+        message: &str,
+        progress: f64,
+        search_mode: Option<String>,
+        current_depth: u32,
+    ) -> Self {
         Self {
             event_type,
             message: message.to_string(),
             progress,
+            search_mode,
+            current_depth,
         }
     }
 }
@@ -321,12 +335,6 @@ impl Solver {
 
             let depth_start_time = std::time::Instant::now();
 
-            self.fire_event(StatusEvent::new(
-                StatusEventType::StartDepth,
-                &format!("Searching depth {} ({} threads)...", depth, num_threads),
-                0.0,
-            ));
-
             let pool = rayon::ThreadPoolBuilder::new()
                 .num_threads(num_threads)
                 .build()
@@ -344,6 +352,18 @@ impl Solver {
             let search_mode_clone = search_mode;
 
             let status_tx_clone = status_tx.clone();
+
+            let completed_branches = Arc::new(AtomicUsize::new(0));
+            let total_branches = moves_clone.len();
+            let depth_start_shared = Arc::new(depth_start_time);
+
+            self.fire_event(StatusEvent::with_context(
+                StatusEventType::StartDepth,
+                &format!("Searching depth {}...", depth),
+                0.0,
+                None,
+                depth as u32,
+            ));
 
             pool.install(|| {
                 moves_clone.par_iter().for_each(|&first_move| {
@@ -371,14 +391,42 @@ impl Solver {
                     };
 
                     Self::search_branch(&mut minx, &goal_clone, depth, &ctx);
+
+                    let completed = completed_branches.fetch_add(1, Ordering::Relaxed) + 1;
+                    let progress = completed as f64 / total_branches as f64;
+                    let elapsed = depth_start_shared.elapsed().as_secs_f64();
+
+                    let etr_str = if progress > 0.005 && elapsed > 0.5 {
+                        let total_estimated = elapsed / progress;
+                        let remaining = total_estimated - elapsed;
+                        if remaining < 60.0 {
+                            format!("ETR: {:.1}s", remaining)
+                        } else if remaining < 3600.0 {
+                            format!("ETR: {:.1}m", remaining / 60.0)
+                        } else {
+                            format!("ETR: {:.1}h", remaining / 3600.0)
+                        }
+                    } else {
+                        "ETR: --".to_string()
+                    };
+
+                    let _ = status_tx_clone.send(StatusEvent::with_context(
+                        StatusEventType::Message,
+                        &format!("Searching depth {}... ({})", depth, etr_str),
+                        progress,
+                        None,
+                        depth as u32,
+                    ));
                 });
             });
             let depth_elapsed = depth_start_time.elapsed().as_secs_f64();
 
-            self.fire_event(StatusEvent::new(
+            self.fire_event(StatusEvent::with_context(
                 StatusEventType::EndDepth,
                 &format!("Finished depth {} in {:.1}s", depth, depth_elapsed),
                 1.0,
+                None,
+                depth as u32,
             ));
         }
 
