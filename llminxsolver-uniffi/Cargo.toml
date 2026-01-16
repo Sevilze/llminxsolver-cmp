@@ -14,10 +14,10 @@ path = "uniffi-bindgen.rs"
 
 [dependencies]
 llminxsolver-rs = { path = "../llminxsolver-rs" }
-uniffi = { version = "0.30", features = ["cli"] }
+uniffi = { version = "0.31", features = ["cli"] }
 serde = { version = "1.0", features = ["derive"] }
 once_cell = "1.19"
 
 [build-dependencies]
-uniffi = { version = "0.30", features = ["build"] }
+uniffi = { version = "0.31", features = ["build"] }
 
