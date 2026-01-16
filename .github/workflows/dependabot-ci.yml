@@ -1,0 +1,35 @@
+name: Dependabot CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "llminxsolver-rs/**"
+      - "llminxsolver-uniffi/**"
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build
+        run: cargo build --workspace --release
+
+      - name: Run Tests
+        run: cargo test --workspace --release
