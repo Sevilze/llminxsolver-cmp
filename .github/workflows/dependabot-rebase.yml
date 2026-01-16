@@ -6,6 +6,10 @@ on:
       - main
       - master
 
+permissions:
+  pull-requests: write
+  issues: write
+
 jobs:
   rebase:
     runs-on: ubuntu-latest
