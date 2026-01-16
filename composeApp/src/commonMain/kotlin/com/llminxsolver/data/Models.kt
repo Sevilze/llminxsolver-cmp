@@ -63,11 +63,19 @@ data class SolverConfig(
         get() = selectedModes.size > 1
 }
 
+data class ModeProgress(
+    val mode: String,
+    val currentDepth: Int,
+    val progress: Float,
+    val message: String
+)
+
 data class SolverState(
     val isSearching: Boolean = false,
     val progress: Float = 0f,
     val status: String = "",
-    val solutionCount: Int = 0
+    val solutionCount: Int = 0,
+    val modeProgresses: Map<String, ModeProgress> = emptyMap()
 )
 
 data class ScoredSolution(val algorithm: String, val mcc: Float, val moveCount: Int)

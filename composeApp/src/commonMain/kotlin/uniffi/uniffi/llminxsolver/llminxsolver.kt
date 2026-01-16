@@ -2498,6 +2498,10 @@ data class ProgressEvent (
     var `message`: kotlin.String
     , 
     var `progress`: kotlin.Double
+    , 
+    var `searchMode`: kotlin.String?
+    , 
+    var `currentDepth`: kotlin.UInt
     
 ){
     
@@ -2515,19 +2519,25 @@ public object FfiConverterTypeProgressEvent: FfiConverterRustBuffer<ProgressEven
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterDouble.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterUInt.read(buf),
         )
     }
 
     override fun allocationSize(value: ProgressEvent) = (
             FfiConverterString.allocationSize(value.`eventType`) +
             FfiConverterString.allocationSize(value.`message`) +
-            FfiConverterDouble.allocationSize(value.`progress`)
+            FfiConverterDouble.allocationSize(value.`progress`) +
+            FfiConverterOptionalString.allocationSize(value.`searchMode`) +
+            FfiConverterUInt.allocationSize(value.`currentDepth`)
     )
 
     override fun write(value: ProgressEvent, buf: ByteBuffer) {
             FfiConverterString.write(value.`eventType`, buf)
             FfiConverterString.write(value.`message`, buf)
             FfiConverterDouble.write(value.`progress`, buf)
+            FfiConverterOptionalString.write(value.`searchMode`, buf)
+            FfiConverterUInt.write(value.`currentDepth`, buf)
     }
 }
 

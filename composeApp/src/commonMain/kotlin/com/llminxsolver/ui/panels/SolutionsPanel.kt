@@ -58,18 +58,25 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 50
+private const val BUFFER_PAGES = 2
 
+/**
+ * Displays raw solutions with paginated lazy loading from a temp file.
+ *
+ * Cache is keyed on [tempFilePath] - when a new search starts (creating a new temp file),
+ * the entire cache is automatically recreated as fresh objects, preventing stale data issues.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SolutionsPanel(
     solverState: SolverState,
     readSolutionsPage: (Int, Int) -> List<String> = { _, _ -> emptyList() },
+    tempFilePath: String? = null,
     defaultCollapsed: Boolean = false,
+    onExpandChange: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(!defaultCollapsed) }
-    val pageCache = remember { mutableStateMapOf<Int, List<String>>() }
-    val loadingPages = remember { mutableStateOf(setOf<Int>()) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -78,30 +85,40 @@ fun SolutionsPanel(
 
     val totalCount = solverState.solutionCount
 
-    LaunchedEffect(totalCount) {
-        if (totalCount == 0) {
-            pageCache.clear()
-        }
-    }
+    // Cache is recreated when a new search starts
+    val pageCache = remember(tempFilePath) { mutableStateMapOf<Int, List<String>>() }
+    val loadingPages = remember(tempFilePath) { mutableStateOf(setOf<Int>()) }
 
-    fun ensurePageLoaded(pageIndex: Int) {
-        if (pageCache.containsKey(pageIndex)) return
+    // Loads a page asynchronously, checking if page is already loading or cached
+    fun loadPage(pageIndex: Int, currentCount: Int) {
+        val offset = pageIndex * PAGE_SIZE
+        if (offset >= currentCount || currentCount <= 0) return
         if (loadingPages.value.contains(pageIndex)) return
 
-        val offset = pageIndex * PAGE_SIZE
-        if (offset >= totalCount) return
+        val cachedPage = pageCache[pageIndex]
+        val expectedSize = minOf(PAGE_SIZE, currentCount - offset)
+        if (cachedPage != null && cachedPage.size >= expectedSize) return
 
-        loadingPages.value = loadingPages.value + pageIndex
-        val page = readSolutionsPage(offset, PAGE_SIZE)
-        if (page.isNotEmpty()) {
-            pageCache[pageIndex] = page
+        scope.launch {
+            loadingPages.value = loadingPages.value + pageIndex
+            try {
+                val page = readSolutionsPage(offset, PAGE_SIZE)
+                pageCache[pageIndex] = page
+            } finally {
+                loadingPages.value = loadingPages.value - pageIndex
+            }
         }
-        loadingPages.value = loadingPages.value - pageIndex
     }
 
-    LaunchedEffect(isExpanded, totalCount) {
-        if (isExpanded && totalCount > 0) {
-            ensurePageLoaded(0)
+    // Preloads pages around the center to provide smooth scrolling
+    fun loadPagesAround(centerPage: Int, currentCount: Int) {
+        if (currentCount <= 0) return
+        val maxPage = (currentCount - 1) / PAGE_SIZE
+        val startPage = maxOf(0, centerPage - BUFFER_PAGES)
+        val endPage = minOf(maxPage, centerPage + BUFFER_PAGES)
+
+        for (page in startPage..endPage) {
+            loadPage(page, currentCount)
         }
     }
 
@@ -118,13 +135,26 @@ fun SolutionsPanel(
         }
     }
 
-    LaunchedEffect(visiblePageIndices, totalCount) {
+    // Fallback trigger for items that render as "Loading..."
+    fun ensureItemLoaded(index: Int, currentCount: Int) {
+        val pageIndex = index / PAGE_SIZE
+        loadPage(pageIndex, currentCount)
+    }
+
+    // Load pages when panel expands or new solutions arrive
+    LaunchedEffect(isExpanded, totalCount, tempFilePath) {
+        if (isExpanded && totalCount > 0) {
+            val items = listState.layoutInfo.visibleItemsInfo
+            val centerPage = if (items.isEmpty()) 0 else items.first().index / PAGE_SIZE
+            loadPagesAround(centerPage, totalCount)
+        }
+    }
+
+    // Load visible pages when user scrolls
+    LaunchedEffect(visiblePageIndices, tempFilePath) {
         if (!isExpanded || totalCount <= 0) return@LaunchedEffect
         visiblePageIndices.forEach { pageIndex ->
-            ensurePageLoaded(pageIndex)
-            if (pageIndex > 0) ensurePageLoaded(pageIndex - 1)
-            val maxPage = (totalCount - 1) / PAGE_SIZE
-            if (pageIndex < maxPage) ensurePageLoaded(pageIndex + 1)
+            loadPage(pageIndex, totalCount)
         }
     }
 
@@ -145,7 +175,11 @@ fun SolutionsPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
+                    .clickable {
+                        val newState = !isExpanded
+                        isExpanded = newState
+                        onExpandChange?.invoke(newState)
+                    }
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -259,6 +293,7 @@ fun SolutionsPanel(
                                         }
                                     )
                                 } else {
+                                    ensureItemLoaded(index, totalCount)
                                     Text(
                                         text = "Loading...",
                                         style = MaterialTheme.typography.bodySmall,

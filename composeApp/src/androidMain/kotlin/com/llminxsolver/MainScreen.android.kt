@@ -94,9 +94,9 @@ actual fun MainScreen(viewModel: SolverViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
@@ -169,6 +169,7 @@ actual fun MainScreen(viewModel: SolverViewModel) {
             SolutionsPanel(
                 solverState = state.solverState,
                 readSolutionsPage = actions.readSolutionsPage,
+                tempFilePath = state.tempFilePath,
                 defaultCollapsed = true
             )
         }

@@ -3,6 +3,7 @@ package com.llminxsolver.viewmodel
 import com.llminxsolver.data.GeneratorMode
 import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.data.MetricType
+import com.llminxsolver.data.ModeProgress
 import com.llminxsolver.data.ScoredSolution
 import com.llminxsolver.data.SolverConfig
 import com.llminxsolver.data.SolverState
@@ -68,7 +69,8 @@ class SolverOperations(private val scope: CoroutineScope) {
                     isSearching = true,
                     status = "Starting search...",
                     progress = 0f,
-                    solutionCount = 0
+                    solutionCount = 0,
+                    modeProgresses = emptyMap()
                 )
             }
             _scoredSolutions.value = emptyList()
@@ -81,10 +83,31 @@ class SolverOperations(private val scope: CoroutineScope) {
 
                 val callback = object : SolverCallback {
                     override fun onProgress(event: ProgressEvent) {
-                        _solverState.update {
-                            it.copy(
+                        _solverState.update { current ->
+                            val mode = event.searchMode
+                            val updatedModes = if (mode != null) {
+                                current.modeProgresses + (
+                                    mode to ModeProgress(
+                                        mode = mode,
+                                        currentDepth = event.currentDepth.toInt(),
+                                        progress = event.progress.toFloat(),
+                                        message = event.message
+                                    )
+                                    )
+                            } else {
+                                current.modeProgresses
+                            }
+
+                            val overallProgress = if (updatedModes.isNotEmpty()) {
+                                updatedModes.values.map { it.progress }.average().toFloat()
+                            } else {
+                                event.progress.toFloat()
+                            }
+
+                            current.copy(
                                 status = event.message,
-                                progress = event.progress.toFloat()
+                                progress = overallProgress,
+                                modeProgresses = updatedModes
                             )
                         }
                     }
@@ -138,7 +161,8 @@ class SolverOperations(private val scope: CoroutineScope) {
                     isSearching = true,
                     status = "Starting multi-mode search (${config.selectedModes.size} modes)...",
                     progress = 0f,
-                    solutionCount = 0
+                    solutionCount = 0,
+                    modeProgresses = emptyMap()
                 )
             }
             _scoredSolutions.value = emptyList()
@@ -151,10 +175,31 @@ class SolverOperations(private val scope: CoroutineScope) {
 
                 val callback = object : SolverCallback {
                     override fun onProgress(event: ProgressEvent) {
-                        _solverState.update {
-                            it.copy(
+                        _solverState.update { current ->
+                            val mode = event.searchMode
+                            val updatedModes = if (mode != null) {
+                                current.modeProgresses + (
+                                    mode to ModeProgress(
+                                        mode = mode,
+                                        currentDepth = event.currentDepth.toInt(),
+                                        progress = event.progress.toFloat(),
+                                        message = event.message
+                                    )
+                                    )
+                            } else {
+                                current.modeProgresses
+                            }
+
+                            val overallProgress = if (updatedModes.isNotEmpty()) {
+                                updatedModes.values.map { it.progress }.average().toFloat()
+                            } else {
+                                event.progress.toFloat()
+                            }
+
+                            current.copy(
                                 status = event.message,
-                                progress = event.progress.toFloat()
+                                progress = overallProgress,
+                                modeProgresses = updatedModes
                             )
                         }
                     }
