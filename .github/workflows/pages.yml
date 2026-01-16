@@ -1,0 +1,80 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "README.md"
+      - "PRIVACY_POLICY.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site
+        run: |
+          mkdir -p _site
+          cp README.md _site/index.md
+          cp PRIVACY_POLICY.md _site/PRIVACY_POLICY.md
+
+          cat > _site/_config.yml << 'EOF'
+          title: LLMinx Solver
+          description: Megaminx Last Layer Solver
+          theme: jekyll-theme-minimal
+          plugins:
+            - jekyll-relative-links
+          relative_links:
+            enabled: true
+            collections: true
+          EOF
+
+          cat > _site/index.html << 'EOF'
+          ---
+          layout: default
+          ---
+          {% capture readme %}{% include_relative index.md %}{% endcapture %}
+          {{ readme | markdownify }}
+          EOF
+
+          cat > _site/PRIVACY_POLICY.html << 'EOF'
+          ---
+          layout: default
+          title: Privacy Policy
+          ---
+          {% capture privacy %}{% include_relative PRIVACY_POLICY.md %}{% endcapture %}
+          {{ privacy | markdownify }}
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
