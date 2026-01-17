@@ -40,6 +40,7 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           workflow-job-context: gradle-linux
+          cache-cleanup: never
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -74,6 +75,7 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           workflow-job-context: gradle-macos-arm
+          cache-cleanup: never
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -108,6 +110,7 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           workflow-job-context: gradle-macos-intel
+          cache-cleanup: never
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -142,6 +145,7 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           workflow-job-context: gradle-windows
+          cache-cleanup: never
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -191,6 +195,10 @@ jobs:
               # gradle-home-v1|{OS}-{Arch}|{job-context}[hash]-hash
               # Keep: gradle-home-v1|{OS}-{Arch}|{job-context}
               prefix=$(echo "$key" | sed -E 's/(gradle-home-[^|]+\|[^|]+\|[^[]+).*/\1/')
+            elif [[ "$key" =~ ^gradle-(dependencies|wrapper-zips|transforms|kotlin-dsl|groovy-dsl|instrumented-jars|generated-gradle-jars)-v[0-9]+-[a-f0-9]+$ ]]; then
+              # Shared gradle caches: gradle-{type}-v1-{hash}
+              # Keep: gradle-{type}-v1 (one per type)
+              prefix=$(echo "$key" | sed -E 's/(gradle-[^-]+-v[0-9]+).*/\1/')
             else
               continue
             fi
