@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   macos-intel:
@@ -23,12 +24,18 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-intel
+          save-if: false
 
       - name: Build Native Library
         run: |
@@ -83,12 +90,18 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-arm
+          save-if: false
 
       - name: Build Native Library
         run: |

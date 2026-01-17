@@ -18,6 +18,10 @@ on:
       - "settings.gradle.kts"
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   cache-linux:
     name: Cache (Linux)
@@ -33,12 +37,16 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-linux
 
       - name: Build Rust Library
         run: cargo build -p llminxsolver-uniffi --release
@@ -48,8 +56,8 @@ jobs:
           chmod +x gradlew
           ./gradlew :shared:compileKotlinDesktop --no-daemon
 
-  cache-macos:
-    name: Cache (macOS)
+  cache-macos-arm:
+    name: Cache (macOS ARM)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,12 +70,49 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-arm
+
+      - name: Build Rust Library
+        run: cargo build -p llminxsolver-uniffi --release
+
+      - name: Warm Gradle Cache
+        run: |
+          chmod +x gradlew
+          ./gradlew :shared:compileKotlinDesktop --no-daemon
+
+  cache-macos-intel:
+    name: Cache (macOS Intel)
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-intel
 
       - name: Build Rust Library
         run: cargo build -p llminxsolver-uniffi --release
@@ -91,15 +136,68 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-windows
 
       - name: Build Rust Library
         run: cargo build -p llminxsolver-uniffi --release
 
       - name: Warm Gradle Cache
         run: .\gradlew.bat :shared:compileKotlinDesktop --no-daemon
+
+  cleanup-caches:
+    name: Cleanup Old Caches
+    needs: [cache-linux, cache-macos-arm, cache-macos-intel, cache-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete old caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Fetching all caches..."
+          caches=$(gh cache list --limit 1000 --json id,key,createdAt --jq 'sort_by(.createdAt) | reverse')
+
+          declare -A seen_prefixes
+          declare -a to_delete=()
+
+          while read -r cache; do
+            [[ -z "$cache" ]] && continue
+            id=$(echo "$cache" | jq -r '.id')
+            key=$(echo "$cache" | jq -r '.key')
+
+            prefix=""
+            if [[ "$key" == swatinem-rust-* ]]; then
+              prefix=$(echo "$key" | sed -E 's/(swatinem-rust-[^-]+-[^-]+-[^-]+).*/\1/')
+            elif [[ "$key" == gradle-* ]]; then
+              prefix=$(echo "$key" | sed -E 's/(gradle-[^-]+).*/\1/')
+            else
+              continue
+            fi
+
+            if [[ -z "${seen_prefixes[$prefix]:-}" ]]; then
+              seen_prefixes[$prefix]=1
+              echo "KEEP  id=$id key=$key (newest for prefix: $prefix)"
+            else
+              echo "DELETE id=$id key=$key (older duplicate for prefix: $prefix)"
+              to_delete+=("$id")
+            fi
+          done < <(echo "$caches" | jq -c '.[]')
+
+          for id in "${to_delete[@]}"; do
+            gh cache delete "$id" || true
+          done
+
+          echo "Cache cleanup complete."

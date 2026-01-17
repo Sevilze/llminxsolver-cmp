@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   nix:
@@ -19,6 +20,8 @@ jobs:
         uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            extra-experimental-features = nix-command flakes impure-derivations ca-derivations
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v14
@@ -45,12 +48,18 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-linux
+          save-if: false
 
       - name: Build Native Library
         run: |
