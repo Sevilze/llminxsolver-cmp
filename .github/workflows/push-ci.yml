@@ -184,9 +184,13 @@ jobs:
 
             prefix=""
             if [[ "$key" == v0-rust-* ]]; then
+              # v0-rust-{shared-key}-{os}-{arch}-{hash}-{hash}
+              # Keep: v0-rust-{shared-key}-{os}-{arch}
               prefix=$(echo "$key" | sed -E 's/(v0-rust-[^-]+-[^-]+-[^-]+).*/\1/')
-            elif [[ "$key" == gradle-* ]]; then
-              prefix=$(echo "$key" | sed -E 's/(gradle-[^-]+).*/\1/')
+            elif [[ "$key" == gradle-home-* ]]; then
+              # gradle-home-v1|{OS}-{Arch}|{job-context}[hash]-hash
+              # Keep: gradle-home-v1|{OS}-{Arch}|{job-context}
+              prefix=$(echo "$key" | sed -E 's/(gradle-home-[^|]+\|[^|]+\|[^[]+).*/\1/')
             else
               continue
             fi
