@@ -178,7 +178,7 @@ jobs:
           echo "Fetching all caches..."
           caches=$(gh cache list --limit 1000 --json id,key,createdAt --jq 'sort_by(.createdAt) | reverse')
 
-          declare -A seen_prefixes
+          declare -A prefix_counts
           declare -a to_delete=()
 
           while read -r cache; do
@@ -187,27 +187,36 @@ jobs:
             key=$(echo "$cache" | jq -r '.key')
 
             prefix=""
+            max_keep=1
+
             if [[ "$key" == v0-rust-* ]]; then
               # v0-rust-{shared-key}-{os}-{arch}-{hash}-{hash}
-              # Keep: v0-rust-{shared-key}-{os}-{arch}
+              # Keep 1 per OS/shared-key combination
               prefix=$(echo "$key" | sed -E 's/(v0-rust-[^-]+-[^-]+-[^-]+).*/\1/')
+              max_keep=1
             elif [[ "$key" == gradle-home-* ]]; then
               # gradle-home-v1|{OS}-{Arch}|{job-context}[hash]-hash
-              # Keep: gradle-home-v1|{OS}-{Arch}|{job-context}
+              # Keep 1 per OS/job-context
               prefix=$(echo "$key" | sed -E 's/(gradle-home-[^|]+\|[^|]+\|[^[]+).*/\1/')
-            elif [[ "$key" =~ ^gradle-(dependencies|wrapper-zips|transforms|kotlin-dsl|groovy-dsl|instrumented-jars|generated-gradle-jars)-v[0-9]+-[a-f0-9]+$ ]]; then
-              # Shared gradle caches: gradle-{type}-v1-{hash}
-              # Keep: gradle-{type}-v1 (one per type)
-              prefix=$(echo "$key" | sed -E 's/(gradle-[^-]+-v[0-9]+).*/\1/')
+              max_keep=1
+            elif [[ "$key" =~ ^gradle-(wrapper-zips|generated-gradle-jars)-v[0-9]+ ]]; then
+              # Truly shared across all OS - keep only 1
+              prefix=$(echo "$key" | sed -E 's/(gradle-[a-z-]+-v[0-9]+).*/\1/')
+              max_keep=1
+            elif [[ "$key" =~ ^gradle-(dependencies|instrumented-jars|groovy-dsl|kotlin-dsl|transforms|configuration-cache)-v[0-9]+ ]]; then
+              # OS-specific content - keep up to 4 (Linux, macOS-ARM, macOS-Intel, Windows)
+              prefix=$(echo "$key" | sed -E 's/(gradle-[a-z-]+-v[0-9]+).*/\1/')
+              max_keep=4
             else
               continue
             fi
 
-            if [[ -z "${seen_prefixes[$prefix]:-}" ]]; then
-              seen_prefixes[$prefix]=1
-              echo "KEEP  id=$id key=$key (newest for prefix: $prefix)"
+            current_count=${prefix_counts[$prefix]:-0}
+            if [[ $current_count -lt $max_keep ]]; then
+              prefix_counts[$prefix]=$((current_count + 1))
+              echo "KEEP  id=$id key=$key (count=${prefix_counts[$prefix]}/$max_keep for prefix: $prefix)"
             else
-              echo "DELETE id=$id key=$key (older duplicate for prefix: $prefix)"
+              echo "DELETE id=$id key=$key (exceeds $max_keep for prefix: $prefix)"
               to_delete+=("$id")
             fi
           done < <(echo "$caches" | jq -c '.[]')
