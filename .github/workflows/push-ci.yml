@@ -199,12 +199,8 @@ jobs:
               # Keep 1 per OS/job-context
               prefix=$(echo "$key" | sed -E 's/(gradle-home-[^|]+\|[^|]+\|[^[]+).*/\1/')
               max_keep=1
-            elif [[ "$key" =~ ^gradle-(wrapper-zips|generated-gradle-jars)-v[0-9]+ ]]; then
-              # Truly shared across all OS - keep only 1
-              prefix=$(echo "$key" | sed -E 's/(gradle-[a-z-]+-v[0-9]+).*/\1/')
-              max_keep=1
-            elif [[ "$key" =~ ^gradle-(dependencies|instrumented-jars|groovy-dsl|kotlin-dsl|transforms|configuration-cache)-v[0-9]+ ]]; then
-              # OS-specific content - keep up to 4 (Linux, macOS-ARM, macOS-Intel, Windows)
+            elif [[ "$key" =~ ^gradle-[a-z-]+-v[0-9]+ ]]; then
+              # All other gradle caches - keep up to 4 (one per OS variant)
               prefix=$(echo "$key" | sed -E 's/(gradle-[a-z-]+-v[0-9]+).*/\1/')
               max_keep=4
             else
