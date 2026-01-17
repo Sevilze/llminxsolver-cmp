@@ -10,7 +10,9 @@ on:
       - "Cargo.toml"
       - "llminxsolver-rs/**"
       - "llminxsolver-uniffi/**"
-      - "composeApp/**"
+      - "shared/**"
+      - "androidApp/**"
+      - "desktopApp/**"
       - "gradle/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
@@ -44,7 +46,7 @@ jobs:
       - name: Warm Gradle Cache
         run: |
           chmod +x gradlew
-          ./gradlew :composeApp:compileKotlinDesktop --no-daemon
+          ./gradlew :shared:compileKotlinDesktop --no-daemon
 
   cache-macos:
     name: Cache (macOS)
@@ -73,7 +75,7 @@ jobs:
       - name: Warm Gradle Cache
         run: |
           chmod +x gradlew
-          ./gradlew :composeApp:compileKotlinDesktop --no-daemon
+          ./gradlew :shared:compileKotlinDesktop --no-daemon
 
   cache-windows:
     name: Cache (Windows)
@@ -100,4 +102,4 @@ jobs:
         run: cargo build -p llminxsolver-uniffi --release
 
       - name: Warm Gradle Cache
-        run: .\gradlew.bat :composeApp:compileKotlinDesktop --no-daemon
+        run: .\gradlew.bat :shared:compileKotlinDesktop --no-daemon

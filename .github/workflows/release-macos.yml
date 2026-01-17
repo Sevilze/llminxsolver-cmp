@@ -33,23 +33,23 @@ jobs:
       - name: Build Native Library
         run: |
           cargo build -p llminxsolver-uniffi --release
-          mkdir -p composeApp/src/desktopMain/resources
-          cp target/release/libllminxsolver_uniffi.dylib composeApp/src/desktopMain/resources/
+          mkdir -p shared/src/desktopMain/resources
+          cp target/release/libllminxsolver_uniffi.dylib shared/src/desktopMain/resources/
 
       - name: Generate macOS Icon
         run: |
-          mkdir -p composeApp/icons/manimicon.iconset
-          sips -z 16 16     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_16x16.png
-          sips -z 32 32     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_16x16@2x.png
-          sips -z 32 32     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_32x32.png
-          sips -z 64 64     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_32x32@2x.png
-          sips -z 128 128   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_128x128.png
-          sips -z 256 256   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_128x128@2x.png
-          sips -z 256 256   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_256x256.png
-          sips -z 512 512   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_256x256@2x.png
-          sips -z 512 512   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_512x512.png
-          sips -z 1024 1024 composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_512x512@2x.png
-          iconutil -c icns composeApp/icons/manimicon.iconset -o composeApp/icons/icon.icns
+          mkdir -p desktopApp/icons/manimicon.iconset
+          sips -z 16 16     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_16x16.png
+          sips -z 32 32     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_16x16@2x.png
+          sips -z 32 32     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_32x32.png
+          sips -z 64 64     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_32x32@2x.png
+          sips -z 128 128   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_128x128.png
+          sips -z 256 256   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_128x128@2x.png
+          sips -z 256 256   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_256x256.png
+          sips -z 512 512   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_256x256@2x.png
+          sips -z 512 512   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_512x512.png
+          sips -z 1024 1024 desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_512x512@2x.png
+          iconutil -c icns desktopApp/icons/manimicon.iconset -o desktopApp/icons/icon.icns
 
       - name: Build Desktop Package
         env:
@@ -57,17 +57,17 @@ jobs:
         run: |
           export APP_VERSION=${APP_VERSION#v}
           chmod +x gradlew
-          ./gradlew :composeApp:packageReleaseDmg
+          ./gradlew :desktopApp:packageReleaseDmg
 
       - name: Rename DMG
         run: |
-          cd composeApp/build/compose/binaries/main-release/dmg
+          cd desktopApp/build/compose/binaries/main-release/dmg
           for f in *.dmg; do mv "$f" "${f%.dmg}-x86_64.dmg"; done
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/main-release/dmg/*.dmg
+          files: desktopApp/build/compose/binaries/main-release/dmg/*.dmg
 
   macos-arm:
     name: macOS Build (Apple Silicon)
@@ -93,23 +93,23 @@ jobs:
       - name: Build Native Library
         run: |
           cargo build -p llminxsolver-uniffi --release
-          mkdir -p composeApp/src/desktopMain/resources
-          cp target/release/libllminxsolver_uniffi.dylib composeApp/src/desktopMain/resources/
+          mkdir -p shared/src/desktopMain/resources
+          cp target/release/libllminxsolver_uniffi.dylib shared/src/desktopMain/resources/
 
       - name: Generate macOS Icon
         run: |
-          mkdir -p composeApp/icons/manimicon.iconset
-          sips -z 16 16     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_16x16.png
-          sips -z 32 32     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_16x16@2x.png
-          sips -z 32 32     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_32x32.png
-          sips -z 64 64     composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_32x32@2x.png
-          sips -z 128 128   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_128x128.png
-          sips -z 256 256   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_128x128@2x.png
-          sips -z 256 256   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_256x256.png
-          sips -z 512 512   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_256x256@2x.png
-          sips -z 512 512   composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_512x512.png
-          sips -z 1024 1024 composeApp/icons/manimicon.png --out composeApp/icons/manimicon.iconset/icon_512x512@2x.png
-          iconutil -c icns composeApp/icons/manimicon.iconset -o composeApp/icons/icon.icns
+          mkdir -p desktopApp/icons/manimicon.iconset
+          sips -z 16 16     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_16x16.png
+          sips -z 32 32     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_16x16@2x.png
+          sips -z 32 32     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_32x32.png
+          sips -z 64 64     desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_32x32@2x.png
+          sips -z 128 128   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_128x128.png
+          sips -z 256 256   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_128x128@2x.png
+          sips -z 256 256   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_256x256.png
+          sips -z 512 512   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_256x256@2x.png
+          sips -z 512 512   desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_512x512.png
+          sips -z 1024 1024 desktopApp/icons/manimicon.png --out desktopApp/icons/manimicon.iconset/icon_512x512@2x.png
+          iconutil -c icns desktopApp/icons/manimicon.iconset -o desktopApp/icons/icon.icns
 
       - name: Build Desktop Package
         env:
@@ -117,14 +117,14 @@ jobs:
         run: |
           export APP_VERSION=${APP_VERSION#v}
           chmod +x gradlew
-          ./gradlew :composeApp:packageReleaseDmg
+          ./gradlew :desktopApp:packageReleaseDmg
 
       - name: Rename DMG
         run: |
-          cd composeApp/build/compose/binaries/main-release/dmg
+          cd desktopApp/build/compose/binaries/main-release/dmg
           for f in *.dmg; do mv "$f" "${f%.dmg}-arm64.dmg"; done
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/main-release/dmg/*.dmg
+          files: desktopApp/build/compose/binaries/main-release/dmg/*.dmg

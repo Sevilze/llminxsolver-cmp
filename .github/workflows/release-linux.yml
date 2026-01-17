@@ -27,7 +27,9 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build with Nix
-        run: nix build
+        run: |
+          nix build .#lib
+          nix build --impure
 
   linux:
     name: Linux Build (Deb, Rpm, Tar.gz) & AUR
@@ -53,8 +55,8 @@ jobs:
       - name: Build Native Library
         run: |
           cargo build -p llminxsolver-uniffi --release
-          mkdir -p composeApp/src/desktopMain/resources
-          cp target/release/libllminxsolver_uniffi.so composeApp/src/desktopMain/resources/
+          mkdir -p shared/src/desktopMain/resources
+          cp target/release/libllminxsolver_uniffi.so shared/src/desktopMain/resources/
 
       - name: Build Desktop Packages
         env:
@@ -62,13 +64,13 @@ jobs:
         run: |
           export APP_VERSION=${APP_VERSION#v}
           chmod +x gradlew
-          ./gradlew :composeApp:packageReleaseDeb :composeApp:packageReleaseRpm :composeApp:createReleaseDistributable
+          ./gradlew :desktopApp:packageReleaseDeb :desktopApp:packageReleaseRpm :desktopApp:createReleaseDistributable
 
       - name: Prepare Artifacts
         run: |
           mkdir -p dist
 
-          cp -r composeApp/build/compose/binaries/main-release/app/* dist/
+          cp -r desktopApp/build/compose/binaries/main-release/app/* dist/
 
           cd dist
           tar -czvf ../llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz *
@@ -82,8 +84,8 @@ jobs:
         with:
           files: |
             llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz
-            composeApp/build/compose/binaries/main-release/deb/*.deb
-            composeApp/build/compose/binaries/main-release/rpm/*.rpm
+            desktopApp/build/compose/binaries/main-release/deb/*.deb
+            desktopApp/build/compose/binaries/main-release/rpm/*.rpm
           generate_release_notes: true
 
       - name: Update PKGBUILD

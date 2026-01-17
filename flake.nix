@@ -24,30 +24,86 @@
           cargo = rustToolchain;
           rustc = rustToolchain;
         };
-      in
-      {
-        packages.default = rustPlatform.buildRustPackage {
+
+        nativeLib = rustPlatform.buildRustPackage {
           pname = "llminxsolver-uniffi";
           version = "0.1.0";
 
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
 
-          nativeBuildInputs = with pkgs; [
-            pkg-config
-          ];
-
-          buildInputs = with pkgs; [
-            openssl
-          ];
-
+          nativeBuildInputs = with pkgs; [ pkg-config ];
+          buildInputs = with pkgs; [ openssl ];
           cargoBuildFlags = [ "-p" "llminxsolver-uniffi" ];
 
           meta = with pkgs.lib; {
             description = "Megaminx puzzle solver with UniFFI bindings";
             homepage = "https://github.com/Sevilze/llminxsolver-cmp";
             license = licenses.mit;
-            maintainers = [];
+          };
+        };
+
+        libExtension = if pkgs.stdenv.isDarwin then "dylib" else "so";
+
+      in
+      {
+        packages = {
+          lib = nativeLib;
+
+          default = pkgs.stdenv.mkDerivation {
+            pname = "llminxsolver";
+            version = "1.0.0";
+
+            src = ./.;
+
+            # Gradle requires network access for downloading dependencies
+            __impure = true;
+
+            nativeBuildInputs = with pkgs; [
+              jdk21
+              makeWrapper
+              cacert
+            ];
+
+            buildInputs = with pkgs; [
+              jdk21
+            ];
+
+            buildPhase = ''
+              runHook preBuild
+
+              export HOME=$(mktemp -d)
+              export GRADLE_USER_HOME=$(mktemp -d)
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+
+              mkdir -p shared/src/desktopMain/resources
+              cp ${nativeLib}/lib/libllminxsolver_uniffi.${libExtension} shared/src/desktopMain/resources/
+
+              chmod +x gradlew
+              ./gradlew :desktopApp:createReleaseDistributable --no-daemon
+
+              runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out
+              cp -r desktopApp/build/compose/binaries/main-release/app/* $out/
+
+              mkdir -p $out/bin
+              makeWrapper "$out/LLMinx Solver/bin/LLMinx Solver" $out/bin/llminxsolver \
+                --set JAVA_HOME ${pkgs.jdk21}
+
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Megaminx Last Layer Solver with Compose Multiplatform GUI";
+              homepage = "https://github.com/Sevilze/llminxsolver-cmp";
+              license = licenses.mit;
+              mainProgram = "llminxsolver";
+            };
           };
         };
 

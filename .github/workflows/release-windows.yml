@@ -33,11 +33,11 @@ jobs:
       - name: Build Native Library
         run: |
           cargo build -p llminxsolver-uniffi --release
-          New-Item -ItemType Directory -Force -Path composeApp/src/desktopMain/resources
-          Copy-Item target/release/llminxsolver_uniffi.dll composeApp/src/desktopMain/resources/
+          New-Item -ItemType Directory -Force -Path shared/src/desktopMain/resources
+          Copy-Item target/release/llminxsolver_uniffi.dll shared/src/desktopMain/resources/
 
       - name: Generate Windows Icon
-        run: magick composeApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 composeApp/icons/manimicon.ico
+        run: magick desktopApp/icons/manimicon.png -define icon:auto-resize=256,128,64,48,32,16 desktopApp/icons/manimicon.ico
 
       - name: Build Desktop Package
         shell: pwsh
@@ -45,9 +45,9 @@ jobs:
           APP_VERSION: ${{ github.ref_name }}
         run: |
           $env:APP_VERSION = $env:APP_VERSION -replace '^v', ''
-          .\gradlew.bat :composeApp:packageReleaseExe
+          .\gradlew.bat :desktopApp:packageReleaseExe
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/main-release/exe/*.exe
+          files: desktopApp/build/compose/binaries/main-release/exe/*.exe
