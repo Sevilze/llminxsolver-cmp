@@ -1,16 +1,17 @@
 [versions]
-agp = "8.13.2"
+agp = "9.0.0"
 android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
 androidx-activity = "1.9.3"
 androidx-lifecycle = "2.9.6"
-composeMultiplatform = "1.10.0-rc02"
+composeMultiplatform = "1.11.0-alpha01"
 kotlin = "2.2.20"
 coroutines = "1.9.0"
 jna = "5.18.1"
 datastore = "1.1.6"
 serialization = "1.8.0"
+material3 = "1.11.0-alpha01"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -25,6 +26,7 @@ jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
 datastore-preferences-android = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -33,3 +35,4 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+androidKmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
