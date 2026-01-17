@@ -39,6 +39,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-linux
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -72,6 +73,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-macos-arm
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -105,6 +107,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-macos-intel
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -138,6 +141,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-windows
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -179,8 +183,8 @@ jobs:
             key=$(echo "$cache" | jq -r '.key')
 
             prefix=""
-            if [[ "$key" == swatinem-rust-* ]]; then
-              prefix=$(echo "$key" | sed -E 's/(swatinem-rust-[^-]+-[^-]+-[^-]+).*/\1/')
+            if [[ "$key" == v0-rust-* ]]; then
+              prefix=$(echo "$key" | sed -E 's/(v0-rust-[^-]+-[^-]+-[^-]+).*/\1/')
             elif [[ "$key" == gradle-* ]]; then
               prefix=$(echo "$key" | sed -E 's/(gradle-[^-]+).*/\1/')
             else

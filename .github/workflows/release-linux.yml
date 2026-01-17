@@ -22,15 +22,21 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             extra-experimental-features = nix-command flakes impure-derivations ca-derivations
+            extra-substituters = https://llminxsolver-bin.cachix.org
+            extra-trusted-public-keys = llminxsolver-bin.cachix.org-1:twj+Ti21Cwwuo77YXFHP2elmgYQgvmQuB0/dOam7NJY=
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v14
         with:
           name: llminxsolver-bin
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          pushFilter: "(-source$|llminxsolver)"
 
       - name: Build with Nix
+        env:
+          APP_VERSION: ${{ github.ref_name }}
         run: |
+          export APP_VERSION=${APP_VERSION#v}
           nix build .#lib
           nix build --impure
 
@@ -51,6 +57,7 @@ jobs:
         with:
           cache-read-only: true
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-linux
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

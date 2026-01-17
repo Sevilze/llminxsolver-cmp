@@ -27,6 +27,7 @@ jobs:
         with:
           cache-read-only: true
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-macos-intel
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -93,6 +94,7 @@ jobs:
         with:
           cache-read-only: true
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          workflow-job-context: gradle-macos-arm
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

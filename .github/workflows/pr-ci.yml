@@ -24,6 +24,9 @@ jobs:
 
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-linux
+          save-if: false
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings

@@ -45,6 +45,9 @@
 
         libExtension = if pkgs.stdenv.isDarwin then "dylib" else "so";
 
+        appVersion = builtins.getEnv "APP_VERSION";
+        version = if appVersion != "" then appVersion else "0.0.0-dev";
+
       in
       {
         packages = {
@@ -52,7 +55,7 @@
 
           default = pkgs.stdenv.mkDerivation {
             pname = "llminxsolver";
-            version = "1.0.0";
+            inherit version;
 
             src = ./.;
 
