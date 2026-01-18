@@ -53,12 +53,9 @@ jobs:
           pushFilter: "(-source$|llminxsolver)"
 
       - name: Build with Nix
-        env:
-          APP_VERSION: ${{ github.ref_name }}
         run: |
-          export APP_VERSION=${APP_VERSION#v}
           nix build .#lib
-          nix build --impure
+          nix build
 
   linux:
     name: Linux Build (Deb, Rpm, Tar.gz) & AUR

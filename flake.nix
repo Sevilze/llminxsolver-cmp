@@ -32,8 +32,9 @@
           rustc = rustToolchain;
         };
 
-        appVersion = builtins.getEnv "APP_VERSION";
-        version = if appVersion != "" then appVersion else "1.0.0";
+        gradleConfig = builtins.readFile ./androidApp/build.gradle.kts;
+        versionMatch = builtins.match ".*versionName = \"([^\"]+)\".*" gradleConfig;
+        version = if versionMatch != null then builtins.head versionMatch else "1.0.0";
 
         nativeLib = rustPlatform.buildRustPackage {
           pname = "llminxsolver-uniffi";
@@ -74,6 +75,16 @@
           verificationFile = "gradle/verification-metadata.xml";
         };
 
+        runtimeLibs = with pkgs; [
+          libGL
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXrandr
+          fontconfig
+          freetype
+        ];
+
       in
       {
         packages = {
@@ -91,11 +102,13 @@
               unzip
               makeWrapper
               cacert
+              autoPatchelfHook
             ];
 
             buildInputs = with pkgs; [
               jdk21
-            ];
+              stdenv.cc.cc.lib
+            ] ++ runtimeLibs;
 
             buildPhase = ''
               runHook preBuild
@@ -132,7 +145,8 @@
 
               mkdir -p $out/bin
               makeWrapper "$out/LLMinx Solver/bin/LLMinx Solver" $out/bin/llminxsolver \
-                --set JAVA_HOME ${pkgs.jdk21}
+                --set JAVA_HOME ${pkgs.jdk21} \
+                --prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs}
 
               runHook postInstall
             '';
