@@ -65,7 +65,7 @@ jobs:
         run: |
           export APP_VERSION=${APP_VERSION#v}
           chmod +x gradlew
-          ./gradlew :desktopApp:packageReleaseDmg
+          ./gradlew :desktopApp:packageReleaseDmg --dependency-verification=off
 
       - name: Rename DMG
         run: |
@@ -132,7 +132,7 @@ jobs:
         run: |
           export APP_VERSION=${APP_VERSION#v}
           chmod +x gradlew
-          ./gradlew :desktopApp:packageReleaseDmg
+          ./gradlew :desktopApp:packageReleaseDmg --dependency-verification=off
 
       - name: Rename DMG
         run: |

@@ -8,12 +8,19 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    build-gradle-application = {
+      url = "github:raphiz/buildGradleApplication";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, build-gradle-application }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ (import rust-overlay) ];
+        overlays = [
+          (import rust-overlay)
+          build-gradle-application.overlays.default
+        ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
@@ -26,7 +33,7 @@
         };
 
         appVersion = builtins.getEnv "APP_VERSION";
-        version = if appVersion != "" then appVersion else "0.0.0-dev";
+        version = if appVersion != "" then appVersion else "1.0.0";
 
         nativeLib = rustPlatform.buildRustPackage {
           pname = "llminxsolver-uniffi";
@@ -48,17 +55,30 @@
 
         libExtension = if pkgs.stdenv.isDarwin then "dylib" else "so";
 
-        gradleDeps = import ./nix/gradle-deps.nix {
-          inherit pkgs;
+        gradleDistribution = pkgs.fetchurl {
+          url = "https://services.gradle.org/distributions/gradle-9.1.0-bin.zip";
+          sha256 = "sha256-oX3dhaJran9d23H/iwX8UQTAICxuZHgkKXkMkzaGyAY=";
+        };
+
+        # Use mkM2Repository to fetch dependencies reproducibly
+        m2Repository = pkgs.mkM2Repository {
+          pname = "llminxsolver-deps";
+          inherit version;
           src = ./.;
-          jdk = pkgs.jdk21;
+          repositories = [
+            "https://plugins.gradle.org/m2/"
+            "https://repo1.maven.org/maven2/"
+            "https://maven.google.com/"
+            "https://maven.pkg.jetbrains.space/public/p/compose/dev/"
+          ];
+          verificationFile = "gradle/verification-metadata.xml";
         };
 
       in
       {
         packages = {
           lib = nativeLib;
-          inherit gradleDeps;
+          deps = m2Repository.m2Repository;
 
           default = pkgs.stdenv.mkDerivation {
             pname = "llminxsolver";
@@ -68,6 +88,7 @@
 
             nativeBuildInputs = with pkgs; [
               jdk21
+              unzip
               makeWrapper
               cacert
             ];
@@ -80,18 +101,25 @@
               runHook preBuild
 
               export HOME=$(mktemp -d)
-              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
-
-              # Copy prefetched deps to writable location
               export GRADLE_USER_HOME=$(mktemp -d)
-              cp -r ${gradleDeps}/* $GRADLE_USER_HOME/ || true
-              chmod -R u+w $GRADLE_USER_HOME
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+              export MAVEN_SOURCE_REPOSITORY=${m2Repository.m2Repository}
+              export APP_VERSION=${version}
+
+              GRADLE_EXTRACTED=$(mktemp -d)
+              unzip -q ${gradleDistribution} -d "$GRADLE_EXTRACTED"
+              export PATH="$GRADLE_EXTRACTED/gradle-9.1.0/bin:$PATH"
 
               mkdir -p shared/src/desktopMain/resources
               cp ${nativeLib}/lib/libllminxsolver_uniffi.${libExtension} shared/src/desktopMain/resources/
 
-              chmod +x gradlew
-              ./gradlew :desktopApp:createReleaseDistributable --no-daemon --offline
+              gradle --offline --no-daemon --no-watch-fs \
+                -Dorg.gradle.unsafe.isolated-projects=false \
+                --no-configuration-cache --no-build-cache \
+                -Dorg.gradle.console=plain --no-scan \
+                -Porg.gradle.java.installations.auto-download=false \
+                --init-script ${build-gradle-application}/buildGradleApplication/init.gradle.kts \
+                :desktopApp:createReleaseDistributable
 
               runHook postBuild
             '';
