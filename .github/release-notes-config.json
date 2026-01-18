@@ -1,0 +1,96 @@
+{
+  "categories": [
+    {
+      "title": "## New Features",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^(feat|feature)(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Bug Fixes",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^fix(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Performance Improvements",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^perf(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Documentation",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^docs?(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Refactoring",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^refactor(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Build & CI",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^(build|ci)(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "title": "## Chores",
+      "labels": [],
+      "rules": [
+        {
+          "pattern": "^chore(\\(.+\\))?:",
+          "on_property": "title",
+          "flags": "i"
+        }
+      ]
+    }
+  ],
+  "sort": {
+    "order": "DESC",
+    "on_property": "mergedAt"
+  },
+  "template": "## What's Changed\n\n#{{CHANGELOG}}\n\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
+  "commit_template": "- #{{TITLE}} (#{{MERGE_SHA}})",
+  "empty_template": "No changes in this release.",
+  "transformers": [
+    {
+      "pattern": "^(feat|fix|perf|docs?|refactor|build|ci|chore)(\\(.+\\))?:\\s*",
+      "target": "",
+      "flags": "i"
+    }
+  ],
+  "trim_values": true
+}

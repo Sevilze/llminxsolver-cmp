@@ -8,8 +8,28 @@ on:
 permissions:
   contents: write
   actions: read
+  pull-requests: read
 
 jobs:
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v6
+        with:
+          mode: "COMMIT"
+          configuration: ".github/release-notes-config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   nix:
     name: Nix Build & Cache
     runs-on: ubuntu-latest
@@ -42,6 +62,7 @@ jobs:
 
   linux:
     name: Linux Build (Deb, Rpm, Tar.gz) & AUR
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +123,7 @@ jobs:
             llminxsolver-${{ github.ref_name }}-x86_64-linux.tar.gz
             desktopApp/build/compose/binaries/main-release/deb/*.deb
             desktopApp/build/compose/binaries/main-release/rpm/*.rpm
-          generate_release_notes: true
+          body: ${{ needs.release-notes.outputs.changelog }}
 
       - name: Update PKGBUILD
         run: |
