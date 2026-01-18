@@ -23,6 +23,33 @@ permissions:
   contents: read
 
 jobs:
+  check-gradle-deps:
+    name: Check Gradle Deps Hash
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Gradle Deps Staleness
+        run: |
+          GRADLE_FILES="gradle/libs.versions.toml build.gradle.kts settings.gradle.kts desktopApp/build.gradle.kts shared/build.gradle.kts androidApp/build.gradle.kts"
+          HASH_FILE="nix/gradle-deps.nix"
+
+          GRADLE_COMMIT=$(git log -1 --format="%H" -- $GRADLE_FILES 2>/dev/null || echo "")
+          HASH_COMMIT=$(git log -1 --format="%H" -- $HASH_FILE 2>/dev/null || echo "")
+
+          if [ -z "$GRADLE_COMMIT" ] || [ -z "$HASH_COMMIT" ]; then
+            echo "Could not determine commit history, skipping check"
+            exit 0
+          fi
+
+          if git merge-base --is-ancestor "$HASH_COMMIT" "$GRADLE_COMMIT" 2>/dev/null; then
+            echo "Gradle files were modified after nix/gradle-deps.nix. The hash may be stale."
+          else
+            echo "Gradle deps hash appears up to date."
+          fi
+
   cache-linux:
     name: Cache (Linux)
     runs-on: ubuntu-latest

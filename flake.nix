@@ -1,5 +1,5 @@
 {
-  description = "llminxsolver - Megaminx puzzle solver with Compose Multiplatform UI";
+  description = "llminxsolver - Megaminx Last Layer Solver with Compose Multiplatform UI";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -25,9 +25,12 @@
           rustc = rustToolchain;
         };
 
+        appVersion = builtins.getEnv "APP_VERSION";
+        version = if appVersion != "" then appVersion else "0.0.0-dev";
+
         nativeLib = rustPlatform.buildRustPackage {
           pname = "llminxsolver-uniffi";
-          version = "0.1.0";
+          inherit version;
 
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
@@ -45,22 +48,23 @@
 
         libExtension = if pkgs.stdenv.isDarwin then "dylib" else "so";
 
-        appVersion = builtins.getEnv "APP_VERSION";
-        version = if appVersion != "" then appVersion else "0.0.0-dev";
+        gradleDeps = import ./nix/gradle-deps.nix {
+          inherit pkgs;
+          src = ./.;
+          jdk = pkgs.jdk21;
+        };
 
       in
       {
         packages = {
           lib = nativeLib;
+          inherit gradleDeps;
 
           default = pkgs.stdenv.mkDerivation {
             pname = "llminxsolver";
             inherit version;
 
             src = ./.;
-
-            # Gradle requires network access for downloading dependencies
-            __impure = true;
 
             nativeBuildInputs = with pkgs; [
               jdk21
@@ -76,14 +80,18 @@
               runHook preBuild
 
               export HOME=$(mktemp -d)
-              export GRADLE_USER_HOME=$(mktemp -d)
               export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+
+              # Copy prefetched deps to writable location
+              export GRADLE_USER_HOME=$(mktemp -d)
+              cp -r ${gradleDeps}/* $GRADLE_USER_HOME/ || true
+              chmod -R u+w $GRADLE_USER_HOME
 
               mkdir -p shared/src/desktopMain/resources
               cp ${nativeLib}/lib/libllminxsolver_uniffi.${libExtension} shared/src/desktopMain/resources/
 
               chmod +x gradlew
-              ./gradlew :desktopApp:createReleaseDistributable --no-daemon
+              ./gradlew :desktopApp:createReleaseDistributable --no-daemon --offline
 
               runHook postBuild
             '';
