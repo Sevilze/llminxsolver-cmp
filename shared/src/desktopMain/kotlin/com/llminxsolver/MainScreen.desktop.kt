@@ -179,6 +179,7 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                     colorScheme = state.megaminxColorScheme,
                     ignoreFlags = state.solverConfig.ignoreFlags,
                     metricLabel = getMetricLabel(state.solverConfig.metric),
+                    onFlushTempFile = actions.flushTempFile,
                     onExportSuccess = { filename ->
                         scope.launch {
                             snackbarHostState.showSnackbar("Exported $filename to Downloads")

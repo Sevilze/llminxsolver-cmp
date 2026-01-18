@@ -26,13 +26,23 @@ fn setup_worksheet_with_image(
     image_size: u32,
 ) -> Result<(), XlsxError> {
     if let Some(img_bytes) = image_png_bytes {
-        let image = Image::new_from_buffer(img_bytes)?;
+        let base_image = Image::new_from_buffer(img_bytes)?;
+        let img_w = base_image.width();
+        let img_h = base_image.height();
 
-        let default_row_height_px = 16.0;
-        let image_row_span = (image_size as f64 / default_row_height_px).ceil() as u32;
-        let image_col_width = (image_size as f64 / 7.0).max(1.0);
+        let target_h_px: u32 = image_size.max(1);
+        let aspect = if img_h > 0.0 { img_w / img_h } else { 1.0 };
+        let row_height_px: u32 = 20;
 
-        worksheet.set_column_width(0, image_col_width)?;
+        let image_row_span: u32 = target_h_px.div_ceil(row_height_px);
+        let total_h_px: u32 = image_row_span * row_height_px;
+        let final_w_px: u32 = ((total_h_px as f64) * aspect).ceil().max(1.0) as u32;
+
+        worksheet.set_column_width_pixels(0, final_w_px)?;
+        for row in 0..image_row_span {
+            worksheet.set_row_height_pixels(row, row_height_px)?;
+        }
+
         worksheet.merge_range(
             0,
             0,
@@ -41,6 +51,8 @@ fn setup_worksheet_with_image(
             "",
             &Format::new(),
         )?;
+
+        let image = base_image.set_scale_to_size(final_w_px, total_h_px, true);
         worksheet.insert_image(0, 0, &image)?;
     }
 
@@ -93,8 +105,9 @@ pub fn export_scored_xlsx(
     for (row_idx, solution) in solutions.iter().enumerate() {
         let row = (row_idx + 1) as u32;
 
+        let mcc_rounded = (solution.mcc * 10.0).round() / 10.0;
         worksheet
-            .write_number_with_format(row, col_offset, solution.mcc, &cell_format)
+            .write_number_with_format(row, col_offset, mcc_rounded, &cell_format)
             .map_err(|e| e.to_string())?;
         worksheet
             .write_number_with_format(

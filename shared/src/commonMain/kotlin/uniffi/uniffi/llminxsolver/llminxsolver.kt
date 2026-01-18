@@ -81,7 +81,7 @@ open class RustBuffer : Structure() {
 
     @Suppress("TooGenericExceptionThrown")
     fun asByteBuffer() =
-        this.data?.getByteBuffer(0, this.len.toLong())?.also {
+        this.data?.getByteBuffer(0, this.len)?.also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
 }
@@ -282,8 +282,9 @@ internal inline fun<T> uniffiTraitInterfaceCall(
     try {
         writeReturn(makeCall())
     } catch(e: kotlin.Exception) {
+        val err = try { e.stackTraceToString() } catch(_: Throwable) { "" }
         callStatus.code = UNIFFI_CALL_UNEXPECTED_ERROR
-        callStatus.error_buf = FfiConverterString.lower(e.toString())
+        callStatus.error_buf = FfiConverterString.lower(err)
     }
 }
 
@@ -300,8 +301,9 @@ internal inline fun<T, reified E: Throwable> uniffiTraitInterfaceCallWithError(
             callStatus.code = UNIFFI_CALL_ERROR
             callStatus.error_buf = lowerError(e)
         } else {
+            val err = try { e.stackTraceToString() } catch(_: Throwable) { "" }
             callStatus.code = UNIFFI_CALL_UNEXPECTED_ERROR
-            callStatus.error_buf = FfiConverterString.lower(e.toString())
+            callStatus.error_buf = FfiConverterString.lower(err)
         }
     }
 }
@@ -734,7 +736,7 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun ffi_llminxsolver_uniffi_uniffi_contract_version(
     ): Int
-    
+
         
 }
 
@@ -978,46 +980,46 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_set_data_directory() != 29728.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel() != 19160.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel() != 56044.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_is_running() != 59197.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_is_running() != 44198.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_set_callback() != 8210.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_set_callback() != 44809.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_start() != 12626.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_start() != 9934.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_cancel() != 59019.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_cancel() != 55280.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_is_running() != 5037.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_is_running() != 25922.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_set_callback() != 30148.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_set_callback() != 34586.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_start() != 58938.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solverhandle_start() != 43425.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_append() != 41910.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_append() != 46168.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_count() != 16756.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_count() != 2672.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_delete_file() != 4541.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_delete_file() != 6075.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_flush_file() != 16624.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_flush_file() != 42889.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_get_path() != 56340.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_get_path() != 64232.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page() != 5457.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page() != 50374.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new() != 29738.toShort()) {
@@ -1029,13 +1031,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_tempfile_new() != 33414.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress() != 17400.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress() != 279.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_solution_found() != 31306.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_solution_found() != 43879.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_complete() != 25594.toShort()) {
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_complete() != 20059.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1494,7 +1496,6 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 //
 
 
-//
 public interface ParallelSolverHandleInterface {
     
     fun `cancel`()
@@ -1530,7 +1531,7 @@ open class ParallelSolverHandle: Disposable, AutoCloseable, ParallelSolverHandle
     @Suppress("UNUSED_PARAMETER")
     constructor(noHandle: NoHandle) {
         this.handle = 0
-        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+        this.cleanable = null
     }
     constructor(`config`: ParallelSolverConfig, `state`: MegaminxState) :
         this(UniffiWithHandle, 
@@ -1542,7 +1543,7 @@ open class ParallelSolverHandle: Disposable, AutoCloseable, ParallelSolverHandle
     )
 
     protected val handle: Long
-    protected val cleanable: UniffiCleaner.Cleanable
+    protected val cleanable: UniffiCleaner.Cleanable?
 
     private val wasDestroyed = AtomicBoolean(false)
     private val callCounter = AtomicLong(1)
@@ -1553,7 +1554,7 @@ open class ParallelSolverHandle: Disposable, AutoCloseable, ParallelSolverHandle
         if (this.wasDestroyed.compareAndSet(false, true)) {
             // This decrement always matches the initial count of 1 given at creation time.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -1581,7 +1582,7 @@ open class ParallelSolverHandle: Disposable, AutoCloseable, ParallelSolverHandle
         } finally {
             // This decrement always matches the increment we performed above.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -1795,7 +1796,6 @@ public object FfiConverterTypeParallelSolverHandle: FfiConverter<ParallelSolverH
 //
 
 
-//
 public interface SolverHandleInterface {
     
     fun `cancel`()
@@ -1831,7 +1831,7 @@ open class SolverHandle: Disposable, AutoCloseable, SolverHandleInterface
     @Suppress("UNUSED_PARAMETER")
     constructor(noHandle: NoHandle) {
         this.handle = 0
-        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+        this.cleanable = null
     }
     constructor(`config`: SolverConfig, `state`: MegaminxState) :
         this(UniffiWithHandle, 
@@ -1843,7 +1843,7 @@ open class SolverHandle: Disposable, AutoCloseable, SolverHandleInterface
     )
 
     protected val handle: Long
-    protected val cleanable: UniffiCleaner.Cleanable
+    protected val cleanable: UniffiCleaner.Cleanable?
 
     private val wasDestroyed = AtomicBoolean(false)
     private val callCounter = AtomicLong(1)
@@ -1854,7 +1854,7 @@ open class SolverHandle: Disposable, AutoCloseable, SolverHandleInterface
         if (this.wasDestroyed.compareAndSet(false, true)) {
             // This decrement always matches the initial count of 1 given at creation time.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -1882,7 +1882,7 @@ open class SolverHandle: Disposable, AutoCloseable, SolverHandleInterface
         } finally {
             // This decrement always matches the increment we performed above.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -2096,7 +2096,6 @@ public object FfiConverterTypeSolverHandle: FfiConverter<SolverHandle, Long> {
 //
 
 
-//
 public interface TempFileInterface {
     
     fun `append`(`solution`: kotlin.String): kotlin.String?
@@ -2136,7 +2135,7 @@ open class TempFile: Disposable, AutoCloseable, TempFileInterface
     @Suppress("UNUSED_PARAMETER")
     constructor(noHandle: NoHandle) {
         this.handle = 0
-        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+        this.cleanable = null
     }
     constructor() :
         this(UniffiWithHandle, 
@@ -2148,7 +2147,7 @@ open class TempFile: Disposable, AutoCloseable, TempFileInterface
     )
 
     protected val handle: Long
-    protected val cleanable: UniffiCleaner.Cleanable
+    protected val cleanable: UniffiCleaner.Cleanable?
 
     private val wasDestroyed = AtomicBoolean(false)
     private val callCounter = AtomicLong(1)
@@ -2159,7 +2158,7 @@ open class TempFile: Disposable, AutoCloseable, TempFileInterface
         if (this.wasDestroyed.compareAndSet(false, true)) {
             // This decrement always matches the initial count of 1 given at creation time.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -2187,7 +2186,7 @@ open class TempFile: Disposable, AutoCloseable, TempFileInterface
         } finally {
             // This decrement always matches the increment we performed above.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable.clean()
+                cleanable?.clean()
             }
         }
     }
@@ -2347,6 +2346,8 @@ data class MegaminxState (
     
 
     
+
+    
     companion object
 }
 
@@ -2388,6 +2389,8 @@ data class ParallelConfig (
     var `searchThreads`: kotlin.UInt
     
 ){
+    
+
     
 
     
@@ -2441,6 +2444,8 @@ data class ParallelSolverConfig (
     var `parallelConfig`: ParallelConfig
     
 ){
+    
+
     
 
     
@@ -2507,6 +2512,8 @@ data class ProgressEvent (
     
 
     
+
+    
     companion object
 }
 
@@ -2551,6 +2558,8 @@ data class ScoredSolutionExport (
     var `algorithm`: kotlin.String
     
 ){
+    
+
     
 
     
@@ -2604,6 +2613,8 @@ data class SolverConfig (
     var `parallelConfig`: ParallelConfig?
     
 ){
+    
+
     
 
     
@@ -2727,6 +2738,8 @@ data class ThemeColors (
     var `surfaceContainerHighest`: kotlin.String
     
 ){
+    
+
     
 
     
@@ -2861,6 +2874,10 @@ enum class Metric {
     
     FACE,
     FIFTH;
+
+    
+
+
     companion object
 }
 
@@ -2898,6 +2915,10 @@ enum class SchemeType {
     NEUTRAL,
     RAINBOW,
     VIBRANT;
+
+    
+
+
     companion object
 }
 
@@ -2934,6 +2955,10 @@ enum class SearchMode {
     R_UB_L,
     R_UB_R,
     RUD;
+
+    
+
+
     companion object
 }
 

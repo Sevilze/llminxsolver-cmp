@@ -186,6 +186,8 @@ class SolverViewModel {
 
     fun cancelSolve() = solverOperations.cancelSolve()
 
+    fun flushTempFile() = solverOperations.flushTempFile()
+
     fun readSolutionsPage(offset: Int, limit: Int): List<String> =
         solverOperations.readSolutionsPage(offset, limit)
 

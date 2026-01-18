@@ -54,7 +54,8 @@ data class MainScreenActions(
     val onReset: () -> Unit,
     val onSolve: () -> Unit,
     val onCancel: () -> Unit,
-    val readSolutionsPage: (Int, Int) -> List<String>
+    val readSolutionsPage: (Int, Int) -> List<String>,
+    val flushTempFile: () -> Unit
 )
 
 @Composable
@@ -114,7 +115,8 @@ fun rememberMainScreenActions(viewModel: SolverViewModel): MainScreenActions = M
     onReset = viewModel::reset,
     onSolve = viewModel::solve,
     onCancel = viewModel::cancelSolve,
-    readSolutionsPage = viewModel::readSolutionsPage
+    readSolutionsPage = viewModel::readSolutionsPage,
+    flushTempFile = viewModel::flushTempFile
 )
 
 fun getMetricLabel(metric: MetricType): String = when (metric) {

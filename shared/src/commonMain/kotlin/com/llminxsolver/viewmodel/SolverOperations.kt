@@ -54,7 +54,10 @@ class SolverOperations(private val scope: CoroutineScope) {
     }
 
     private fun initTempFile() {
-        tempFile?.deleteFile()
+        tempFile?.let {
+            it.deleteFile()
+            it.close()
+        }
         tempFile = TempFile()
         _tempFilePath.value = tempFile?.getPath()
     }
@@ -282,11 +285,18 @@ class SolverOperations(private val scope: CoroutineScope) {
     }
 
     fun reset() {
-        tempFile?.deleteFile()
+        tempFile?.let {
+            it.deleteFile()
+            it.close()
+        }
         tempFile = null
         _tempFilePath.value = null
         _solverState.value = SolverState()
         _scoredSolutions.value = emptyList()
+    }
+
+    fun flushTempFile() {
+        tempFile?.flushFile()
     }
 
     fun readSolutionsPage(offset: Int, limit: Int): List<String> =

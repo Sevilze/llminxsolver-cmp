@@ -95,6 +95,7 @@ fun ScoredSolutionsPanel(
     metricLabel: String = "Moves",
     maxSolutions: Int = 5,
     listHeight: Int? = null,
+    onFlushTempFile: (() -> Unit)? = null,
     onExportSuccess: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -150,7 +151,7 @@ fun ScoredSolutionsPanel(
 
         val error = when (exportOption) {
             ExportOption.SCORED -> {
-                val exports = sortedSolutions.map { solution ->
+                val exports = displayedSolutions.map { solution ->
                     ScoredSolutionExport(
                         mcc = solution.mcc.toDouble(),
                         moveCount = solution.moveCount.toUInt(),
@@ -162,6 +163,7 @@ fun ScoredSolutionsPanel(
 
             ExportOption.RAW -> {
                 if (tempFilePath != null) {
+                    onFlushTempFile?.invoke()
                     exportRawXlsxFromFile(
                         outputPath,
                         tempFilePath,
