@@ -26,42 +26,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Build site
+      - name: Build static HTML
         run: |
+          sudo apt-get install -y pandoc
           mkdir -p _site
-          cp README.md _site/index.md
-          cp PRIVACY_POLICY.md _site/PRIVACY_POLICY.md
 
-          cat > _site/_config.yml << 'EOF'
-          title: LLMinx Solver
-          description: Megaminx Last Layer Solver
-          theme: jekyll-theme-minimal
-          plugins:
-            - jekyll-relative-links
-          relative_links:
-            enabled: true
-            collections: true
-          EOF
+          pandoc README.md -o _site/index.html \
+            --standalone \
+            --metadata title="LLMinx Solver" \
+            --css="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.min.css"
 
-          cat > _site/index.html << 'EOF'
-          ---
-          layout: default
-          ---
-          {% capture readme %}{% include_relative index.md %}{% endcapture %}
-          {{ readme | markdownify }}
-          EOF
-
-          cat > _site/PRIVACY_POLICY.html << 'EOF'
-          ---
-          layout: default
-          title: Privacy Policy
-          ---
-          {% capture privacy %}{% include_relative PRIVACY_POLICY.md %}{% endcapture %}
-          {{ privacy | markdownify }}
-          EOF
+          pandoc PRIVACY_POLICY.md -o _site/PRIVACY_POLICY.html \
+            --standalone \
+            --metadata title="Privacy Policy - LLMinx Solver" \
+            --css="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.min.css"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
