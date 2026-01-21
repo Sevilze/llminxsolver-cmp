@@ -3,6 +3,8 @@ package com.llminxsolver.ui.megaminx
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.IntSize
 import com.llminxsolver.data.IgnoreFlags
@@ -86,16 +88,16 @@ fun renderMegaminxToImageBitmap(
             close()
         }
 
-        val fillPaint = androidx.compose.ui.graphics.Paint().apply {
+        val fillPaint = Paint().apply {
             color = fillColor
-            style = androidx.compose.ui.graphics.PaintingStyle.Fill
+            style = PaintingStyle.Fill
         }
         canvas.drawPath(path, fillPaint)
 
         if (strokeWidth > 0f) {
-            val strokePaint = androidx.compose.ui.graphics.Paint().apply {
+            val strokePaint = Paint().apply {
                 color = strokeColor
-                style = androidx.compose.ui.graphics.PaintingStyle.Stroke
+                style = PaintingStyle.Stroke
                 this.strokeWidth = strokeWidth
             }
             canvas.drawPath(path, strokePaint)

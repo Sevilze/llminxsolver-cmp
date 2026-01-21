@@ -6,7 +6,7 @@
         android:label="LLMinx Solver"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.LLMinxSolver">
+        android:theme="@style/Theme.LLMinxSolver.Splash">
         <activity
             android:name=".MainActivity"
             android:exported="true"

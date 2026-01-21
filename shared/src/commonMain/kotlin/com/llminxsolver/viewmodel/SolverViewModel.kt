@@ -51,6 +51,7 @@ class SolverViewModel {
     val dynamicColorMode: StateFlow<DynamicColorMode> = settingsViewModel.dynamicColorMode
     val schemeType: StateFlow<SchemeType> = settingsViewModel.schemeType
     val themeMode: StateFlow<ThemeMode> = settingsViewModel.themeMode
+    val settingsLoaded: StateFlow<Boolean> = settingsViewModel.isLoaded
 
     init {
         NativeLib.ensureLoaded()

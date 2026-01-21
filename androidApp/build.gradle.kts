@@ -65,6 +65,7 @@ android {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.core:core-splashscreen:1.0.1")
     debugImplementation("org.jetbrains.compose.ui:ui-tooling:1.11.0-alpha01")
 }
 

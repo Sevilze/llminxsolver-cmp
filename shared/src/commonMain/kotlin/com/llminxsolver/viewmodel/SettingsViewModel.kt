@@ -35,6 +35,9 @@ class SettingsViewModel(private val scope: CoroutineScope) {
     private val _themeMode = MutableStateFlow(ThemeMode.System)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
+    private val _isLoaded = MutableStateFlow(false)
+    val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
+
     fun collectSettings(onParallelConfigUpdate: (Int, Int, Int) -> Unit) {
         settingsRepository.settings
             .onEach { settings ->
@@ -44,6 +47,7 @@ class SettingsViewModel(private val scope: CoroutineScope) {
                 _dynamicColorMode.value = settings.dynamicColorMode
                 _schemeType.value = settings.schemeType
                 _themeMode.value = settings.themeMode
+                _isLoaded.value = true
                 onParallelConfigUpdate(
                     settings.memoryBudgetMb,
                     settings.tableGenThreads,

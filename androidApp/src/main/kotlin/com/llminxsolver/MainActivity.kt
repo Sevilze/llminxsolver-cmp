@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.llminxsolver.data.initDataStore
 import com.llminxsolver.platform.MemoryMonitor
 import com.llminxsolver.platform.StorageManager
@@ -11,6 +12,7 @@ import com.llminxsolver.util.initializeFileExport
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
