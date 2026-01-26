@@ -12,7 +12,6 @@ pub const MAX_PRUNING_DEPTH: u8 = 14;
 pub const DEFAULT_PRUNING_DEPTH: u8 = 7;
 
 const COMPRESSED_EXTENSION: &str = ".prn.lz4";
-const LEGACY_EXTENSION: &str = ".prn";
 
 pub trait Pruner: Send + Sync {
     fn name(&self) -> &str;
@@ -26,7 +25,7 @@ pub trait Pruner: Send + Sync {
     fn uses_edge_orientation(&self) -> bool;
 
     fn is_precomputed(&self, metric: Metric) -> bool {
-        self.get_table_file(metric).exists() || self.get_legacy_table_file(metric).exists()
+        self.get_table_file(metric).exists()
     }
 
     fn get_table_file(&self, metric: Metric) -> PathBuf {
@@ -40,20 +39,6 @@ pub trait Pruner: Send + Sync {
             metric_suffix,
             COMPRESSED_EXTENSION
         );
-
-        if let Some(data_dir) = get_data_directory() {
-            data_dir.join(&filename)
-        } else {
-            PathBuf::from(filename)
-        }
-    }
-
-    fn get_legacy_table_file(&self, metric: Metric) -> PathBuf {
-        let metric_suffix = match metric {
-            Metric::Fifth => "FIFTH",
-            Metric::Face => "FACE",
-        };
-        let filename = format!("{}{}{}", self.table_path(), metric_suffix, LEGACY_EXTENSION);
 
         if let Some(data_dir) = get_data_directory() {
             data_dir.join(&filename)
@@ -82,31 +67,8 @@ pub trait Pruner: Send + Sync {
         }
     }
 
-    fn get_legacy_table_file_with_depth(&self, metric: Metric, depth: u8) -> PathBuf {
-        let metric_suffix = match metric {
-            Metric::Fifth => "FIFTH",
-            Metric::Face => "FACE",
-        };
-        let filename = format!(
-            "d{}_{}{}{}",
-            depth,
-            self.table_path(),
-            metric_suffix,
-            LEGACY_EXTENSION
-        );
-
-        if let Some(data_dir) = get_data_directory() {
-            data_dir.join(&filename)
-        } else {
-            PathBuf::from(filename)
-        }
-    }
-
     fn is_precomputed_with_depth(&self, metric: Metric, depth: u8) -> bool {
         self.get_table_file_with_depth(metric, depth).exists()
-            || self
-                .get_legacy_table_file_with_depth(metric, depth)
-                .exists()
     }
 
     fn find_best_existing_table(&self, metric: Metric, max_depth: u8) -> Option<(PathBuf, u8)> {
@@ -114,10 +76,6 @@ pub trait Pruner: Send + Sync {
             let path = self.get_table_file_with_depth(metric, depth);
             if path.exists() {
                 return Some((path, depth));
-            }
-            let legacy_path = self.get_legacy_table_file_with_depth(metric, depth);
-            if legacy_path.exists() {
-                return Some((legacy_path, depth));
             }
         }
         None
@@ -128,12 +86,6 @@ pub trait Pruner: Send + Sync {
         if path.exists() {
             return self.load_compressed_table(&path);
         }
-
-        let legacy_path = self.get_legacy_table_file(metric);
-        if legacy_path.exists() {
-            return self.load_legacy_table(&legacy_path);
-        }
-
         None
     }
 
@@ -142,12 +94,6 @@ pub trait Pruner: Send + Sync {
         if path.exists() {
             return self.load_compressed_table(&path);
         }
-
-        let legacy_path = self.get_legacy_table_file_with_depth(metric, depth);
-        if legacy_path.exists() {
-            return self.load_legacy_table(&legacy_path);
-        }
-
         None
     }
 
@@ -157,20 +103,6 @@ pub trait Pruner: Send + Sync {
         let mut compressed = Vec::new();
         reader.read_to_end(&mut compressed).ok()?;
         decompress_size_prepended(&compressed).ok()
-    }
-
-    fn load_legacy_table(&self, path: &PathBuf) -> Option<Vec<u8>> {
-        let file = File::open(path).ok()?;
-        let mut reader = BufReader::with_capacity(1 << 20, file);
-        let mut table = vec![0u8; self.table_size()];
-        for byte in table.iter_mut() {
-            let mut buf = [0u8; 1];
-            if reader.read_exact(&mut buf).is_err() {
-                break;
-            }
-            *byte = buf[0];
-        }
-        Some(table)
     }
 
     fn save_table(&self, table: &[u8], metric: Metric) {

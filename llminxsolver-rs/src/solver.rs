@@ -1,6 +1,6 @@
 use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
-use crate::pruner::Pruner;
+use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH, Pruner};
 use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -69,6 +69,7 @@ pub struct Solver {
     metric: Metric,
     max_depth: usize,
     limit_depth: bool,
+    pruning_depth: u8,
     start: LLMinx,
     ignore_corner_positions: bool,
     ignore_edge_positions: bool,
@@ -84,6 +85,7 @@ pub struct Solver {
     next_siblings: Vec<Vec<Option<Move>>>,
     last_search_mode: Option<SearchMode>,
     last_metric: Option<Metric>,
+    last_pruning_depth: Option<u8>,
 }
 
 impl Default for Solver {
@@ -111,6 +113,7 @@ impl Solver {
             metric: Metric::Fifth,
             max_depth,
             limit_depth: false,
+            pruning_depth: DEFAULT_PRUNING_DEPTH,
             start: LLMinx::new(),
             ignore_corner_positions: false,
             ignore_edge_positions: false,
@@ -126,6 +129,7 @@ impl Solver {
             next_siblings: Vec::new(),
             last_search_mode: None,
             last_metric: None,
+            last_pruning_depth: None,
         }
     }
 
@@ -167,6 +171,14 @@ impl Solver {
 
     pub fn set_limit_depth(&mut self, limit: bool) {
         self.limit_depth = limit;
+    }
+
+    pub fn pruning_depth(&self) -> u8 {
+        self.pruning_depth
+    }
+
+    pub fn set_pruning_depth(&mut self, depth: u8) {
+        self.pruning_depth = depth.clamp(MIN_PRUNING_DEPTH, MAX_PRUNING_DEPTH);
     }
 
     pub fn start(&self) -> &LLMinx {
@@ -223,8 +235,12 @@ impl Solver {
         let start_time = std::time::Instant::now();
         self.interrupted.store(false, Ordering::SeqCst);
 
-        if self.search_mode != self.last_search_mode.unwrap_or(self.search_mode)
-            || self.metric != self.last_metric.unwrap_or(self.metric)
+        // Check if configuration changed or tables are missing
+        // Using Some checking is safer than unwrap_or which glosses over None
+        if Some(self.search_mode) != self.last_search_mode
+            || Some(self.metric) != self.last_metric
+            || Some(self.pruning_depth) != self.last_pruning_depth
+            || self.tables.len() != self.pruners.len() // Ensure tables match pruners count
             || self.tables.is_empty()
         {
             self.build_moves_table();
@@ -233,9 +249,12 @@ impl Solver {
             if !self.is_interrupted() {
                 self.last_search_mode = Some(self.search_mode);
                 self.last_metric = Some(self.metric);
+                self.last_pruning_depth = Some(self.pruning_depth);
             } else {
                 self.last_search_mode = None;
                 self.last_metric = None;
+                self.last_pruning_depth = None;
+                return Vec::new();
             }
         }
 
@@ -634,14 +653,16 @@ impl Solver {
         self.pruners = self.search_mode.create_pruners();
         self.tables = Vec::with_capacity(self.pruners.len());
         let memory_tracker = MemoryTracker::from_config(&self.memory_config);
+        let target_depth = self.pruning_depth;
 
         let total_estimated: usize = self.pruners.iter().map(|p| p.table_size()).sum();
         self.fire_event(StatusEvent::new(
             StatusEventType::Message,
             &format!(
-                "Estimated memory: {} MB (budget: {} MB)",
+                "Estimated memory: {} MB (budget: {} MB, depth: {})",
                 total_estimated / (1024 * 1024),
-                self.memory_config.budget_mb()
+                self.memory_config.budget_mb(),
+                target_depth
             ),
             0.0,
         ));
@@ -693,87 +714,149 @@ impl Solver {
                 progress,
             ));
 
-            if pruner.is_precomputed(self.metric) {
+            if pruner.is_precomputed_with_depth(self.metric, target_depth) {
                 self.fire_event(StatusEvent::new(
                     StatusEventType::Message,
-                    "Reading pruning table from disk...",
+                    &format!(
+                        "Reading pruning table from disk (depth {})...",
+                        target_depth
+                    ),
                     progress,
                 ));
-                if let Some(table) = pruner.load_table(self.metric) {
+                if let Some(table) = pruner.load_table_with_depth(self.metric, target_depth) {
                     memory_tracker.allocate(table.len());
                     self.tables.push(Arc::new(table));
-                } else {
-                    let table = self.build_pruning_table(pruner.as_ref());
-                    memory_tracker.allocate(table.len());
-                    self.tables.push(Arc::new(table));
+                    continue;
                 }
-            } else {
-                self.fire_event(StatusEvent::new(
-                    StatusEventType::StartBuildingTable,
-                    &format!("Building pruning table {}...", pruner.name()),
-                    progress,
-                ));
-
-                let table = self.build_pruning_table(pruner.as_ref());
-                memory_tracker.allocate(table.len());
-
-                if memory_tracker.is_at_warning_threshold() {
-                    self.fire_event(StatusEvent::new(
-                        StatusEventType::MemoryWarning,
-                        &format!(
-                            "Memory usage at {:.1}% of budget",
-                            memory_tracker.usage_percentage()
-                        ),
-                        progress,
-                    ));
-                }
-
-                if !self.is_interrupted() {
-                    self.fire_event(StatusEvent::new(
-                        StatusEventType::Message,
-                        "Writing table to disk...",
-                        progress,
-                    ));
-                    pruner.save_table(&table, self.metric);
-                }
-
-                self.fire_event(StatusEvent::new(
-                    StatusEventType::EndBuildingTable,
-                    &format!("Finished building {}...", pruner.name()),
-                    progress,
-                ));
-
-                self.tables.push(Arc::new(table));
             }
+
+            let base_table = pruner.find_best_existing_table(self.metric, target_depth - 1);
+
+            self.fire_event(StatusEvent::new(
+                StatusEventType::StartBuildingTable,
+                &format!(
+                    "Building pruning table {} (depth {}){}...",
+                    pruner.name(),
+                    target_depth,
+                    base_table
+                        .as_ref()
+                        .map(|(_, d)| format!(" from depth {}", d))
+                        .unwrap_or_default()
+                ),
+                progress,
+            ));
+
+            let table = self.build_pruning_table(
+                pruner.as_ref(),
+                target_depth,
+                base_table.as_ref().map(|(_, d)| *d),
+            );
+            memory_tracker.allocate(table.len());
+
+            if memory_tracker.is_at_warning_threshold() {
+                self.fire_event(StatusEvent::new(
+                    StatusEventType::MemoryWarning,
+                    &format!(
+                        "Memory usage at {:.1}% of budget",
+                        memory_tracker.usage_percentage()
+                    ),
+                    progress,
+                ));
+            }
+
+            if !self.is_interrupted() {
+                self.fire_event(StatusEvent::new(
+                    StatusEventType::Message,
+                    &format!("Writing table to disk (depth {})...", target_depth),
+                    progress,
+                ));
+                pruner.save_table_with_depth(&table, self.metric, target_depth);
+            }
+
+            self.fire_event(StatusEvent::new(
+                StatusEventType::EndBuildingTable,
+                &format!("Finished building {}...", pruner.name()),
+                progress,
+            ));
+
+            self.tables.push(Arc::new(table));
         }
     }
 
-    fn build_pruning_table(&self, pruner: &dyn Pruner) -> Vec<u8> {
+    fn build_pruning_table(
+        &self,
+        pruner: &dyn Pruner,
+        max_depth: u8,
+        base_depth: Option<u8>,
+    ) -> Vec<u8> {
         let num_threads = self.memory_config.table_generation_threads;
 
         rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
-            .map(|pool| pool.install(|| self.build_pruning_table_internal(pruner)))
-            .unwrap_or_else(|_| self.build_pruning_table_internal(pruner))
+            .map(|pool| {
+                pool.install(|| self.build_pruning_table_internal(pruner, max_depth, base_depth))
+            })
+            .unwrap_or_else(|_| self.build_pruning_table_internal(pruner, max_depth, base_depth))
     }
 
-    fn build_pruning_table_internal(&self, pruner: &dyn Pruner) -> Vec<u8> {
+    fn build_pruning_table_internal(
+        &self,
+        pruner: &dyn Pruner,
+        max_depth: u8,
+        base_depth: Option<u8>,
+    ) -> Vec<u8> {
         let table_size = pruner.table_size();
-        let table: Vec<AtomicU8> = (0..table_size).map(|_| AtomicU8::new(u8::MAX)).collect();
 
-        let minx = LLMinx::new();
-        let coord = pruner.get_coordinate(&minx);
-        table[coord].store(0, Ordering::Relaxed);
+        let (table, start_depth, total_nodes) = if let Some(base) = base_depth {
+            if let Some(base_table) = pruner.load_table_with_depth(self.metric, base) {
+                let atomic_table: Vec<AtomicU8> =
+                    base_table.into_iter().map(AtomicU8::new).collect();
 
-        let mut total_nodes = 1usize;
-        let mut prev_depth_count = 1usize;
-        let mut depth: u8 = 0;
+                let filled: usize = atomic_table
+                    .iter()
+                    .filter(|a| a.load(Ordering::Relaxed) != u8::MAX)
+                    .count();
 
-        while prev_depth_count > 0 && !self.is_interrupted() {
+                self.fire_event(StatusEvent::new(
+                    StatusEventType::Message,
+                    &format!(
+                        "Loaded base table at depth {} ({} positions filled)",
+                        base, filled
+                    ),
+                    filled as f64 / table_size as f64,
+                ));
+
+                (atomic_table, base, filled)
+            } else {
+                let atomic_table: Vec<AtomicU8> =
+                    (0..table_size).map(|_| AtomicU8::new(u8::MAX)).collect();
+                let minx = LLMinx::new();
+                let coord = pruner.get_coordinate(&minx);
+                atomic_table[coord].store(0, Ordering::Relaxed);
+                (atomic_table, 0, 1)
+            }
+        } else {
+            let atomic_table: Vec<AtomicU8> =
+                (0..table_size).map(|_| AtomicU8::new(u8::MAX)).collect();
+            let minx = LLMinx::new();
+            let coord = pruner.get_coordinate(&minx);
+            atomic_table[coord].store(0, Ordering::Relaxed);
+            (atomic_table, 0, 1)
+        };
+
+        let mut total_nodes = total_nodes;
+        let mut depth = start_depth;
+
+        let mut prev_depth_count = table
+            .iter()
+            .filter(|a| a.load(Ordering::Relaxed) == depth)
+            .count();
+
+        while prev_depth_count > 0 && depth < max_depth && !self.is_interrupted() {
             self.fire_event(StatusEvent::new(
                 StatusEventType::Message,
-                &format!("Depth {}: {}", depth, prev_depth_count),
+                &format!("Depth {}/{}: {}", depth, max_depth, prev_depth_count),
                 total_nodes as f64 / table_size as f64,
             ));
 
@@ -874,7 +957,13 @@ impl Solver {
                     || (pruner.uses_edge_orientation() && self.ignore_edge_orientations);
                 !dominated
             })
-            .map(|(i, pruner)| (Arc::clone(&self.tables[i]), pruner.as_ref()))
+            .filter_map(|(i, pruner)| {
+                if i < self.tables.len() {
+                    Some((Arc::clone(&self.tables[i]), pruner.as_ref()))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 

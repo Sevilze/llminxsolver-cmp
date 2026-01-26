@@ -7,6 +7,7 @@ description = "Megaminx Last Layer Solver - Rust Implementation"
 
 [dependencies]
 crossbeam-channel = "0.5"
+lz4_flex = "0.11"
 material-colors = { version = "0.4", features = ["image", "serde"] }
 num_cpus = "1.17"
 rayon = "1.11"

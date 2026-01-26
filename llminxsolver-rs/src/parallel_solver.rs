@@ -1,6 +1,7 @@
 use crate::StatusCallback;
 use crate::memory_config::MemoryConfig;
 use crate::minx::LLMinx;
+use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH};
 use crate::search_mode::{Metric, SearchMode};
 use crate::solver::{Solver, StatusEvent, StatusEventType};
 use std::sync::Arc;
@@ -11,6 +12,8 @@ pub struct ParallelSolver {
     metric: Metric,
     max_depth: usize,
     limit_depth: bool,
+    pruning_depth: u8,
+    mode_pruning_depths: std::collections::HashMap<SearchMode, u8>,
     memory_config: MemoryConfig,
     ignore_corner_positions: bool,
     ignore_edge_positions: bool,
@@ -43,6 +46,8 @@ impl ParallelSolver {
             metric: Metric::Fifth,
             max_depth: 12,
             limit_depth: false,
+            pruning_depth: DEFAULT_PRUNING_DEPTH,
+            mode_pruning_depths: std::collections::HashMap::new(),
             memory_config,
             ignore_corner_positions: false,
             ignore_edge_positions: false,
@@ -100,6 +105,26 @@ impl ParallelSolver {
 
     pub fn set_limit_depth(&mut self, limit: bool) {
         self.limit_depth = limit;
+    }
+
+    pub fn pruning_depth(&self) -> u8 {
+        self.pruning_depth
+    }
+
+    pub fn set_pruning_depth(&mut self, depth: u8) {
+        self.pruning_depth = depth.clamp(MIN_PRUNING_DEPTH, MAX_PRUNING_DEPTH);
+    }
+
+    pub fn set_mode_pruning_depth(&mut self, mode: SearchMode, depth: u8) {
+        let clamped = depth.clamp(MIN_PRUNING_DEPTH, MAX_PRUNING_DEPTH);
+        self.mode_pruning_depths.insert(mode, clamped);
+    }
+
+    fn get_pruning_depth_for_mode(&self, mode: SearchMode) -> u8 {
+        *self
+            .mode_pruning_depths
+            .get(&mode)
+            .unwrap_or(&self.pruning_depth)
     }
 
     pub fn memory_config(&self) -> &MemoryConfig {
@@ -165,7 +190,12 @@ impl ParallelSolver {
             0.0,
         ));
 
-        let modes = self.modes.clone();
+        let modes_with_depths: Vec<_> = self
+            .modes
+            .iter()
+            .map(|&mode| (mode, self.get_pruning_depth_for_mode(mode)))
+            .collect();
+
         let metric = self.metric;
         let max_depth = self.max_depth;
         let limit_depth = self.limit_depth;
@@ -177,18 +207,18 @@ impl ParallelSolver {
         let interrupted = Arc::clone(&self.interrupted);
         let parent_callback = self.status_callback.clone();
 
-        let threads_per_mode = (memory_config.search_threads / modes.len()).max(1);
+        let threads_per_mode = (memory_config.search_threads / self.modes.len()).max(1);
 
         let mode_config = MemoryConfig::new(
-            memory_config.budget_mb() / modes.len().max(1),
+            memory_config.budget_mb() / self.modes.len().max(1),
             memory_config.table_generation_threads,
             threads_per_mode,
         );
 
         std::thread::scope(|s| {
-            let handles: Vec<_> = modes
-                .iter()
-                .map(|&mode| {
+            let handles: Vec<_> = modes_with_depths
+                .into_iter()
+                .map(|(mode, pruning_depth)| {
                     let start_clone = start.clone();
                     let interrupted_clone = Arc::clone(&interrupted);
                     let mode_config_clone = mode_config;
@@ -203,6 +233,7 @@ impl ParallelSolver {
                             Solver::with_parallel_config(mode, max_depth, mode_config_clone);
                         solver.set_metric(metric);
                         solver.set_limit_depth(limit_depth);
+                        solver.set_pruning_depth(pruning_depth);
                         solver.set_start(start_clone);
                         solver.set_ignore_corner_positions(ignore_corner_positions);
                         solver.set_ignore_edge_positions(ignore_edge_positions);
@@ -262,6 +293,7 @@ impl ParallelSolver {
         let mut solver = Solver::with_parallel_config(mode, self.max_depth, self.memory_config);
         solver.set_metric(self.metric);
         solver.set_limit_depth(self.limit_depth);
+        solver.set_pruning_depth(self.get_pruning_depth_for_mode(mode));
         solver.set_start(start);
         solver.set_ignore_corner_positions(self.ignore_corner_positions);
         solver.set_ignore_edge_positions(self.ignore_edge_positions);
