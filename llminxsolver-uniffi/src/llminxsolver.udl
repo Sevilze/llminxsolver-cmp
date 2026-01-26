@@ -4,6 +4,10 @@ namespace llminxsolver {
     u32 get_move_count(string algorithm, string metric);
     u32 get_available_cpus();
     u32 get_available_memory_mb();
+    u8 get_default_pruning_depth();
+    u8 get_min_pruning_depth();
+    u8 get_max_pruning_depth();
+    string? validate_megaminx_state(MegaminxState state);
     void cleanup_stale_temp_files();
     ThemeColors? generate_theme_from_image(string image_path, boolean dark_theme, SchemeType scheme_type);
     ThemeColors? generate_theme_from_wallpaper(boolean dark_theme, SchemeType scheme_type);
@@ -114,6 +118,7 @@ dictionary SolverConfig {
     Metric metric;
     boolean limit_depth;
     u32 max_depth;
+    u8 pruning_depth;
     boolean ignore_corner_positions;
     boolean ignore_edge_positions;
     boolean ignore_corner_orientations;
@@ -121,11 +126,18 @@ dictionary SolverConfig {
     ParallelConfig? parallel_config;
 };
 
+dictionary ModePruningDepth {
+    SearchMode mode;
+    u8 depth;
+};
+
 dictionary ParallelSolverConfig {
     sequence<SearchMode> search_modes;
     Metric metric;
     boolean limit_depth;
     u32 max_depth;
+    u8 pruning_depth;
+    sequence<ModePruningDepth> mode_pruning_depths;
     boolean ignore_corner_positions;
     boolean ignore_edge_positions;
     boolean ignore_corner_orientations;

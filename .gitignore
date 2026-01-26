@@ -1,18 +1,18 @@
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-.svelte-kit
-node_modules
-dist
-dist-ssr
 *.local
-target
+*.sh
+.gradle
+jniLibs
+shared/src/desktopMain/resources
+local.properties
+release-keystore.jks
+build/
+result/
+scripts/
+target/
 
 # Editor directories and files
 .vscode/*

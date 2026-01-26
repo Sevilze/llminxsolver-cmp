@@ -450,7 +450,7 @@ impl ParallelSolverHandle {
             parallel_solver.set_limit_depth(config.limit_depth);
             parallel_solver.set_pruning_depth(config.pruning_depth);
             for mode_depth in config.mode_pruning_depths {
-                 parallel_solver.set_mode_pruning_depth(mode_depth.mode.into(), mode_depth.depth);
+                parallel_solver.set_mode_pruning_depth(mode_depth.mode.into(), mode_depth.depth);
             }
             parallel_solver.set_ignore_corner_positions(config.ignore_corner_positions);
             parallel_solver.set_ignore_edge_positions(config.ignore_edge_positions);
@@ -584,7 +584,8 @@ pub fn export_scored_xlsx(
         &rs_solutions,
         image_png_bytes.as_deref(),
         image_size,
-    ).err()
+    )
+    .err()
 }
 
 pub fn export_raw_xlsx(
@@ -598,7 +599,8 @@ pub fn export_raw_xlsx(
         &algorithms,
         image_png_bytes.as_deref(),
         image_size,
-    ).err()
+    )
+    .err()
 }
 
 pub fn export_raw_xlsx_from_file(
@@ -612,7 +614,8 @@ pub fn export_raw_xlsx_from_file(
         &solutions_file_path,
         image_png_bytes.as_deref(),
         image_size,
-    ).err()
+    )
+    .err()
 }
 
 pub struct TempFile {
