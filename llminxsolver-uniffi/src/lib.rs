@@ -210,6 +210,7 @@ pub struct SolverConfig {
     pub metric: Metric,
     pub limit_depth: bool,
     pub max_depth: u32,
+    pub pruning_depth: u8,
     pub ignore_corner_positions: bool,
     pub ignore_edge_positions: bool,
     pub ignore_corner_orientations: bool,
@@ -218,11 +219,19 @@ pub struct SolverConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct ModePruningDepth {
+    pub mode: SearchMode,
+    pub depth: u8,
+}
+
+#[derive(Debug, Clone)]
 pub struct ParallelSolverConfig {
     pub search_modes: Vec<SearchMode>,
     pub metric: Metric,
     pub limit_depth: bool,
     pub max_depth: u32,
+    pub pruning_depth: u8,
+    pub mode_pruning_depths: Vec<ModePruningDepth>,
     pub ignore_corner_positions: bool,
     pub ignore_edge_positions: bool,
     pub ignore_corner_orientations: bool,
@@ -330,6 +339,7 @@ impl SolverHandle {
             let mut solver = Solver::with_parallel_config(search_mode, max_depth, memory_config);
             solver.set_metric(metric);
             solver.set_limit_depth(config.limit_depth);
+            solver.set_pruning_depth(config.pruning_depth);
             solver.set_start(start_state);
             solver.set_ignore_corner_positions(config.ignore_corner_positions);
             solver.set_ignore_edge_positions(config.ignore_edge_positions);
@@ -438,6 +448,10 @@ impl ParallelSolverHandle {
             parallel_solver.set_metric(metric);
             parallel_solver.set_max_depth(max_depth);
             parallel_solver.set_limit_depth(config.limit_depth);
+            parallel_solver.set_pruning_depth(config.pruning_depth);
+            for mode_depth in config.mode_pruning_depths {
+                 parallel_solver.set_mode_pruning_depth(mode_depth.mode.into(), mode_depth.depth);
+            }
             parallel_solver.set_ignore_corner_positions(config.ignore_corner_positions);
             parallel_solver.set_ignore_edge_positions(config.ignore_edge_positions);
             parallel_solver.set_ignore_corner_orientations(config.ignore_corner_orientations);
@@ -511,6 +525,32 @@ pub fn get_available_cpus() -> u32 {
 
 pub fn get_available_memory_mb() -> u32 {
     MemoryConfig::available_memory_mb() as u32
+}
+
+pub fn get_default_pruning_depth() -> u8 {
+    llminxsolver_rs::DEFAULT_PRUNING_DEPTH
+}
+
+pub fn get_min_pruning_depth() -> u8 {
+    llminxsolver_rs::MIN_PRUNING_DEPTH
+}
+
+pub fn get_max_pruning_depth() -> u8 {
+    llminxsolver_rs::MAX_PRUNING_DEPTH
+}
+
+pub fn validate_megaminx_state(state: MegaminxState) -> Option<String> {
+    let rs_state = llminxsolver_rs::MegaminxState {
+        corner_positions: state.corner_positions,
+        corner_orientations: state.corner_orientations,
+        edge_positions: state.edge_positions,
+        edge_orientations: state.edge_orientations,
+    };
+
+    match llminxsolver_rs::validate_last_layer_state(&rs_state) {
+        Ok(()) => None,
+        Err(e) => Some(e.to_string()),
+    }
 }
 
 #[derive(Debug, Clone)]

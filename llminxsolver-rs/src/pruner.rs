@@ -2,9 +2,17 @@ use crate::coordinate::{CKN, CoordinateUtil, FAC, POWERS_OF_THREE, POWERS_OF_TWO
 use crate::data_directory::get_data_directory;
 use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
 use crate::search_mode::Metric;
+use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
+
+pub const MIN_PRUNING_DEPTH: u8 = 4;
+pub const MAX_PRUNING_DEPTH: u8 = 14;
+pub const DEFAULT_PRUNING_DEPTH: u8 = 7;
+
+const COMPRESSED_EXTENSION: &str = ".prn.lz4";
+const LEGACY_EXTENSION: &str = ".prn";
 
 pub trait Pruner: Send + Sync {
     fn name(&self) -> &str;
@@ -18,7 +26,7 @@ pub trait Pruner: Send + Sync {
     fn uses_edge_orientation(&self) -> bool;
 
     fn is_precomputed(&self, metric: Metric) -> bool {
-        self.get_table_file(metric).exists()
+        self.get_table_file(metric).exists() || self.get_legacy_table_file(metric).exists()
     }
 
     fn get_table_file(&self, metric: Metric) -> PathBuf {
@@ -26,7 +34,12 @@ pub trait Pruner: Send + Sync {
             Metric::Fifth => "FIFTH",
             Metric::Face => "FACE",
         };
-        let filename = format!("{}{}.prn", self.table_path(), metric_suffix);
+        let filename = format!(
+            "{}{}{}",
+            self.table_path(),
+            metric_suffix,
+            COMPRESSED_EXTENSION
+        );
 
         if let Some(data_dir) = get_data_directory() {
             data_dir.join(&filename)
@@ -35,9 +48,119 @@ pub trait Pruner: Send + Sync {
         }
     }
 
+    fn get_legacy_table_file(&self, metric: Metric) -> PathBuf {
+        let metric_suffix = match metric {
+            Metric::Fifth => "FIFTH",
+            Metric::Face => "FACE",
+        };
+        let filename = format!("{}{}{}", self.table_path(), metric_suffix, LEGACY_EXTENSION);
+
+        if let Some(data_dir) = get_data_directory() {
+            data_dir.join(&filename)
+        } else {
+            PathBuf::from(filename)
+        }
+    }
+
+    fn get_table_file_with_depth(&self, metric: Metric, depth: u8) -> PathBuf {
+        let metric_suffix = match metric {
+            Metric::Fifth => "FIFTH",
+            Metric::Face => "FACE",
+        };
+        let filename = format!(
+            "d{}_{}{}{}",
+            depth,
+            self.table_path(),
+            metric_suffix,
+            COMPRESSED_EXTENSION
+        );
+
+        if let Some(data_dir) = get_data_directory() {
+            data_dir.join(&filename)
+        } else {
+            PathBuf::from(filename)
+        }
+    }
+
+    fn get_legacy_table_file_with_depth(&self, metric: Metric, depth: u8) -> PathBuf {
+        let metric_suffix = match metric {
+            Metric::Fifth => "FIFTH",
+            Metric::Face => "FACE",
+        };
+        let filename = format!(
+            "d{}_{}{}{}",
+            depth,
+            self.table_path(),
+            metric_suffix,
+            LEGACY_EXTENSION
+        );
+
+        if let Some(data_dir) = get_data_directory() {
+            data_dir.join(&filename)
+        } else {
+            PathBuf::from(filename)
+        }
+    }
+
+    fn is_precomputed_with_depth(&self, metric: Metric, depth: u8) -> bool {
+        self.get_table_file_with_depth(metric, depth).exists()
+            || self
+                .get_legacy_table_file_with_depth(metric, depth)
+                .exists()
+    }
+
+    fn find_best_existing_table(&self, metric: Metric, max_depth: u8) -> Option<(PathBuf, u8)> {
+        for depth in (MIN_PRUNING_DEPTH..=max_depth).rev() {
+            let path = self.get_table_file_with_depth(metric, depth);
+            if path.exists() {
+                return Some((path, depth));
+            }
+            let legacy_path = self.get_legacy_table_file_with_depth(metric, depth);
+            if legacy_path.exists() {
+                return Some((legacy_path, depth));
+            }
+        }
+        None
+    }
+
     fn load_table(&self, metric: Metric) -> Option<Vec<u8>> {
         let path = self.get_table_file(metric);
-        let file = File::open(&path).ok()?;
+        if path.exists() {
+            return self.load_compressed_table(&path);
+        }
+
+        let legacy_path = self.get_legacy_table_file(metric);
+        if legacy_path.exists() {
+            return self.load_legacy_table(&legacy_path);
+        }
+
+        None
+    }
+
+    fn load_table_with_depth(&self, metric: Metric, depth: u8) -> Option<Vec<u8>> {
+        let path = self.get_table_file_with_depth(metric, depth);
+        if path.exists() {
+            return self.load_compressed_table(&path);
+        }
+
+        let legacy_path = self.get_legacy_table_file_with_depth(metric, depth);
+        if legacy_path.exists() {
+            return self.load_legacy_table(&legacy_path);
+        }
+
+        None
+    }
+
+    fn load_compressed_table(&self, path: &PathBuf) -> Option<Vec<u8>> {
+        let file = File::open(path).ok()?;
+        let mut reader = BufReader::with_capacity(1 << 20, file);
+        let mut compressed = Vec::new();
+        reader.read_to_end(&mut compressed).ok()?;
+        decompress_size_prepended(&compressed).ok()
+    }
+
+    fn load_legacy_table(&self, path: &PathBuf) -> Option<Vec<u8>> {
+        let file = File::open(path).ok()?;
         let mut reader = BufReader::with_capacity(1 << 20, file);
         let mut table = vec![0u8; self.table_size()];
         for byte in table.iter_mut() {
@@ -56,10 +179,22 @@ pub trait Pruner: Send + Sync {
             let _ = fs::create_dir_all(parent);
         }
         if let Ok(file) = File::create(&path) {
+            let compressed = compress_prepend_size(table);
             let mut writer = BufWriter::with_capacity(1 << 22, file);
-            for &byte in table {
-                let _ = writer.write_all(&[byte]);
-            }
+            let _ = writer.write_all(&compressed);
+            let _ = writer.flush();
+        }
+    }
+
+    fn save_table_with_depth(&self, table: &[u8], metric: Metric, depth: u8) {
+        let path = self.get_table_file_with_depth(metric, depth);
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if let Ok(file) = File::create(&path) {
+            let compressed = compress_prepend_size(table);
+            let mut writer = BufWriter::with_capacity(1 << 22, file);
+            let _ = writer.write_all(&compressed);
             let _ = writer.flush();
         }
     }
