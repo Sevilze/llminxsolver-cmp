@@ -58,14 +58,20 @@ class SolverViewModel {
         uniffi.llminxsolver.cleanupStaleTempFiles()
         initializePlatformInfo()
         startMemoryMonitoring()
-        settingsViewModel.collectSettings { memoryBudgetMb, tableGenThreads, searchThreads ->
+        settingsViewModel.collectSettings {
+                memoryBudgetMb,
+                tableGenThreads,
+                searchThreads,
+                defaultPruningDepth
+            ->
             _solverConfig.update { config ->
                 config.copy(
                     parallelConfig = config.parallelConfig.copy(
                         memoryBudgetMb = memoryBudgetMb,
                         tableGenThreads = tableGenThreads,
                         searchThreads = searchThreads
-                    )
+                    ),
+                    pruningDepth = defaultPruningDepth
                 )
             }
         }
@@ -110,17 +116,34 @@ class SolverViewModel {
         _solverConfig.update { it.copy(metric = metric) }
     }
 
-    fun setLimitDepth(limit: Boolean) {
-        _solverConfig.update { it.copy(limitDepth = limit) }
+    fun setLimitSearchDepth(limit: Boolean) {
+        _solverConfig.update { it.copy(limitSearchDepth = limit) }
     }
 
-    fun setMaxDepth(depth: Int) {
-        _solverConfig.update { it.copy(maxDepth = depth) }
+    fun setMaxSearchDepth(depth: Int) {
+        _solverConfig.update { it.copy(maxSearchDepth = depth) }
     }
 
     fun setParallelConfig(config: ParallelConfig) {
         _solverConfig.update { it.copy(parallelConfig = config) }
         settingsViewModel.saveParallelConfig(config)
+    }
+
+    fun setPruningDepth(depth: Int) {
+        val coercedDepth = depth.coerceIn(8, 18)
+        _solverConfig.update { it.copy(pruningDepth = coercedDepth) }
+        settingsViewModel.savePruningDepth(coercedDepth)
+    }
+
+    fun setModePruningDepth(mode: GeneratorMode, depth: Int?) {
+        _solverConfig.update { config ->
+            val newDepths = if (depth == null) {
+                config.modePruningDepths - mode
+            } else {
+                config.modePruningDepths + (mode to depth.coerceIn(8, 18))
+            }
+            config.copy(modePruningDepths = newDepths)
+        }
     }
 
     fun setMegaminxColorScheme(scheme: MegaminxColorScheme) {

@@ -75,9 +75,11 @@ private enum class SettingsTab(val label: String) {
 fun SettingsDialog(
     onDismiss: () -> Unit,
     parallelConfig: ParallelConfig = ParallelConfig(),
+    pruningDepth: Int = 12,
     memoryInfo: MemoryInfo? = null,
     availableCpus: Int = 4,
     onParallelConfigChange: ((ParallelConfig) -> Unit)? = null,
+    onPruningDepthChange: ((Int) -> Unit)? = null,
     megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     onMegaminxColorSchemeChange: ((MegaminxColorScheme) -> Unit)? = null,
     skipDeletionWarning: Boolean = false,
@@ -238,9 +240,11 @@ fun SettingsDialog(
 
                             SettingsTab.Memory -> MemoryTabContent(
                                 parallelConfig = parallelConfig,
+                                pruningDepth = pruningDepth,
                                 memoryInfo = memoryInfo,
                                 availableCpus = availableCpus,
-                                onParallelConfigChange = onParallelConfigChange
+                                onParallelConfigChange = onParallelConfigChange,
+                                onPruningDepthChange = onPruningDepthChange
                             )
 
                             SettingsTab.Graphics -> GraphicsTabContent(

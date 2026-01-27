@@ -54,13 +54,17 @@ data class SolverConfig(
     val generatorMode: GeneratorMode = GeneratorMode.R_U,
     val selectedModes: Set<GeneratorMode> = setOf(GeneratorMode.R_U),
     val metric: MetricType = MetricType.FTM,
-    val limitDepth: Boolean = false,
-    val maxDepth: Int = 12,
+    val limitSearchDepth: Boolean = false,
+    val maxSearchDepth: Int = 12,
+    val pruningDepth: Int = 12,
+    val modePruningDepths: Map<GeneratorMode, Int> = emptyMap(),
     val ignoreFlags: IgnoreFlags = IgnoreFlags(),
     val parallelConfig: ParallelConfig = ParallelConfig()
 ) {
     val isMultiMode: Boolean
         get() = selectedModes.size > 1
+
+    fun getEffectivePruningDepth(mode: GeneratorMode): Int = modePruningDepths[mode] ?: pruningDepth
 }
 
 data class ModeProgress(

@@ -17,11 +17,12 @@ actual class StorageManager actual constructor() {
         if (!dataDir.exists()) return emptyList()
 
         return dataDir.listFiles()
-            ?.filter { it.isFile && it.extension == "prn" }
+            ?.filter { it.isFile && it.name.endsWith(".prn.lz4") }
             ?.map { file ->
                 PruningTableInfo(
                     filename = file.name,
-                    displayName = formatDisplayName(file.name),
+                    displayName = PruningTableInfo.parseDisplayNameFromFilename(file.name),
+                    depth = PruningTableInfo.parseDepthFromFilename(file.name),
                     sizeBytes = file.length(),
                     lastModified = file.lastModified()
                 )
@@ -49,12 +50,4 @@ actual class StorageManager actual constructor() {
     } catch (e: Exception) {
         0L
     }
-
-    private fun formatDisplayName(filename: String): String = filename
-        .removeSuffix(".prn")
-        .replace("FACE", " (FTM)")
-        .replace("FIFTH", " (FFTM)")
-        .replace("_", " ")
-        .split(" ")
-        .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 }

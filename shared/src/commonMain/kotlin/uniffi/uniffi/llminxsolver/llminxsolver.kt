@@ -690,9 +690,17 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_get_available_memory_mb(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_get_default_pruning_depth(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_get_max_pruning_depth(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_get_min_pruning_depth(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_get_move_count(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_set_data_directory(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_validate_megaminx_state(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel(
     ): Short
@@ -821,10 +829,18 @@ external fun uniffi_llminxsolver_uniffi_fn_func_get_available_cpus(uniffi_out_er
 ): Int
 external fun uniffi_llminxsolver_uniffi_fn_func_get_available_memory_mb(uniffi_out_err: UniffiRustCallStatus, 
 ): Int
+external fun uniffi_llminxsolver_uniffi_fn_func_get_default_pruning_depth(uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_llminxsolver_uniffi_fn_func_get_max_pruning_depth(uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_llminxsolver_uniffi_fn_func_get_min_pruning_depth(uniffi_out_err: UniffiRustCallStatus, 
+): Byte
 external fun uniffi_llminxsolver_uniffi_fn_func_get_move_count(`algorithm`: RustBuffer.ByValue,`metric`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Int
 external fun uniffi_llminxsolver_uniffi_fn_func_set_data_directory(`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
+external fun uniffi_llminxsolver_uniffi_fn_func_validate_megaminx_state(`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun ffi_llminxsolver_uniffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun ffi_llminxsolver_uniffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -974,10 +990,22 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_available_memory_mb() != 56101.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_default_pruning_depth() != 56981.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_max_pruning_depth() != 24131.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_min_pruning_depth() != 12897.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_get_move_count() != 35545.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_set_data_directory() != 29728.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_validate_megaminx_state() != 36547.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel() != 56044.toShort()) {
@@ -2381,6 +2409,44 @@ public object FfiConverterTypeMegaminxState: FfiConverterRustBuffer<MegaminxStat
 
 
 
+data class ModePruningDepth (
+    var `mode`: SearchMode
+    , 
+    var `depth`: kotlin.UByte
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeModePruningDepth: FfiConverterRustBuffer<ModePruningDepth> {
+    override fun read(buf: ByteBuffer): ModePruningDepth {
+        return ModePruningDepth(
+            FfiConverterTypeSearchMode.read(buf),
+            FfiConverterUByte.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ModePruningDepth) = (
+            FfiConverterTypeSearchMode.allocationSize(value.`mode`) +
+            FfiConverterUByte.allocationSize(value.`depth`)
+    )
+
+    override fun write(value: ModePruningDepth, buf: ByteBuffer) {
+            FfiConverterTypeSearchMode.write(value.`mode`, buf)
+            FfiConverterUByte.write(value.`depth`, buf)
+    }
+}
+
+
+
 data class ParallelConfig (
     var `memoryBudgetMb`: kotlin.UInt
     , 
@@ -2429,9 +2495,13 @@ data class ParallelSolverConfig (
     , 
     var `metric`: Metric
     , 
-    var `limitDepth`: kotlin.Boolean
+    var `limitSearchDepth`: kotlin.Boolean
     , 
-    var `maxDepth`: kotlin.UInt
+    var `maxSearchDepth`: kotlin.UInt
+    , 
+    var `pruningDepth`: kotlin.UByte
+    , 
+    var `modePruningDepths`: List<ModePruningDepth>
     , 
     var `ignoreCornerPositions`: kotlin.Boolean
     , 
@@ -2462,6 +2532,8 @@ public object FfiConverterTypeParallelSolverConfig: FfiConverterRustBuffer<Paral
             FfiConverterTypeMetric.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterUInt.read(buf),
+            FfiConverterUByte.read(buf),
+            FfiConverterSequenceTypeModePruningDepth.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
@@ -2473,8 +2545,10 @@ public object FfiConverterTypeParallelSolverConfig: FfiConverterRustBuffer<Paral
     override fun allocationSize(value: ParallelSolverConfig) = (
             FfiConverterSequenceTypeSearchMode.allocationSize(value.`searchModes`) +
             FfiConverterTypeMetric.allocationSize(value.`metric`) +
-            FfiConverterBoolean.allocationSize(value.`limitDepth`) +
-            FfiConverterUInt.allocationSize(value.`maxDepth`) +
+            FfiConverterBoolean.allocationSize(value.`limitSearchDepth`) +
+            FfiConverterUInt.allocationSize(value.`maxSearchDepth`) +
+            FfiConverterUByte.allocationSize(value.`pruningDepth`) +
+            FfiConverterSequenceTypeModePruningDepth.allocationSize(value.`modePruningDepths`) +
             FfiConverterBoolean.allocationSize(value.`ignoreCornerPositions`) +
             FfiConverterBoolean.allocationSize(value.`ignoreEdgePositions`) +
             FfiConverterBoolean.allocationSize(value.`ignoreCornerOrientations`) +
@@ -2485,8 +2559,10 @@ public object FfiConverterTypeParallelSolverConfig: FfiConverterRustBuffer<Paral
     override fun write(value: ParallelSolverConfig, buf: ByteBuffer) {
             FfiConverterSequenceTypeSearchMode.write(value.`searchModes`, buf)
             FfiConverterTypeMetric.write(value.`metric`, buf)
-            FfiConverterBoolean.write(value.`limitDepth`, buf)
-            FfiConverterUInt.write(value.`maxDepth`, buf)
+            FfiConverterBoolean.write(value.`limitSearchDepth`, buf)
+            FfiConverterUInt.write(value.`maxSearchDepth`, buf)
+            FfiConverterUByte.write(value.`pruningDepth`, buf)
+            FfiConverterSequenceTypeModePruningDepth.write(value.`modePruningDepths`, buf)
             FfiConverterBoolean.write(value.`ignoreCornerPositions`, buf)
             FfiConverterBoolean.write(value.`ignoreEdgePositions`, buf)
             FfiConverterBoolean.write(value.`ignoreCornerOrientations`, buf)
@@ -2598,9 +2674,11 @@ data class SolverConfig (
     , 
     var `metric`: Metric
     , 
-    var `limitDepth`: kotlin.Boolean
+    var `limitSearchDepth`: kotlin.Boolean
     , 
-    var `maxDepth`: kotlin.UInt
+    var `maxSearchDepth`: kotlin.UInt
+    , 
+    var `pruningDepth`: kotlin.UByte
     , 
     var `ignoreCornerPositions`: kotlin.Boolean
     , 
@@ -2631,6 +2709,7 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
             FfiConverterTypeMetric.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterUInt.read(buf),
+            FfiConverterUByte.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
@@ -2642,8 +2721,9 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
     override fun allocationSize(value: SolverConfig) = (
             FfiConverterTypeSearchMode.allocationSize(value.`searchMode`) +
             FfiConverterTypeMetric.allocationSize(value.`metric`) +
-            FfiConverterBoolean.allocationSize(value.`limitDepth`) +
-            FfiConverterUInt.allocationSize(value.`maxDepth`) +
+            FfiConverterBoolean.allocationSize(value.`limitSearchDepth`) +
+            FfiConverterUInt.allocationSize(value.`maxSearchDepth`) +
+            FfiConverterUByte.allocationSize(value.`pruningDepth`) +
             FfiConverterBoolean.allocationSize(value.`ignoreCornerPositions`) +
             FfiConverterBoolean.allocationSize(value.`ignoreEdgePositions`) +
             FfiConverterBoolean.allocationSize(value.`ignoreCornerOrientations`) +
@@ -2654,8 +2734,9 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
     override fun write(value: SolverConfig, buf: ByteBuffer) {
             FfiConverterTypeSearchMode.write(value.`searchMode`, buf)
             FfiConverterTypeMetric.write(value.`metric`, buf)
-            FfiConverterBoolean.write(value.`limitDepth`, buf)
-            FfiConverterUInt.write(value.`maxDepth`, buf)
+            FfiConverterBoolean.write(value.`limitSearchDepth`, buf)
+            FfiConverterUInt.write(value.`maxSearchDepth`, buf)
+            FfiConverterUByte.write(value.`pruningDepth`, buf)
             FfiConverterBoolean.write(value.`ignoreCornerPositions`, buf)
             FfiConverterBoolean.write(value.`ignoreEdgePositions`, buf)
             FfiConverterBoolean.write(value.`ignoreCornerOrientations`, buf)
@@ -3261,6 +3342,34 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeModePruningDepth: FfiConverterRustBuffer<List<ModePruningDepth>> {
+    override fun read(buf: ByteBuffer): List<ModePruningDepth> {
+        val len = buf.getInt()
+        return List<ModePruningDepth>(len) {
+            FfiConverterTypeModePruningDepth.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<ModePruningDepth>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeModePruningDepth.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<ModePruningDepth>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeModePruningDepth.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeScoredSolutionExport: FfiConverterRustBuffer<List<ScoredSolutionExport>> {
     override fun read(buf: ByteBuffer): List<ScoredSolutionExport> {
         val len = buf.getInt()
@@ -3408,6 +3517,36 @@ public object FfiConverterSequenceTypeSearchMode: FfiConverterRustBuffer<List<Se
     )
     }
     
+ fun `getDefaultPruningDepth`(): kotlin.UByte {
+            return FfiConverterUByte.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_get_default_pruning_depth(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `getMaxPruningDepth`(): kotlin.UByte {
+            return FfiConverterUByte.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_get_max_pruning_depth(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `getMinPruningDepth`(): kotlin.UByte {
+            return FfiConverterUByte.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_get_min_pruning_depth(
+    
+        _status)
+}
+    )
+    }
+    
  fun `getMoveCount`(`algorithm`: kotlin.String, `metric`: kotlin.String): kotlin.UInt {
             return FfiConverterUInt.lift(
     uniffiRustCall() { _status ->
@@ -3426,6 +3565,16 @@ public object FfiConverterSequenceTypeSearchMode: FfiConverterRustBuffer<List<Se
         FfiConverterString.lower(`path`),_status)
 }
     
+    
+ fun `validateMegaminxState`(`state`: MegaminxState): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_validate_megaminx_state(
+    
+        FfiConverterTypeMegaminxState.lower(`state`),_status)
+}
+    )
+    }
     
 
 

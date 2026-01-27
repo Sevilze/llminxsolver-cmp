@@ -43,6 +43,7 @@ data class AppSettings(
     val memoryBudgetMb: Int = 512,
     val tableGenThreads: Int = 4,
     val searchThreads: Int = 4,
+    val defaultPruningDepth: Int = 12,
     val skipDeletionWarning: Boolean = false,
     val megaminxColorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     val useDynamicColors: Boolean = true,

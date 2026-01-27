@@ -24,8 +24,8 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchDepthSelector(
-    limitDepth: Boolean,
-    maxDepth: Int,
+    limitSearchDepth: Boolean,
+    maxSearchDepth: Int,
     onLimitChange: (Boolean) -> Unit,
     onDepthChange: (Int) -> Unit,
     enabled: Boolean = true,
@@ -43,7 +43,7 @@ fun SearchDepthSelector(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = if (limitDepth) "Max depth: $maxDepth" else "No limit",
+                    text = if (limitSearchDepth) "Max depth: $maxSearchDepth" else "No limit",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -56,7 +56,7 @@ fun SearchDepthSelector(
                 shapes = MaterialTheme.shapes
             ) {
                 Switch(
-                    checked = limitDepth,
+                    checked = limitSearchDepth,
                     onCheckedChange = { if (enabled) onLimitChange(it) },
                     enabled = enabled
                 )
@@ -64,7 +64,7 @@ fun SearchDepthSelector(
         }
 
         AnimatedVisibility(
-            visible = limitDepth,
+            visible = limitSearchDepth,
             enter = expandVertically(
                 animationSpec = MotionScheme.expressive().defaultSpatialSpec()
             ),
@@ -78,7 +78,7 @@ fun SearchDepthSelector(
                     .padding(top = 8.dp)
             ) {
                 Slider(
-                    value = maxDepth.toFloat(),
+                    value = maxSearchDepth.toFloat(),
                     onValueChange = { if (enabled) onDepthChange(it.roundToInt()) },
                     valueRange = 1f..30f,
                     enabled = enabled

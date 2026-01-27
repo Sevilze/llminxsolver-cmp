@@ -22,9 +22,10 @@ fun ControlPanel(
     config: SolverConfig,
     isSearching: Boolean,
     onSelectedModesChange: (Set<GeneratorMode>) -> Unit,
+    onModePruningDepthChange: ((GeneratorMode, Int?) -> Unit)? = null,
     onMetricChange: (MetricType) -> Unit,
-    onLimitDepthChange: (Boolean) -> Unit,
-    onMaxDepthChange: (Int) -> Unit,
+    onLimitSearchDepthChange: (Boolean) -> Unit,
+    onMaxSearchDepthChange: (Int) -> Unit,
     onIgnoreFlagChange: (String, Boolean) -> Unit,
     onReset: () -> Unit,
     onSolve: () -> Unit,
@@ -37,7 +38,10 @@ fun ControlPanel(
     ) {
         SearchModeSelector(
             selectedModes = config.selectedModes,
+            defaultPruningDepth = config.pruningDepth,
+            modePruningDepths = config.modePruningDepths,
             onModesChange = onSelectedModesChange,
+            onModePruningDepthChange = onModePruningDepthChange,
             enabled = !isSearching
         )
 
@@ -48,10 +52,10 @@ fun ControlPanel(
         )
 
         SearchDepthSelector(
-            limitDepth = config.limitDepth,
-            maxDepth = config.maxDepth,
-            onLimitChange = onLimitDepthChange,
-            onDepthChange = onMaxDepthChange,
+            limitSearchDepth = config.limitSearchDepth,
+            maxSearchDepth = config.maxSearchDepth,
+            onLimitChange = onLimitSearchDepthChange,
+            onDepthChange = onMaxSearchDepthChange,
             enabled = !isSearching
         )
 

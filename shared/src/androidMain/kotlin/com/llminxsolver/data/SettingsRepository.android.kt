@@ -26,6 +26,7 @@ private object PreferencesKeys {
     val MEMORY_BUDGET_MB = intPreferencesKey("memory_budget_mb")
     val TABLE_GEN_THREADS = intPreferencesKey("table_gen_threads")
     val SEARCH_THREADS = intPreferencesKey("search_threads")
+    val DEFAULT_PRUNING_DEPTH = intPreferencesKey("default_pruning_depth")
     val SKIP_DELETION_WARNING = booleanPreferencesKey("skip_deletion_warning")
     val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
     val DYNAMIC_COLOR_MODE = stringPreferencesKey("dynamic_color_mode")
@@ -77,6 +78,8 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
                 ?: AppSettings.Default.tableGenThreads,
             searchThreads = prefs[PreferencesKeys.SEARCH_THREADS]
                 ?: AppSettings.Default.searchThreads,
+            defaultPruningDepth = prefs[PreferencesKeys.DEFAULT_PRUNING_DEPTH]
+                ?: AppSettings.Default.defaultPruningDepth,
             skipDeletionWarning = prefs[PreferencesKeys.SKIP_DELETION_WARNING]
                 ?: AppSettings.Default.skipDeletionWarning,
             megaminxColorScheme = colorScheme,
@@ -124,6 +127,8 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
                     ?: AppSettings.Default.tableGenThreads,
                 searchThreads = prefs[PreferencesKeys.SEARCH_THREADS]
                     ?: AppSettings.Default.searchThreads,
+                defaultPruningDepth = prefs[PreferencesKeys.DEFAULT_PRUNING_DEPTH]
+                    ?: AppSettings.Default.defaultPruningDepth,
                 skipDeletionWarning = prefs[PreferencesKeys.SKIP_DELETION_WARNING]
                     ?: AppSettings.Default.skipDeletionWarning,
                 megaminxColorScheme = colorScheme,
@@ -145,6 +150,7 @@ class DataStoreSettingsRepository : PlatformSettingsRepository {
             prefs[PreferencesKeys.MEMORY_BUDGET_MB] = newSettings.memoryBudgetMb
             prefs[PreferencesKeys.TABLE_GEN_THREADS] = newSettings.tableGenThreads
             prefs[PreferencesKeys.SEARCH_THREADS] = newSettings.searchThreads
+            prefs[PreferencesKeys.DEFAULT_PRUNING_DEPTH] = newSettings.defaultPruningDepth
             prefs[PreferencesKeys.SKIP_DELETION_WARNING] = newSettings.skipDeletionWarning
             prefs[PreferencesKeys.USE_DYNAMIC_COLORS] = newSettings.useDynamicColors
             prefs[PreferencesKeys.DYNAMIC_COLOR_MODE] = newSettings.dynamicColorMode.name

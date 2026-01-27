@@ -95,9 +95,7 @@ fun StatusBar(
                         text = solverState.status.ifEmpty { "Ready" },
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -127,9 +125,7 @@ private fun SingleModeProgressSection(status: String, progress: Float) {
             text = status.ifEmpty { "Searching..." },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         val indicatorModifier = Modifier

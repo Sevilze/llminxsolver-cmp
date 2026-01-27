@@ -46,11 +46,32 @@ class SolverOperations(private val scope: CoroutineScope) {
     fun solve(megaminxState: MegaminxState, solverConfig: SolverConfig) {
         if (_solverState.value.isSearching) return
 
+        val validationError = validateMegaminxState(megaminxState)
+        if (validationError != null) {
+            _solverState.update {
+                it.copy(
+                    isSearching = false,
+                    status = "$validationError"
+                )
+            }
+            return
+        }
+
         if (solverConfig.isMultiMode) {
             solveMultiMode(megaminxState, solverConfig)
         } else {
             solveSingleMode(megaminxState, solverConfig)
         }
+    }
+
+    private fun validateMegaminxState(state: MegaminxState): String? {
+        val uniffiState = uniffi.llminxsolver.MegaminxState(
+            cornerPositions = state.cornerPositions.map { it.toUByte() },
+            cornerOrientations = state.cornerOrientations.map { it.toUByte() },
+            edgePositions = state.edgePositions.map { it.toUByte() },
+            edgeOrientations = state.edgeOrientations.map { it.toUByte() }
+        )
+        return uniffi.llminxsolver.validateMegaminxState(uniffiState)
     }
 
     private fun initTempFile() {
@@ -338,8 +359,9 @@ class SolverOperations(private val scope: CoroutineScope) {
         uniffi.llminxsolver.SolverConfig(
             searchMode = mapGeneratorModesToSearchMode(config.generatorMode),
             metric = mapMetricType(config.metric),
-            limitDepth = config.limitDepth,
-            maxDepth = config.maxDepth.toUInt(),
+            limitSearchDepth = config.limitSearchDepth,
+            maxSearchDepth = config.maxSearchDepth.toUInt(),
+            pruningDepth = config.getEffectivePruningDepth(config.generatorMode).toUByte(),
             ignoreCornerPositions = config.ignoreFlags.cornerPositions,
             ignoreEdgePositions = config.ignoreFlags.edgePositions,
             ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
@@ -351,8 +373,15 @@ class SolverOperations(private val scope: CoroutineScope) {
         ParallelSolverConfig(
             searchModes = config.selectedModes.map { mapGeneratorModesToSearchMode(it) },
             metric = mapMetricType(config.metric),
-            limitDepth = config.limitDepth,
-            maxDepth = config.maxDepth.toUInt(),
+            limitSearchDepth = config.limitSearchDepth,
+            maxSearchDepth = config.maxSearchDepth.toUInt(),
+            pruningDepth = config.pruningDepth.toUByte(),
+            modePruningDepths = config.modePruningDepths.map { (mode, depth) ->
+                uniffi.llminxsolver.ModePruningDepth(
+                    mode = mapGeneratorModesToSearchMode(mode),
+                    depth = depth.toUByte()
+                )
+            },
             ignoreCornerPositions = config.ignoreFlags.cornerPositions,
             ignoreEdgePositions = config.ignoreFlags.edgePositions,
             ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,

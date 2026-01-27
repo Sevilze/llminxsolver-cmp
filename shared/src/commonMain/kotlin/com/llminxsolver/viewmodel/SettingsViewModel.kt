@@ -38,7 +38,7 @@ class SettingsViewModel(private val scope: CoroutineScope) {
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
-    fun collectSettings(onParallelConfigUpdate: (Int, Int, Int) -> Unit) {
+    fun collectSettings(onConfigUpdate: (Int, Int, Int, Int) -> Unit) {
         settingsRepository.settings
             .onEach { settings ->
                 _megaminxColorScheme.value = settings.megaminxColorScheme
@@ -48,10 +48,11 @@ class SettingsViewModel(private val scope: CoroutineScope) {
                 _schemeType.value = settings.schemeType
                 _themeMode.value = settings.themeMode
                 _isLoaded.value = true
-                onParallelConfigUpdate(
+                onConfigUpdate(
                     settings.memoryBudgetMb,
                     settings.tableGenThreads,
-                    settings.searchThreads
+                    settings.searchThreads,
+                    settings.defaultPruningDepth
                 )
             }
             .launchIn(scope)
@@ -107,6 +108,14 @@ class SettingsViewModel(private val scope: CoroutineScope) {
                     tableGenThreads = config.tableGenThreads,
                     searchThreads = config.searchThreads
                 )
+            }
+        }
+    }
+
+    fun savePruningDepth(depth: Int) {
+        scope.launch {
+            settingsRepository.updateSettings {
+                it.copy(defaultPruningDepth = depth)
             }
         }
     }

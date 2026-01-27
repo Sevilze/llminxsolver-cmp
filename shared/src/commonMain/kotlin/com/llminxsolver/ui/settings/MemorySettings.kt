@@ -21,9 +21,11 @@ import com.llminxsolver.platform.MemoryInfo
 @Composable
 internal fun MemoryTabContent(
     parallelConfig: ParallelConfig,
+    pruningDepth: Int,
     memoryInfo: MemoryInfo?,
     availableCpus: Int,
-    onParallelConfigChange: ((ParallelConfig) -> Unit)?
+    onParallelConfigChange: ((ParallelConfig) -> Unit)?,
+    onPruningDepthChange: ((Int) -> Unit)?
 ) {
     if (onParallelConfigChange == null) {
         Box(
@@ -66,8 +68,7 @@ internal fun MemoryTabContent(
                         parallelConfig.copy(memoryBudgetMb = newValue.toInt())
                     )
                 },
-                valueRange = 64f..maxMemory,
-                steps = 15
+                valueRange = 64f..maxMemory
             )
         }
 
@@ -93,8 +94,7 @@ internal fun MemoryTabContent(
                         parallelConfig.copy(tableGenThreads = newValue.toInt())
                     )
                 },
-                valueRange = 1f..availableCpus.toFloat().coerceAtLeast(2f),
-                steps = (availableCpus - 2).coerceAtLeast(0)
+                valueRange = 1f..availableCpus.toFloat().coerceAtLeast(2f)
             )
         }
 
@@ -120,8 +120,37 @@ internal fun MemoryTabContent(
                         parallelConfig.copy(searchThreads = newValue.toInt())
                     )
                 },
-                valueRange = 1f..availableCpus.toFloat().coerceAtLeast(2f),
-                steps = (availableCpus - 2).coerceAtLeast(0)
+                valueRange = 1f..availableCpus.toFloat().coerceAtLeast(2f)
+            )
+        }
+
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Pruning Table Depth",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$pruningDepth",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Slider(
+                value = pruningDepth.toFloat(),
+                onValueChange = { newValue ->
+                    onPruningDepthChange?.invoke(newValue.toInt())
+                },
+                valueRange = 8f..18f,
+                steps = 9
+            )
+            Text(
+                text = "Higher values improve search speed but require more generation time",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
