@@ -208,8 +208,8 @@ impl From<ParallelConfig> for MemoryConfig {
 pub struct SolverConfig {
     pub search_mode: SearchMode,
     pub metric: Metric,
-    pub limit_depth: bool,
-    pub max_depth: u32,
+    pub limit_search_depth: bool,
+    pub max_search_depth: u32,
     pub pruning_depth: u8,
     pub ignore_corner_positions: bool,
     pub ignore_edge_positions: bool,
@@ -228,8 +228,8 @@ pub struct ModePruningDepth {
 pub struct ParallelSolverConfig {
     pub search_modes: Vec<SearchMode>,
     pub metric: Metric,
-    pub limit_depth: bool,
-    pub max_depth: u32,
+    pub limit_search_depth: bool,
+    pub max_search_depth: u32,
     pub pruning_depth: u8,
     pub mode_pruning_depths: Vec<ModePruningDepth>,
     pub ignore_corner_positions: bool,
@@ -323,8 +323,8 @@ impl SolverHandle {
         std::thread::spawn(move || {
             let search_mode: llminxsolver_rs::SearchMode = config.search_mode.into();
             let metric: llminxsolver_rs::Metric = config.metric.into();
-            let max_depth = if config.limit_depth {
-                config.max_depth as usize
+            let max_search_depth = if config.limit_search_depth {
+                config.max_search_depth as usize
             } else {
                 50
             };
@@ -336,9 +336,10 @@ impl SolverHandle {
                 .map(|pc| pc.into())
                 .unwrap_or_default();
 
-            let mut solver = Solver::with_parallel_config(search_mode, max_depth, memory_config);
+            let mut solver =
+                Solver::with_parallel_config(search_mode, max_search_depth, memory_config);
             solver.set_metric(metric);
-            solver.set_limit_depth(config.limit_depth);
+            solver.set_limit_search_depth(config.limit_search_depth);
             solver.set_pruning_depth(config.pruning_depth);
             solver.set_start(start_state);
             solver.set_ignore_corner_positions(config.ignore_corner_positions);
@@ -435,8 +436,8 @@ impl ParallelSolverHandle {
             let modes: Vec<llminxsolver_rs::SearchMode> =
                 config.search_modes.iter().map(|&m| m.into()).collect();
             let metric: llminxsolver_rs::Metric = config.metric.into();
-            let max_depth = if config.limit_depth {
-                config.max_depth as usize
+            let max_search_depth = if config.limit_search_depth {
+                config.max_search_depth as usize
             } else {
                 50
             };
@@ -446,8 +447,8 @@ impl ParallelSolverHandle {
 
             let mut parallel_solver = ParallelSolver::with_config(modes, memory_config);
             parallel_solver.set_metric(metric);
-            parallel_solver.set_max_depth(max_depth);
-            parallel_solver.set_limit_depth(config.limit_depth);
+            parallel_solver.set_max_search_depth(max_search_depth);
+            parallel_solver.set_limit_search_depth(config.limit_search_depth);
             parallel_solver.set_pruning_depth(config.pruning_depth);
             for mode_depth in config.mode_pruning_depths {
                 parallel_solver.set_mode_pruning_depth(mode_depth.mode.into(), mode_depth.depth);

@@ -69,19 +69,6 @@ dependencies {
     debugImplementation("org.jetbrains.compose.ui:ui-tooling:1.11.0-alpha01")
 }
 
-tasks.register("renameReleaseBundle") {
-    dependsOn("bundleRelease")
-
-    val versionName = android.defaultConfig.versionName ?: "unknown"
-    val bundleDirProvider = layout.buildDirectory.dir("outputs/bundle/release")
-
-    doLast {
-        val bundleDir = bundleDirProvider.get().asFile
-        val originalFile = bundleDir.resolve("androidApp-release.aab")
-        if (originalFile.exists()) {
-            val newFile = bundleDir.resolve("llminxsolver-v$versionName-release.aab")
-            originalFile.renameTo(newFile)
-            println("Renamed bundle to: ${newFile.name}")
-        }
-    }
+base {
+    archivesName.set("llminxsolver-v${android.defaultConfig.versionName}")
 }

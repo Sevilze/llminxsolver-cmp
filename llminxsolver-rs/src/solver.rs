@@ -67,8 +67,8 @@ struct SearchContext<'a> {
 pub struct Solver {
     search_mode: SearchMode,
     metric: Metric,
-    max_depth: usize,
-    limit_depth: bool,
+    max_search_depth: usize,
+    limit_search_depth: bool,
     pruning_depth: u8,
     start: LLMinx,
     ignore_corner_positions: bool,
@@ -99,20 +99,20 @@ impl Solver {
         Self::with_config(SearchMode::RU, 12)
     }
 
-    pub fn with_config(search_mode: SearchMode, max_depth: usize) -> Self {
-        Self::with_parallel_config(search_mode, max_depth, MemoryConfig::default())
+    pub fn with_config(search_mode: SearchMode, max_search_depth: usize) -> Self {
+        Self::with_parallel_config(search_mode, max_search_depth, MemoryConfig::default())
     }
 
     pub fn with_parallel_config(
         search_mode: SearchMode,
-        max_depth: usize,
+        max_search_depth: usize,
         memory_config: MemoryConfig,
     ) -> Self {
         Self {
             search_mode,
             metric: Metric::Fifth,
-            max_depth,
-            limit_depth: false,
+            max_search_depth,
+            limit_search_depth: false,
             pruning_depth: DEFAULT_PRUNING_DEPTH,
             start: LLMinx::new(),
             ignore_corner_positions: false,
@@ -157,20 +157,20 @@ impl Solver {
         self.metric = metric;
     }
 
-    pub fn max_depth(&self) -> usize {
-        self.max_depth
+    pub fn max_search_depth(&self) -> usize {
+        self.max_search_depth
     }
 
-    pub fn set_max_depth(&mut self, depth: usize) {
-        self.max_depth = depth;
+    pub fn set_max_search_depth(&mut self, depth: usize) {
+        self.max_search_depth = depth;
     }
 
-    pub fn limit_depth(&self) -> bool {
-        self.limit_depth
+    pub fn limit_search_depth(&self) -> bool {
+        self.limit_search_depth
     }
 
-    pub fn set_limit_depth(&mut self, limit: bool) {
-        self.limit_depth = limit;
+    pub fn set_limit_search_depth(&mut self, limit: bool) {
+        self.limit_search_depth = limit;
     }
 
     pub fn pruning_depth(&self) -> u8 {
@@ -307,8 +307,8 @@ impl Solver {
             0.0,
         ));
 
-        let max_search_depth = if self.limit_depth {
-            self.max_depth
+        let max_search_depth = if self.limit_search_depth {
+            self.max_search_depth
         } else {
             127
         };

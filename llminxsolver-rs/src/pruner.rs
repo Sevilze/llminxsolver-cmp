@@ -7,9 +7,9 @@ use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-pub const MIN_PRUNING_DEPTH: u8 = 4;
-pub const MAX_PRUNING_DEPTH: u8 = 14;
-pub const DEFAULT_PRUNING_DEPTH: u8 = 7;
+pub const MIN_PRUNING_DEPTH: u8 = 8;
+pub const MAX_PRUNING_DEPTH: u8 = 18;
+pub const DEFAULT_PRUNING_DEPTH: u8 = 12;
 
 const COMPRESSED_EXTENSION: &str = ".prn.lz4";
 

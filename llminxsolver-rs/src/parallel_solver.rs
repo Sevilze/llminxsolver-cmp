@@ -10,8 +10,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub struct ParallelSolver {
     modes: Vec<SearchMode>,
     metric: Metric,
-    max_depth: usize,
-    limit_depth: bool,
+    max_search_depth: usize,
+    limit_search_depth: bool,
     pruning_depth: u8,
     mode_pruning_depths: std::collections::HashMap<SearchMode, u8>,
     memory_config: MemoryConfig,
@@ -44,8 +44,8 @@ impl ParallelSolver {
         Self {
             modes,
             metric: Metric::Fifth,
-            max_depth: 12,
-            limit_depth: false,
+            max_search_depth: 12,
+            limit_search_depth: false,
             pruning_depth: DEFAULT_PRUNING_DEPTH,
             mode_pruning_depths: std::collections::HashMap::new(),
             memory_config,
@@ -91,20 +91,20 @@ impl ParallelSolver {
         self.metric = metric;
     }
 
-    pub fn max_depth(&self) -> usize {
-        self.max_depth
+    pub fn max_search_depth(&self) -> usize {
+        self.max_search_depth
     }
 
-    pub fn set_max_depth(&mut self, depth: usize) {
-        self.max_depth = depth;
+    pub fn set_max_search_depth(&mut self, depth: usize) {
+        self.max_search_depth = depth;
     }
 
-    pub fn limit_depth(&self) -> bool {
-        self.limit_depth
+    pub fn limit_search_depth(&self) -> bool {
+        self.limit_search_depth
     }
 
-    pub fn set_limit_depth(&mut self, limit: bool) {
-        self.limit_depth = limit;
+    pub fn set_limit_search_depth(&mut self, limit: bool) {
+        self.limit_search_depth = limit;
     }
 
     pub fn pruning_depth(&self) -> u8 {
@@ -197,8 +197,8 @@ impl ParallelSolver {
             .collect();
 
         let metric = self.metric;
-        let max_depth = self.max_depth;
-        let limit_depth = self.limit_depth;
+        let max_search_depth = self.max_search_depth;
+        let limit_search_depth = self.limit_search_depth;
         let memory_config = self.memory_config;
         let ignore_corner_positions = self.ignore_corner_positions;
         let ignore_edge_positions = self.ignore_edge_positions;
@@ -230,9 +230,9 @@ impl ParallelSolver {
                         }
 
                         let mut solver =
-                            Solver::with_parallel_config(mode, max_depth, mode_config_clone);
+                            Solver::with_parallel_config(mode, max_search_depth, mode_config_clone);
                         solver.set_metric(metric);
-                        solver.set_limit_depth(limit_depth);
+                        solver.set_limit_search_depth(limit_search_depth);
                         solver.set_pruning_depth(pruning_depth);
                         solver.set_start(start_clone);
                         solver.set_ignore_corner_positions(ignore_corner_positions);
@@ -290,9 +290,10 @@ impl ParallelSolver {
     }
 
     fn solve_single_mode(&mut self, start: LLMinx, mode: SearchMode) -> Vec<String> {
-        let mut solver = Solver::with_parallel_config(mode, self.max_depth, self.memory_config);
+        let mut solver =
+            Solver::with_parallel_config(mode, self.max_search_depth, self.memory_config);
         solver.set_metric(self.metric);
-        solver.set_limit_depth(self.limit_depth);
+        solver.set_limit_search_depth(self.limit_search_depth);
         solver.set_pruning_depth(self.get_pruning_depth_for_mode(mode));
         solver.set_start(start);
         solver.set_ignore_corner_positions(self.ignore_corner_positions);

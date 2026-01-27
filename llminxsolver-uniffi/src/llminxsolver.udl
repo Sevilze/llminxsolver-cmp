@@ -116,8 +116,8 @@ dictionary ParallelConfig {
 dictionary SolverConfig {
     SearchMode search_mode;
     Metric metric;
-    boolean limit_depth;
-    u32 max_depth;
+    boolean limit_search_depth;
+    u32 max_search_depth;
     u8 pruning_depth;
     boolean ignore_corner_positions;
     boolean ignore_edge_positions;
@@ -134,8 +134,8 @@ dictionary ModePruningDepth {
 dictionary ParallelSolverConfig {
     sequence<SearchMode> search_modes;
     Metric metric;
-    boolean limit_depth;
-    u32 max_depth;
+    boolean limit_search_depth;
+    u32 max_search_depth;
     u8 pruning_depth;
     sequence<ModePruningDepth> mode_pruning_depths;
     boolean ignore_corner_positions;
