@@ -78,7 +78,7 @@ pub fn export_scored_xlsx(
     let header_format = create_header_format();
     let cell_format = create_cell_format();
 
-    let headers = ["MCC", "Moves", "Algorithm"];
+    let headers = ["MCC", "Movecount", "Algorithm"];
     for (idx, header) in headers.iter().enumerate() {
         worksheet
             .write_string_with_format(0, col_offset + idx as u16, *header, &header_format)

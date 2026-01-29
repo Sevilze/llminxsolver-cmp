@@ -1,4 +1,4 @@
-use crate::coordinate::{CKN, CoordinateUtil, FAC, POWERS_OF_THREE, POWERS_OF_TWO};
+use crate::coordinate::{CoordinateUtil, CKN, FAC, POWERS_OF_THREE, POWERS_OF_TWO};
 use crate::data_directory::get_data_directory;
 use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
 use crate::search_mode::Metric;
@@ -24,30 +24,7 @@ pub trait Pruner: Send + Sync {
     fn uses_corner_orientation(&self) -> bool;
     fn uses_edge_orientation(&self) -> bool;
 
-    fn is_precomputed(&self, metric: Metric) -> bool {
-        self.get_table_file(metric).exists()
-    }
-
-    fn get_table_file(&self, metric: Metric) -> PathBuf {
-        let metric_suffix = match metric {
-            Metric::Fifth => "FIFTH",
-            Metric::Face => "FACE",
-        };
-        let filename = format!(
-            "{}{}{}",
-            self.table_path(),
-            metric_suffix,
-            COMPRESSED_EXTENSION
-        );
-
-        if let Some(data_dir) = get_data_directory() {
-            data_dir.join(&filename)
-        } else {
-            PathBuf::from(filename)
-        }
-    }
-
-    fn get_table_file_with_depth(&self, metric: Metric, depth: u8) -> PathBuf {
+    fn get_table_file(&self, metric: Metric, depth: u8) -> PathBuf {
         let metric_suffix = match metric {
             Metric::Fifth => "FIFTH",
             Metric::Face => "FACE",
@@ -67,13 +44,13 @@ pub trait Pruner: Send + Sync {
         }
     }
 
-    fn is_precomputed_with_depth(&self, metric: Metric, depth: u8) -> bool {
-        self.get_table_file_with_depth(metric, depth).exists()
+    fn is_precomputed(&self, metric: Metric, depth: u8) -> bool {
+        self.get_table_file(metric, depth).exists()
     }
 
     fn find_best_existing_table(&self, metric: Metric, max_depth: u8) -> Option<(PathBuf, u8)> {
         for depth in (MIN_PRUNING_DEPTH..=max_depth).rev() {
-            let path = self.get_table_file_with_depth(metric, depth);
+            let path = self.get_table_file(metric, depth);
             if path.exists() {
                 return Some((path, depth));
             }
@@ -81,16 +58,8 @@ pub trait Pruner: Send + Sync {
         None
     }
 
-    fn load_table(&self, metric: Metric) -> Option<Vec<u8>> {
-        let path = self.get_table_file(metric);
-        if path.exists() {
-            return self.load_compressed_table(&path);
-        }
-        None
-    }
-
-    fn load_table_with_depth(&self, metric: Metric, depth: u8) -> Option<Vec<u8>> {
-        let path = self.get_table_file_with_depth(metric, depth);
+    fn load_table(&self, metric: Metric, depth: u8) -> Option<Vec<u8>> {
+        let path = self.get_table_file(metric, depth);
         if path.exists() {
             return self.load_compressed_table(&path);
         }
@@ -105,21 +74,8 @@ pub trait Pruner: Send + Sync {
         decompress_size_prepended(&compressed).ok()
     }
 
-    fn save_table(&self, table: &[u8], metric: Metric) {
-        let path = self.get_table_file(metric);
-        if let Some(parent) = path.parent() {
-            let _ = fs::create_dir_all(parent);
-        }
-        if let Ok(file) = File::create(&path) {
-            let compressed = compress_prepend_size(table);
-            let mut writer = BufWriter::with_capacity(1 << 22, file);
-            let _ = writer.write_all(&compressed);
-            let _ = writer.flush();
-        }
-    }
-
-    fn save_table_with_depth(&self, table: &[u8], metric: Metric, depth: u8) {
-        let path = self.get_table_file_with_depth(metric, depth);
+    fn save_table(&self, table: &[u8], metric: Metric, depth: u8) {
+        let path = self.get_table_file(metric, depth);
         if let Some(parent) = path.parent() {
             let _ = fs::create_dir_all(parent);
         }

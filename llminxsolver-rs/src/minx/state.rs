@@ -2,7 +2,7 @@ use super::moves::Move;
 
 pub const NUM_CORNERS: usize = 17;
 pub const NUM_EDGES: usize = 23;
-pub const MAX_DEPTH: usize = 100;
+pub const MAX_SEARCH_DEPTH: usize = 100;
 
 #[derive(Clone)]
 pub struct LLMinx {
@@ -45,7 +45,7 @@ impl LLMinx {
             ignore_edge_positions: [false; NUM_EDGES],
             ignore_corner_orientations: [false; NUM_CORNERS],
             ignore_edge_orientations: [false; NUM_EDGES],
-            moves: Vec::with_capacity(MAX_DEPTH),
+            moves: Vec::with_capacity(MAX_SEARCH_DEPTH),
             last_move: None,
         }
     }
@@ -65,7 +65,7 @@ impl LLMinx {
             ignore_edge_positions: [false; NUM_EDGES],
             ignore_corner_orientations: [false; NUM_CORNERS],
             ignore_edge_orientations: [false; NUM_EDGES],
-            moves: Vec::with_capacity(MAX_DEPTH),
+            moves: Vec::with_capacity(MAX_SEARCH_DEPTH),
             last_move: None,
         }
     }

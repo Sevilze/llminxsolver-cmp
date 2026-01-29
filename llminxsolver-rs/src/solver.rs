@@ -1,11 +1,11 @@
 use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
-use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH, Pruner};
+use crate::pruner::{Pruner, DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH};
 use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StatusEventType {
@@ -714,7 +714,7 @@ impl Solver {
                 progress,
             ));
 
-            if pruner.is_precomputed_with_depth(self.metric, target_depth) {
+            if pruner.is_precomputed(self.metric, target_depth) {
                 self.fire_event(StatusEvent::new(
                     StatusEventType::Message,
                     &format!(
@@ -723,7 +723,7 @@ impl Solver {
                     ),
                     progress,
                 ));
-                if let Some(table) = pruner.load_table_with_depth(self.metric, target_depth) {
+                if let Some(table) = pruner.load_table(self.metric, target_depth) {
                     memory_tracker.allocate(table.len());
                     self.tables.push(Arc::new(table));
                     continue;
@@ -770,7 +770,7 @@ impl Solver {
                     &format!("Writing table to disk (depth {})...", target_depth),
                     progress,
                 ));
-                pruner.save_table_with_depth(&table, self.metric, target_depth);
+                pruner.save_table(&table, self.metric, target_depth);
             }
 
             self.fire_event(StatusEvent::new(
@@ -809,7 +809,7 @@ impl Solver {
         let table_size = pruner.table_size();
 
         let (table, start_depth, total_nodes) = if let Some(base) = base_depth {
-            if let Some(base_table) = pruner.load_table_with_depth(self.metric, base) {
+            if let Some(base_table) = pruner.load_table(self.metric, base) {
                 let atomic_table: Vec<AtomicU8> =
                     base_table.into_iter().map(AtomicU8::new).collect();
 
@@ -1025,7 +1025,7 @@ mod tests {
         let solver = Solver::new();
         assert_eq!(solver.search_mode(), SearchMode::RU);
         assert_eq!(solver.metric(), Metric::Fifth);
-        assert_eq!(solver.max_depth(), 12);
+        assert_eq!(solver.max_search_depth(), 12);
     }
 
     #[test]
