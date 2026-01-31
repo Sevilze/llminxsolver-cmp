@@ -2,7 +2,7 @@
   "categories": [
     {
       "title": "## New Features",
-      "labels": ["feat", "feature"]
+      "labels": ["feat", "feature", "add", "implement", "wire"]
     },
     {
       "title": "## Bug Fixes",
@@ -18,11 +18,11 @@
     },
     {
       "title": "## Refactoring",
-      "labels": ["refactor"]
+      "labels": ["refactor", "update", "change", "remove", "migrate"]
     },
     {
       "title": "## Build & CI",
-      "labels": ["build", "ci"]
+      "labels": ["build", "ci", "deps"]
     },
     {
       "title": "## Chores",
@@ -31,21 +31,22 @@
   ],
   "label_extractor": [
     {
-      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore)(\\(.+\\))?!?:",
+      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate)(\\(.+\\))?(!|:)?\\s+",
       "on_property": "title",
-      "target": "$1"
+      "target": "$1",
+      "flags": "i"
     }
   ],
   "sort": {
     "order": "DESC",
     "on_property": "mergedAt"
   },
-  "template": "## What's Changed\n\n#{{CHANGELOG}}\n\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
+  "template": "## What's Changed\n\n#{{CHANGELOG}}\n\n## Miscellaneous\n\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
   "commit_template": "- #{{TITLE}} (#{{MERGE_SHA}})",
   "empty_template": "No changes in this release.",
   "transformers": [
     {
-      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore)(\\(.+\\))?!?:\\s*",
+      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate)(\\(.+\\))?(!|:)?\\s+",
       "target": "",
       "flags": "i"
     }
