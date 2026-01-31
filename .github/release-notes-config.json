@@ -31,7 +31,7 @@
   ],
   "label_extractor": [
     {
-      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate)(\\(.+\\))?(!|:)?\\s+",
+      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate){1}(\\([\\w\\-\\.]+\\))?(!)?(:)?\\s+([\\s\\S]*)",
       "on_property": "title",
       "target": "$1"
     }
