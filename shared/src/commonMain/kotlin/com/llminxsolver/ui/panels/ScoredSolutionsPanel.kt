@@ -75,7 +75,7 @@ import uniffi.llminxsolver.exportScoredXlsx
 
 enum class SortOption(val label: String) {
     MCC("MCC"),
-    MOVE_COUNT("Moves")
+    MOVE_COUNT("Movecount")
 }
 
 enum class ExportOption(val label: String, val filenamePrefix: String) {
@@ -92,7 +92,7 @@ fun ScoredSolutionsPanel(
     colorScheme: MegaminxColorScheme = MegaminxColorScheme(),
     ignoreFlags: IgnoreFlags = IgnoreFlags(),
     imageResolution: Int = 200,
-    metricLabel: String = "Moves",
+    metricLabel: String = "Movecount",
     maxSolutions: Int = 5,
     listHeight: Int? = null,
     onFlushTempFile: (() -> Unit)? = null,

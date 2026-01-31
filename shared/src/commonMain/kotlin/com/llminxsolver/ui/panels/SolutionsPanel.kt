@@ -2,6 +2,7 @@ package com.llminxsolver.ui.panels
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Done
@@ -74,6 +78,7 @@ fun SolutionsPanel(
     tempFilePath: String? = null,
     defaultCollapsed: Boolean = false,
     onExpandChange: ((Boolean) -> Unit)? = null,
+    listHeight: Int? = 400,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(!defaultCollapsed) }
@@ -266,36 +271,99 @@ fun SolutionsPanel(
                     }
 
                     else -> {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(400.dp),
-                            contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 16.dp
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            items(totalCount, key = { it }) { index ->
-                                val pageIndex = index / PAGE_SIZE
-                                val pageOffset = index % PAGE_SIZE
-                                val solution = pageCache[pageIndex]?.getOrNull(pageOffset)
+                        if (listHeight != null) {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(listHeight.dp)
+                                    .animateContentSize(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = 16.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(totalCount, key = { it }) { index ->
+                                    val pageIndex = index / PAGE_SIZE
+                                    val pageOffset = index % PAGE_SIZE
+                                    val solution = pageCache[pageIndex]?.getOrNull(pageOffset)
 
-                                if (solution != null) {
-                                    SolutionItem(
-                                        solution = solution,
-                                        isCopied = copiedSolutions[solution] == true,
-                                        onCopy = {
-                                            scope.launch { clipboard.setPlainText(solution) }
-                                            copiedSolutions[solution] = true
-                                        }
+                                    if (solution != null) {
+                                        SolutionItem(
+                                            solution = solution,
+                                            isCopied = copiedSolutions[solution] == true,
+                                            onCopy = {
+                                                scope.launch { clipboard.setPlainText(solution) }
+                                                copiedSolutions[solution] = true
+                                            }
+                                        )
+                                    } else {
+                                        ensureItemLoaded(index, totalCount)
+                                        Text(
+                                            text = "Loading...",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            LaunchedEffect(totalCount, tempFilePath) {
+                                if (totalCount > 0) {
+                                    val maxPage = minOf(2, (totalCount - 1) / PAGE_SIZE)
+                                    for (page in 0..maxPage) {
+                                        loadPage(page, totalCount)
+                                    }
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateContentSize(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
                                     )
-                                } else {
-                                    ensureItemLoaded(index, totalCount)
+                                    .padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 16.dp
+                                    ),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val loadedCount = pageCache.values.sumOf { it.size }
+                                val displayCount = minOf(loadedCount, totalCount)
+
+                                for (index in 0 until displayCount) {
+                                    val pageIndex = index / PAGE_SIZE
+                                    val pageOffset = index % PAGE_SIZE
+                                    val solution = pageCache[pageIndex]?.getOrNull(pageOffset)
+
+                                    if (solution != null) {
+                                        SolutionItem(
+                                            solution = solution,
+                                            isCopied = copiedSolutions[solution] == true,
+                                            onCopy = {
+                                                scope.launch { clipboard.setPlainText(solution) }
+                                                copiedSolutions[solution] = true
+                                            }
+                                        )
+                                    }
+                                }
+
+                                if (loadedCount < totalCount) {
                                     Text(
-                                        text = "Loading...",
+                                        text = "Loading ${totalCount - loadedCount} more...",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(vertical = 6.dp)
