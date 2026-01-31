@@ -2,39 +2,38 @@
   "categories": [
     {
       "title": "## New Features",
-      "labels": ["feat", "feature", "add", "implement", "wire"]
+      "labels": ["feat", "feature", "add", "implement", "wire", "New Features"]
     },
     {
       "title": "## Bug Fixes",
-      "labels": ["fix", "bug"]
+      "labels": ["fix", "bug", "Bug Fixes"]
     },
     {
       "title": "## Performance Improvements",
-      "labels": ["perf"]
+      "labels": ["perf", "Performance Improvements"]
     },
     {
       "title": "## Documentation",
-      "labels": ["docs", "doc"]
+      "labels": ["docs", "doc", "Documentation"]
     },
     {
       "title": "## Refactoring",
-      "labels": ["refactor", "update", "change", "remove", "migrate"]
+      "labels": ["refactor", "update", "change", "remove", "migrate", "Refactoring"]
     },
     {
       "title": "## Build & CI",
-      "labels": ["build", "ci", "deps"]
+      "labels": ["build", "ci", "deps", "Build & CI"]
     },
     {
       "title": "## Chores",
-      "labels": ["chore"]
+      "labels": ["chore", "Chores"]
     }
   ],
   "label_extractor": [
     {
       "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate)(\\(.+\\))?(!|:)?\\s+",
       "on_property": "title",
-      "target": "$1",
-      "flags": "i"
+      "target": "$1"
     }
   ],
   "sort": {
