@@ -43,12 +43,5 @@
   "template": "## What's Changed\n\n#{{CHANGELOG}}\n\n## Miscellaneous\n\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
   "commit_template": "- #{{TITLE}} (#{{MERGE_SHA}})",
   "empty_template": "No changes in this release.",
-  "transformers": [
-    {
-      "pattern": "^(feat|feature|fix|bug|perf|docs|doc|refactor|build|ci|chore|add|implement|wire|update|change|remove|deps|migrate)(\\(.+\\))?(!|:)?\\s+",
-      "target": "",
-      "flags": "i"
-    }
-  ],
   "trim_values": true
 }
