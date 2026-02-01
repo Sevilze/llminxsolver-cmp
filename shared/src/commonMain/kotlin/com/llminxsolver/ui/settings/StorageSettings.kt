@@ -159,7 +159,7 @@ internal fun PruningTableItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = String.format("%.1f MB", table.sizeMB),
+                    text = String.format("%.3f MB", table.sizeMB),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

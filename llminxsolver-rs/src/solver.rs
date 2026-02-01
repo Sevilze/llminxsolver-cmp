@@ -1,11 +1,11 @@
 use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
-use crate::pruner::{Pruner, DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH};
+use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH, Pruner};
 use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StatusEventType {
@@ -818,16 +818,23 @@ impl Solver {
                     .filter(|a| a.load(Ordering::Relaxed) != u8::MAX)
                     .count();
 
+                // Find the actual maximum depth in the loaded table
+                let actual_max_depth = atomic_table
+                    .iter()
+                    .map(|a| a.load(Ordering::Relaxed))
+                    .filter(|&d| d != u8::MAX)
+                    .max()
+                    .unwrap_or(0);
+
                 self.fire_event(StatusEvent::new(
                     StatusEventType::Message,
                     &format!(
-                        "Loaded base table at depth {} ({} positions filled)",
-                        base, filled
+                        "Loaded base table at depth {} ({} positions filled, actual max depth: {})",
+                        base, filled, actual_max_depth
                     ),
                     filled as f64 / table_size as f64,
                 ));
-
-                (atomic_table, base, filled)
+                (atomic_table, actual_max_depth, filled)
             } else {
                 let atomic_table: Vec<AtomicU8> =
                     (0..table_size).map(|_| AtomicU8::new(u8::MAX)).collect();
