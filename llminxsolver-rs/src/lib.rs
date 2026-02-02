@@ -1,3 +1,4 @@
+pub mod batch_solver;
 pub mod coordinate;
 pub mod data_directory;
 pub mod mcc;

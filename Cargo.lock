@@ -720,6 +720,7 @@ dependencies = [
  "llminxsolver-rs",
  "once_cell",
  "serde",
+ "thiserror",
  "uniffi",
 ]
 
