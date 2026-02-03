@@ -160,9 +160,152 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_scheme_type_default() {
+        let default: SchemeType = Default::default();
+        assert_eq!(default, SchemeType::TonalSpot);
+    }
+
+    #[test]
+    fn test_scheme_type_variants() {
+        let variants = [
+            SchemeType::TonalSpot,
+            SchemeType::Content,
+            SchemeType::Expressive,
+            SchemeType::Fidelity,
+            SchemeType::FruitSalad,
+            SchemeType::Monochrome,
+            SchemeType::Neutral,
+            SchemeType::Rainbow,
+            SchemeType::Vibrant,
+        ];
+
+        for variant in &variants {
+            let cloned = *variant;
+            assert_eq!(*variant, cloned);
+        }
+    }
+
+    #[test]
+    fn test_scheme_type_clone() {
+        let scheme = SchemeType::Vibrant;
+        let cloned = scheme;
+        assert_eq!(scheme, cloned);
+    }
+
+    #[test]
+    fn test_scheme_type_eq() {
+        assert_eq!(SchemeType::TonalSpot, SchemeType::TonalSpot);
+        assert_ne!(SchemeType::TonalSpot, SchemeType::Vibrant);
+    }
+
+    #[test]
+    fn test_argb_to_hex() {
+        let argb = Argb::new(255, 255, 0, 0);
+        let hex = argb_to_hex(argb);
+        assert_eq!(hex, "#FF0000");
+
+        let argb = Argb::new(255, 0, 255, 0);
+        let hex = argb_to_hex(argb);
+        assert_eq!(hex, "#00FF00");
+
+        let argb = Argb::new(255, 0, 0, 255);
+        let hex = argb_to_hex(argb);
+        assert_eq!(hex, "#0000FF");
+
+        let argb = Argb::new(255, 0, 0, 0);
+        let hex = argb_to_hex(argb);
+        assert_eq!(hex, "#000000");
+
+        let argb = Argb::new(255, 255, 255, 255);
+        let hex = argb_to_hex(argb);
+        assert_eq!(hex, "#FFFFFF");
+    }
+
+    #[test]
+    fn test_theme_colors_serialization() {
+        let colors = ThemeColors {
+            primary: "#FF0000".to_string(),
+            on_primary: "#FFFFFF".to_string(),
+            primary_container: "#FFCCCC".to_string(),
+            on_primary_container: "#000000".to_string(),
+            secondary: "#00FF00".to_string(),
+            on_secondary: "#000000".to_string(),
+            secondary_container: "#CCFFCC".to_string(),
+            on_secondary_container: "#000000".to_string(),
+            tertiary: "#0000FF".to_string(),
+            on_tertiary: "#FFFFFF".to_string(),
+            tertiary_container: "#CCCCFF".to_string(),
+            on_tertiary_container: "#000000".to_string(),
+            error: "#FF0000".to_string(),
+            on_error: "#FFFFFF".to_string(),
+            error_container: "#FFCCCC".to_string(),
+            on_error_container: "#000000".to_string(),
+            background: "#FFFFFF".to_string(),
+            on_background: "#000000".to_string(),
+            surface: "#FFFFFF".to_string(),
+            on_surface: "#000000".to_string(),
+            surface_variant: "#EEEEEE".to_string(),
+            on_surface_variant: "#000000".to_string(),
+            outline: "#CCCCCC".to_string(),
+            outline_variant: "#DDDDDD".to_string(),
+            inverse_surface: "#000000".to_string(),
+            inverse_on_surface: "#FFFFFF".to_string(),
+            inverse_primary: "#0000FF".to_string(),
+            surface_tint: "#FF0000".to_string(),
+            surface_dim: "#DDDDDD".to_string(),
+            surface_bright: "#FFFFFF".to_string(),
+            surface_container_lowest: "#FFFFFF".to_string(),
+            surface_container_low: "#F5F5F5".to_string(),
+            surface_container: "#EEEEEE".to_string(),
+            surface_container_high: "#E5E5E5".to_string(),
+            surface_container_highest: "#DDDDDD".to_string(),
+        };
+
+        let json = serde_json::to_string(&colors).unwrap();
+        assert!(!json.is_empty());
+
+        let deserialized: ThemeColors = serde_json::from_str(&json).unwrap();
+        assert_eq!(colors.primary, deserialized.primary);
+        assert_eq!(colors.secondary, deserialized.secondary);
+        assert_eq!(colors.background, deserialized.background);
+    }
+
+    #[test]
+    fn test_generate_theme_from_image_nonexistent() {
+        let result =
+            generate_theme_from_image("/nonexistent/path.jpg", true, SchemeType::TonalSpot);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_generate_theme_from_image_invalid() {
+        let result = generate_theme_from_image("", true, SchemeType::TonalSpot);
+        assert!(result.is_none());
+    }
+
+    #[test]
     fn test_generate_theme() {
         if let Some(theme) = generate_theme_from_wallpaper(true, SchemeType::TonalSpot) {
-            println!("Generated dark theme primary: {}", theme.primary);
+            assert!(!theme.primary.is_empty());
+            assert!(!theme.on_primary.is_empty());
+            assert!(!theme.background.is_empty());
+            assert!(!theme.surface.is_empty());
+
+            assert!(theme.primary.starts_with('#'));
+            assert!(theme.background.starts_with('#'));
         }
+    }
+
+    #[test]
+    fn test_scheme_type_serialize() {
+        let scheme = SchemeType::TonalSpot;
+        let json = serde_json::to_string(&scheme).unwrap();
+        let deserialized: SchemeType = serde_json::from_str(&json).unwrap();
+        assert_eq!(scheme, deserialized);
+
+        let scheme = SchemeType::Vibrant;
+        let json = serde_json::to_string(&scheme).unwrap();
+        let deserialized: SchemeType = serde_json::from_str(&json).unwrap();
+        assert_eq!(scheme, deserialized);
     }
 }
