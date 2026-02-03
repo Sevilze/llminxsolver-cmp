@@ -38,3 +38,87 @@ pub enum TestResult {
     Continue([f64; 6]),
     Error(String),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mcc_params_default() {
+        let params = MCCParams::default();
+        assert_eq!(params.wrist_mult, 0.8);
+        assert_eq!(params.push_mult, 1.3);
+        assert_eq!(params.ring_mult, 1.4);
+        assert_eq!(params.destabilize, 0.5);
+        assert_eq!(params.add_regrip, 1.0);
+        assert_eq!(params.double, 1.65);
+        assert_eq!(params.over_work_mult, 2.25);
+        assert_eq!(params.moveblock, 0.8);
+        assert_eq!(params.rotation, 3.5);
+    }
+
+    #[test]
+    fn test_mcc_params_clone() {
+        let params = MCCParams::default();
+        let cloned = params;
+        assert_eq!(params.wrist_mult, cloned.wrist_mult);
+        assert_eq!(params.push_mult, cloned.push_mult);
+    }
+
+    #[test]
+    fn test_valid_moves_array() {
+        assert_eq!(VALID_MOVES.len(), 30);
+        assert!(VALID_MOVES.contains(&"u"));
+        assert!(VALID_MOVES.contains(&"u'"));
+        assert!(VALID_MOVES.contains(&"u2"));
+        assert!(VALID_MOVES.contains(&"r"));
+        assert!(VALID_MOVES.contains(&"r'"));
+        assert!(VALID_MOVES.contains(&"r2"));
+        assert!(VALID_MOVES.contains(&"f"));
+        assert!(VALID_MOVES.contains(&"f'"));
+        assert!(VALID_MOVES.contains(&"f2"));
+        assert!(VALID_MOVES.contains(&"d"));
+        assert!(VALID_MOVES.contains(&"d'"));
+        assert!(VALID_MOVES.contains(&"d2"));
+        assert!(VALID_MOVES.contains(&"l"));
+        assert!(VALID_MOVES.contains(&"l'"));
+        assert!(VALID_MOVES.contains(&"l2"));
+        assert!(VALID_MOVES.contains(&"bl"));
+        assert!(VALID_MOVES.contains(&"bl'"));
+        assert!(VALID_MOVES.contains(&"bl2"));
+        assert!(VALID_MOVES.contains(&"br"));
+        assert!(VALID_MOVES.contains(&"br'"));
+        assert!(VALID_MOVES.contains(&"br2"));
+        assert!(VALID_MOVES.contains(&"x"));
+        assert!(VALID_MOVES.contains(&"x'"));
+        assert!(VALID_MOVES.contains(&"x2"));
+        assert!(VALID_MOVES.contains(&"y"));
+        assert!(VALID_MOVES.contains(&"y'"));
+        assert!(VALID_MOVES.contains(&"y2"));
+        assert!(VALID_MOVES.contains(&"z"));
+        assert!(VALID_MOVES.contains(&"z'"));
+        assert!(VALID_MOVES.contains(&"z2"));
+    }
+
+    #[test]
+    fn test_test_result_continue() {
+        let state = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let result = TestResult::Continue(state);
+        match result {
+            TestResult::Continue(arr) => {
+                assert_eq!(arr[0], 1.0);
+                assert_eq!(arr[5], 6.0);
+            }
+            TestResult::Error(_) => panic!("Expected Continue"),
+        }
+    }
+
+    #[test]
+    fn test_test_result_error() {
+        let result = TestResult::Error("test error".to_string());
+        match result {
+            TestResult::Error(msg) => assert_eq!(msg, "test error"),
+            TestResult::Continue(_) => panic!("Expected Error"),
+        }
+    }
+}

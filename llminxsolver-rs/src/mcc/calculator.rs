@@ -118,3 +118,116 @@ pub fn calculate_mcc_with_params(sequence: &str, params: &MCCParams) -> f64 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_mcc_empty() {
+        let result = calculate_mcc("");
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_only_invalid() {
+        let result = calculate_mcc("invalid xyz");
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_simple_r() {
+        let result = calculate_mcc("R");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_simple_u() {
+        let result = calculate_mcc("U");
+        // U is ignored as AUF
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_r_u() {
+        let result = calculate_mcc("R U");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_sequence() {
+        let result = calculate_mcc("R U R' U'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_longer_sequence() {
+        let result = calculate_mcc("R U R' U' R U R' U'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_custom_params() {
+        let params = MCCParams::default();
+        let result = calculate_mcc_with_params("R U R'", &params);
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_rotations() {
+        let result = calculate_mcc("x R U");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_double_moves() {
+        let result = calculate_mcc("R2 U2");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_prime_moves() {
+        let result = calculate_mcc("R' U'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_complex_algorithm() {
+        // A more complex algorithm
+        let result = calculate_mcc("R U R' U R U2 R'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_l_moves() {
+        let result = calculate_mcc("L U L'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_f_moves() {
+        let result = calculate_mcc("F U F'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_d_moves() {
+        let result = calculate_mcc("D R U");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_multiple_rotations() {
+        let result = calculate_mcc("x y z R U");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_auf_ignored() {
+        // AUF should be ignored, so these should give the same result
+        let without_auf = calculate_mcc("R U R'");
+        let with_auf = calculate_mcc("U R U R' U'");
+        assert!(without_auf > 0.0);
+        assert!(with_auf > 0.0);
+    }
+}

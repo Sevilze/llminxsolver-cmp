@@ -453,3 +453,249 @@ impl std::fmt::Display for SearchMode {
         write!(f, "{}", self.description())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_metric_fifth() {
+        assert_eq!(Metric::Fifth.description(), "Fifth turn metric");
+        assert_eq!(format!("{}", Metric::Fifth), "Fifth turn metric");
+    }
+
+    #[test]
+    fn test_metric_face() {
+        assert_eq!(Metric::Face.description(), "Face turn metric");
+        assert_eq!(format!("{}", Metric::Face), "Face turn metric");
+    }
+
+    #[test]
+    fn test_metric_clone() {
+        let metric = Metric::Fifth;
+        let cloned = metric;
+        assert_eq!(metric, cloned);
+    }
+
+    #[test]
+    fn test_search_mode_ru_description() {
+        assert_eq!(SearchMode::RU.description(), "RU");
+    }
+
+    #[test]
+    fn test_search_mode_ruf_description() {
+        assert_eq!(SearchMode::RUF.description(), "RUF");
+    }
+
+    #[test]
+    fn test_search_mode_rul_description() {
+        assert_eq!(SearchMode::RUL.description(), "RUL");
+    }
+
+    #[test]
+    fn test_search_mode_rufl_description() {
+        assert_eq!(SearchMode::RUFL.description(), "RUFL");
+    }
+
+    #[test]
+    fn test_search_mode_ruflbl_description() {
+        assert_eq!(SearchMode::RUFLbL.description(), "RUFLbL");
+    }
+
+    #[test]
+    fn test_search_mode_rubl_description() {
+        assert_eq!(SearchMode::RUbL.description(), "RUbL");
+    }
+
+    #[test]
+    fn test_search_mode_rubr_description() {
+        assert_eq!(SearchMode::RUbR.description(), "RUbR");
+    }
+
+    #[test]
+    fn test_search_mode_rud_description() {
+        assert_eq!(SearchMode::RUD.description(), "RUD");
+    }
+
+    #[test]
+    fn test_search_mode_display() {
+        assert_eq!(format!("{}", SearchMode::RU), "RU");
+        assert_eq!(format!("{}", SearchMode::RUF), "RUF");
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_ru() {
+        let moves = SearchMode::RU.possible_moves();
+        assert_eq!(moves.len(), 8);
+        assert!(moves.contains(&Move::R));
+        assert!(moves.contains(&Move::U));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_ruf() {
+        let moves = SearchMode::RUF.possible_moves();
+        assert_eq!(moves.len(), 12);
+        assert!(moves.contains(&Move::R));
+        assert!(moves.contains(&Move::U));
+        assert!(moves.contains(&Move::F));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_rul() {
+        let moves = SearchMode::RUL.possible_moves();
+        assert_eq!(moves.len(), 12);
+        assert!(moves.contains(&Move::L));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_rufl() {
+        let moves = SearchMode::RUFL.possible_moves();
+        assert_eq!(moves.len(), 16);
+        assert!(moves.contains(&Move::L));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_ruflbl() {
+        let moves = SearchMode::RUFLbL.possible_moves();
+        assert_eq!(moves.len(), 20);
+        assert!(moves.contains(&Move::bL));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_rubl() {
+        let moves = SearchMode::RUbL.possible_moves();
+        assert_eq!(moves.len(), 12);
+        assert!(moves.contains(&Move::bL));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_rubr() {
+        let moves = SearchMode::RUbR.possible_moves();
+        assert_eq!(moves.len(), 12);
+        assert!(moves.contains(&Move::bR));
+    }
+
+    #[test]
+    fn test_search_mode_possible_moves_rud() {
+        let moves = SearchMode::RUD.possible_moves();
+        assert_eq!(moves.len(), 12);
+        assert!(moves.contains(&Move::D));
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_ru() {
+        let pruners = SearchMode::RU.create_pruners();
+        assert!(!pruners.is_empty());
+        // RU has edge permutation and composite (corner perm + corner orient)
+        assert_eq!(pruners.len(), 2);
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_ruf() {
+        let pruners = SearchMode::RUF.create_pruners();
+        assert!(!pruners.is_empty());
+        // RUF has corner perm, edge perm, and composite orientations
+        assert_eq!(pruners.len(), 3);
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_rul() {
+        let pruners = SearchMode::RUL.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_rufl() {
+        let pruners = SearchMode::RUFL.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_ruflbl() {
+        let pruners = SearchMode::RUFLbL.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_rubl() {
+        let pruners = SearchMode::RUbL.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_rubr() {
+        let pruners = SearchMode::RUbR.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_create_pruners_rud() {
+        let pruners = SearchMode::RUD.create_pruners();
+        assert!(!pruners.is_empty());
+    }
+
+    #[test]
+    fn test_search_mode_serialize() {
+        // Test that SearchMode can be serialized
+        let mode = SearchMode::RU;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert!(!json.is_empty());
+
+        // Test deserialization
+        let deserialized: SearchMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(mode, deserialized);
+    }
+
+    #[test]
+    fn test_search_mode_all_variants_serialize() {
+        let modes = [
+            SearchMode::RU,
+            SearchMode::RUF,
+            SearchMode::RUL,
+            SearchMode::RUFL,
+            SearchMode::RUFLbL,
+            SearchMode::RUbL,
+            SearchMode::RUbR,
+            SearchMode::RUD,
+        ];
+
+        for mode in &modes {
+            let json = serde_json::to_string(mode).unwrap();
+            let deserialized: SearchMode = serde_json::from_str(&json).unwrap();
+            assert_eq!(*mode, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_metric_serialize() {
+        let metric = Metric::Fifth;
+        let json = serde_json::to_string(&metric).unwrap();
+        let deserialized: Metric = serde_json::from_str(&json).unwrap();
+        assert_eq!(metric, deserialized);
+
+        let metric = Metric::Face;
+        let json = serde_json::to_string(&metric).unwrap();
+        let deserialized: Metric = serde_json::from_str(&json).unwrap();
+        assert_eq!(metric, deserialized);
+    }
+
+    #[test]
+    fn test_search_mode_clone() {
+        let mode = SearchMode::RU;
+        let cloned = mode;
+        assert_eq!(mode, cloned);
+    }
+
+    #[test]
+    fn test_search_mode_eq() {
+        assert_eq!(SearchMode::RU, SearchMode::RU);
+        assert_ne!(SearchMode::RU, SearchMode::RUF);
+    }
+
+    #[test]
+    fn test_metric_eq() {
+        assert_eq!(Metric::Fifth, Metric::Fifth);
+        assert_eq!(Metric::Face, Metric::Face);
+        assert_ne!(Metric::Fifth, Metric::Face);
+    }
+}
