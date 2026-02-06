@@ -7,6 +7,7 @@
 //! - Modifiers: `#1,3,5-10,15+` for selective case solving
 
 use super::types::{BatchError, CaseModifiers, ParsedScramble, ScrambleSegment};
+use crate::minx::Move;
 
 /// Parser for scramble syntax
 pub struct ScrambleParser;
@@ -122,7 +123,7 @@ impl ScrambleParser {
 
                     // Parse series content
                     let content = Self::extract_bracketed_content(&mut chars, ']')?;
-                    let series = Self::split_series_content(&content);
+                    let series = Self::split_moves(&content);
                     segments.push(ScrambleSegment::Series(series));
                 }
                 '<' => {
@@ -134,7 +135,7 @@ impl ScrambleParser {
 
                     // Parse generators content
                     let content = Self::extract_bracketed_content(&mut chars, '>')?;
-                    let generators = Self::split_series_content(&content);
+                    let generators = Self::split_moves(&content);
                     segments.push(ScrambleSegment::Generators(generators));
                 }
                 _ => {
@@ -184,8 +185,7 @@ impl ScrambleParser {
         )))
     }
 
-    /// Split series content by commas (respecting nested brackets)
-    fn split_series_content(content: &str) -> Vec<String> {
+    fn split_moves(content: &str) -> Vec<String> {
         let mut result = Vec::new();
         let mut current = String::new();
         let mut bracket_depth = 0;
@@ -217,7 +217,79 @@ impl ScrambleParser {
             result.push(current.trim().to_string());
         }
 
+        if result.len() == 1 && !content.contains(',') {
+            return content
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
+
         result
+    }
+
+    /// Parse a move string into Move enum values
+    pub fn parse_moves(input: &str) -> Result<Vec<Move>, BatchError> {
+        let move_strs: Vec<&str> = input.split_whitespace().collect();
+        let mut moves = Vec::with_capacity(move_strs.len());
+
+        for s in move_strs {
+            let mv = Self::parse_single_move(s.trim())?;
+            moves.push(mv);
+        }
+
+        Ok(moves)
+    }
+
+    /// Parse a single move string
+    pub fn parse_single_move(input: &str) -> Result<Move, BatchError> {
+        // Handle common move formats
+        let input = input.trim();
+
+        // Standard face turns
+        match input {
+            "R" => return Ok(Move::R),
+            "R'" | "Ri" => return Ok(Move::Ri),
+            "R2" => return Ok(Move::R2),
+            "R2'" | "R2i" => return Ok(Move::R2i),
+
+            "L" => return Ok(Move::L),
+            "L'" | "Li" => return Ok(Move::Li),
+            "L2" => return Ok(Move::L2),
+            "L2'" | "L2i" => return Ok(Move::L2i),
+
+            "U" => return Ok(Move::U),
+            "U'" | "Ui" => return Ok(Move::Ui),
+            "U2" => return Ok(Move::U2),
+            "U2'" | "U2i" => return Ok(Move::U2i),
+
+            "F" => return Ok(Move::F),
+            "F'" | "Fi" => return Ok(Move::Fi),
+            "F2" => return Ok(Move::F2),
+            "F2'" | "F2i" => return Ok(Move::F2i),
+
+            "bL" => return Ok(Move::bL),
+            "bL'" | "bLi" => return Ok(Move::bLi),
+            "bL2" => return Ok(Move::bL2),
+            "bL2'" | "bL2i" => return Ok(Move::bL2i),
+
+            "bR" => return Ok(Move::bR),
+            "bR'" | "bRi" => return Ok(Move::bRi),
+            "bR2" => return Ok(Move::bR2),
+            "bR2'" | "bR2i" => return Ok(Move::bR2i),
+
+            "D" => return Ok(Move::D),
+            "D'" | "Di" => return Ok(Move::Di),
+            "D2" => return Ok(Move::D2),
+            "D2'" | "D2i" => return Ok(Move::D2i),
+
+            _ => {}
+        }
+
+        Err(BatchError::InvalidMove(format!(
+            "Unrecognized move: '{}'",
+            input
+        )))
     }
 
     /// Parse equivalence definition string
@@ -275,15 +347,6 @@ impl ScrambleParser {
         }
 
         (equivalences, orientation_groups)
-    }
-
-    /// Parse a move string into individual moves
-    pub fn parse_moves(input: &str) -> Vec<String> {
-        input
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .filter(|s| !s.is_empty())
-            .collect()
     }
 }
 
@@ -375,5 +438,93 @@ mod tests {
     fn test_unclosed_bracket_error() {
         let result = ScrambleParser::parse("[R U R'");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_only_whitespace() {
+        let result = ScrambleParser::parse("   ").unwrap();
+        assert!(result.segments.is_empty());
+    }
+
+    #[test]
+    fn test_parse_nested_brackets() {
+        let result = ScrambleParser::parse("[[R U]]").unwrap();
+        assert_eq!(result.segments.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_modifier_invalid_range() {
+        let result = ScrambleParser::parse("R U #10-5").unwrap();
+        assert!(result.modifiers.ranges.is_empty());
+    }
+
+    #[test]
+    fn test_parse_modifier_zero_case() {
+        let result = ScrambleParser::parse("R U #0").unwrap();
+        assert!(result.modifiers.specific_cases.is_empty());
+    }
+
+    #[test]
+    fn test_parse_empty_series() {
+        let result = ScrambleParser::parse("[,]").unwrap();
+        assert_eq!(result.segments.len(), 1);
+    }
+
+    #[test]
+    fn test_split_moves() {
+        let moves = ScrambleParser::split_moves("R U R' U'");
+        assert_eq!(moves, vec!["R", "U", "R'", "U'"]);
+    }
+
+    #[test]
+    fn test_split_moves_empty() {
+        let moves = ScrambleParser::split_moves("");
+        assert!(moves.is_empty());
+    }
+
+    #[test]
+    fn test_split_moves_with_extra_spaces() {
+        let moves = ScrambleParser::split_moves("  R   U  ");
+        assert_eq!(moves, vec!["R", "U"]);
+    }
+
+    #[test]
+    fn test_unclosed_angle_bracket() {
+        let result = ScrambleParser::parse("<R U");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_equivalences_empty() {
+        let (equivs, groups) = ScrambleParser::parse_equivalences("");
+        assert!(equivs.is_empty());
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn test_parse_equivalences_only_braces() {
+        let (equivs, _) = ScrambleParser::parse_equivalences("{}");
+        assert!(equivs.is_empty());
+    }
+
+    #[test]
+    fn test_parse_modifiers_empty_parts() {
+        let result = ScrambleParser::parse("R #1,,2").unwrap();
+        assert_eq!(result.modifiers.specific_cases, vec![1, 2]);
+    }
+
+    #[test]
+    fn test_multiple_series_and_generators() {
+        let result = ScrambleParser::parse("[R, U] [U, D] <D, F>").unwrap();
+        assert_eq!(result.segments.len(), 3);
+    }
+
+    #[test]
+    fn test_series_with_nested_content() {
+        let result = ScrambleParser::parse("[R [U], F]").unwrap();
+        assert_eq!(result.segments.len(), 1);
+        if let ScrambleSegment::Series(v) = &result.segments[0] {
+            assert_eq!(v.len(), 2);
+        }
     }
 }
