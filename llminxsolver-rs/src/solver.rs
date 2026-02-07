@@ -1,11 +1,11 @@
 use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
-use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH, Pruner};
+use crate::pruner::{Pruner, DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH};
 use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 pub(crate) const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
     true, true, true, true, true, false, false, false, false, false, false, false, false, false,

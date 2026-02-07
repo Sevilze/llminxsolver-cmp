@@ -510,6 +510,6 @@ mod tests {
         let all_states = generator.generate(&parsed).unwrap();
         let filtered_states = generator.generate_filtered(&parsed).unwrap();
 
-        assert!(filtered_states.len() < all_states.len() || all_states.len() == 0);
+        assert!(filtered_states.len() < all_states.len() || all_states.is_empty());
     }
 }

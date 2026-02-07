@@ -308,4 +308,133 @@ mod tests {
         let deserialized: SchemeType = serde_json::from_str(&json).unwrap();
         assert_eq!(scheme, deserialized);
     }
+
+    #[test]
+    fn test_generate_scheme_all_types() {
+        let source = Hct::new(Argb::new(255, 100, 150, 200));
+
+        for scheme_type in [
+            SchemeType::TonalSpot,
+            SchemeType::Content,
+            SchemeType::Expressive,
+            SchemeType::Fidelity,
+            SchemeType::FruitSalad,
+            SchemeType::Monochrome,
+            SchemeType::Neutral,
+            SchemeType::Rainbow,
+            SchemeType::Vibrant,
+        ] {
+            let scheme_light = generate_scheme(source, false, scheme_type);
+            let scheme_dark = generate_scheme(source, true, scheme_type);
+
+            assert_ne!(scheme_light.primary, Argb::new(0, 0, 0, 0));
+            assert_ne!(scheme_dark.primary, Argb::new(0, 0, 0, 0));
+        }
+    }
+
+    #[test]
+    fn test_scheme_to_theme_colors() {
+        let source = Hct::new(Argb::new(255, 100, 150, 200));
+        let scheme = generate_scheme(source, false, SchemeType::TonalSpot);
+        let theme = scheme_to_theme_colors(&scheme);
+
+        assert!(theme.primary.starts_with('#'));
+        assert!(theme.on_primary.starts_with('#'));
+        assert!(theme.secondary.starts_with('#'));
+        assert!(theme.background.starts_with('#'));
+        assert!(theme.surface.starts_with('#'));
+        assert!(theme.error.starts_with('#'));
+        assert!(theme.outline.starts_with('#'));
+        assert!(theme.surface_dim.starts_with('#'));
+        assert!(theme.surface_bright.starts_with('#'));
+        assert!(theme.surface_container.starts_with('#'));
+    }
+
+    #[test]
+    fn test_theme_colors_debug() {
+        let colors = ThemeColors {
+            primary: "#FF0000".to_string(),
+            on_primary: "#FFFFFF".to_string(),
+            primary_container: "#FFCCCC".to_string(),
+            on_primary_container: "#000000".to_string(),
+            secondary: "#00FF00".to_string(),
+            on_secondary: "#000000".to_string(),
+            secondary_container: "#CCFFCC".to_string(),
+            on_secondary_container: "#000000".to_string(),
+            tertiary: "#0000FF".to_string(),
+            on_tertiary: "#FFFFFF".to_string(),
+            tertiary_container: "#CCCCFF".to_string(),
+            on_tertiary_container: "#000000".to_string(),
+            error: "#FF0000".to_string(),
+            on_error: "#FFFFFF".to_string(),
+            error_container: "#FFCCCC".to_string(),
+            on_error_container: "#000000".to_string(),
+            background: "#FFFFFF".to_string(),
+            on_background: "#000000".to_string(),
+            surface: "#FFFFFF".to_string(),
+            on_surface: "#000000".to_string(),
+            surface_variant: "#EEEEEE".to_string(),
+            on_surface_variant: "#000000".to_string(),
+            outline: "#CCCCCC".to_string(),
+            outline_variant: "#DDDDDD".to_string(),
+            inverse_surface: "#000000".to_string(),
+            inverse_on_surface: "#FFFFFF".to_string(),
+            inverse_primary: "#0000FF".to_string(),
+            surface_tint: "#FF0000".to_string(),
+            surface_dim: "#DDDDDD".to_string(),
+            surface_bright: "#FFFFFF".to_string(),
+            surface_container_lowest: "#FFFFFF".to_string(),
+            surface_container_low: "#F5F5F5".to_string(),
+            surface_container: "#EEEEEE".to_string(),
+            surface_container_high: "#E5E5E5".to_string(),
+            surface_container_highest: "#DDDDDD".to_string(),
+        };
+        let debug_str = format!("{:?}", colors);
+        assert!(debug_str.contains("ThemeColors"));
+        assert!(debug_str.contains("primary"));
+    }
+
+    #[test]
+    fn test_theme_colors_clone() {
+        let colors = ThemeColors {
+            primary: "#FF0000".to_string(),
+            on_primary: "#FFFFFF".to_string(),
+            primary_container: "#FFCCCC".to_string(),
+            on_primary_container: "#000000".to_string(),
+            secondary: "#00FF00".to_string(),
+            on_secondary: "#000000".to_string(),
+            secondary_container: "#CCFFCC".to_string(),
+            on_secondary_container: "#000000".to_string(),
+            tertiary: "#0000FF".to_string(),
+            on_tertiary: "#FFFFFF".to_string(),
+            tertiary_container: "#CCCCFF".to_string(),
+            on_tertiary_container: "#000000".to_string(),
+            error: "#FF0000".to_string(),
+            on_error: "#FFFFFF".to_string(),
+            error_container: "#FFCCCC".to_string(),
+            on_error_container: "#000000".to_string(),
+            background: "#FFFFFF".to_string(),
+            on_background: "#000000".to_string(),
+            surface: "#FFFFFF".to_string(),
+            on_surface: "#000000".to_string(),
+            surface_variant: "#EEEEEE".to_string(),
+            on_surface_variant: "#000000".to_string(),
+            outline: "#CCCCCC".to_string(),
+            outline_variant: "#DDDDDD".to_string(),
+            inverse_surface: "#000000".to_string(),
+            inverse_on_surface: "#FFFFFF".to_string(),
+            inverse_primary: "#0000FF".to_string(),
+            surface_tint: "#FF0000".to_string(),
+            surface_dim: "#DDDDDD".to_string(),
+            surface_bright: "#FFFFFF".to_string(),
+            surface_container_lowest: "#FFFFFF".to_string(),
+            surface_container_low: "#F5F5F5".to_string(),
+            surface_container: "#EEEEEE".to_string(),
+            surface_container_high: "#E5E5E5".to_string(),
+            surface_container_highest: "#DDDDDD".to_string(),
+        };
+        let cloned = colors.clone();
+        assert_eq!(colors.primary, cloned.primary);
+        assert_eq!(colors.secondary, cloned.secondary);
+    }
 }

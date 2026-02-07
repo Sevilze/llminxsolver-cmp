@@ -184,3 +184,110 @@ pub fn export_raw_xlsx_from_file(
 
     export_raw_xlsx(output_path, &algorithms, image_png_bytes, image_size)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_scored_solution_export_struct() {
+        let solution = ScoredSolutionExport {
+            mcc: 2.5,
+            move_count: 10,
+            algorithm: "R U R'".to_string(),
+        };
+        assert_eq!(solution.mcc, 2.5);
+        assert_eq!(solution.move_count, 10);
+        assert_eq!(solution.algorithm, "R U R'");
+    }
+
+    #[test]
+    fn test_scored_solution_export_clone() {
+        let solution = ScoredSolutionExport {
+            mcc: 3.0,
+            move_count: 5,
+            algorithm: "U R".to_string(),
+        };
+        let cloned = solution.clone();
+        assert_eq!(cloned.mcc, solution.mcc);
+        assert_eq!(cloned.move_count, solution.move_count);
+        assert_eq!(cloned.algorithm, solution.algorithm);
+    }
+
+    #[test]
+    fn test_export_scored_xlsx_empty() {
+        let temp_path = "/tmp/test_scored_empty.xlsx";
+        let result = export_scored_xlsx(temp_path, &[], None, 100);
+        assert!(result.is_ok());
+        let _ = fs::remove_file(temp_path);
+    }
+
+    #[test]
+    fn test_export_scored_xlsx_with_solutions() {
+        let temp_path = "/tmp/test_scored_with_solutions.xlsx";
+        let solutions = vec![
+            ScoredSolutionExport {
+                mcc: 1.5,
+                move_count: 5,
+                algorithm: "R U R'".to_string(),
+            },
+            ScoredSolutionExport {
+                mcc: 2.0,
+                move_count: 8,
+                algorithm: "R U R' U'".to_string(),
+            },
+        ];
+        let result = export_scored_xlsx(temp_path, &solutions, None, 100);
+        assert!(result.is_ok());
+        assert!(std::path::Path::new(temp_path).exists());
+        let _ = fs::remove_file(temp_path);
+    }
+
+    #[test]
+    fn test_export_raw_xlsx_empty() {
+        let temp_path = "/tmp/test_raw_empty.xlsx";
+        let result = export_raw_xlsx(temp_path, &[], None, 100);
+        assert!(result.is_ok());
+        let _ = fs::remove_file(temp_path);
+    }
+
+    #[test]
+    fn test_export_raw_xlsx_with_algorithms() {
+        let temp_path = "/tmp/test_raw_with_algs.xlsx";
+        let algorithms = vec![
+            "R U R'".to_string(),
+            "R U R' U'".to_string(),
+            "R U2 R'".to_string(),
+        ];
+        let result = export_raw_xlsx(temp_path, &algorithms, None, 100);
+        assert!(result.is_ok());
+        assert!(std::path::Path::new(temp_path).exists());
+        let _ = fs::remove_file(temp_path);
+    }
+
+    #[test]
+    fn test_export_raw_xlsx_from_file_nonexistent() {
+        let result =
+            export_raw_xlsx_from_file("/tmp/output.xlsx", "/nonexistent/file.txt", None, 100);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_export_raw_xlsx_from_file_valid() {
+        use std::io::Write;
+
+        let solutions_path = "/tmp/test_solutions.txt";
+        let mut file = fs::File::create(solutions_path).unwrap();
+        writeln!(file, "R U R'").unwrap();
+        writeln!(file, "R U2 R'").unwrap();
+        drop(file);
+
+        let output_path = "/tmp/test_raw_from_file.xlsx";
+        let result = export_raw_xlsx_from_file(output_path, solutions_path, None, 100);
+        assert!(result.is_ok());
+
+        let _ = fs::remove_file(solutions_path);
+        let _ = fs::remove_file(output_path);
+    }
+}
