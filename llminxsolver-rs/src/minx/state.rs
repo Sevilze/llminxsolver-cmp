@@ -4,7 +4,7 @@ pub const NUM_CORNERS: usize = 17;
 pub const NUM_EDGES: usize = 23;
 pub const MAX_SEARCH_DEPTH: usize = 100;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LLMinx {
     pub(crate) corner_positions: [u8; NUM_CORNERS],
     pub(crate) edge_positions: [u8; NUM_EDGES],
@@ -81,6 +81,11 @@ impl LLMinx {
     }
 
     #[inline]
+    pub fn set_corner_positions(&mut self, positions: [u8; NUM_CORNERS]) {
+        self.corner_positions = positions;
+    }
+
+    #[inline]
     pub fn edge_positions(&self) -> &[u8; NUM_EDGES] {
         &self.edge_positions
     }
@@ -88,6 +93,11 @@ impl LLMinx {
     #[inline]
     pub fn edge_positions_mut(&mut self) -> &mut [u8; NUM_EDGES] {
         &mut self.edge_positions
+    }
+
+    #[inline]
+    pub fn set_edge_positions(&mut self, positions: [u8; NUM_EDGES]) {
+        self.edge_positions = positions;
     }
 
     #[inline]
@@ -178,6 +188,11 @@ impl LLMinx {
     #[inline]
     pub fn moves(&self) -> &[Move] {
         &self.moves
+    }
+
+    pub fn clear_moves(&mut self) {
+        self.moves.clear();
+        self.last_move = None;
     }
 
     pub fn get_generating_moves(&self) -> String {
