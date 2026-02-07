@@ -191,3 +191,91 @@ interface TempFile {
     void delete_file();
     sequence<string> read_page(u64 offset, u64 limit);
 };
+
+// Batch Solver Types
+
+[Enum]
+interface SortingType {
+    SetPriority();
+    OrientationOf();
+    OrientationAt();
+    PermutationOf();
+    PermutationAt();
+};
+
+dictionary SortingCriterion {
+    SortingType sorting_type;
+    string pieces;
+};
+
+dictionary BatchSolverConfig {
+    string scramble;
+    string equivalences;
+    string pre_adjust;
+    string post_adjust;
+    sequence<SortingCriterion> sorting_criteria;
+    SearchMode search_mode;
+    Metric metric;
+    u8 pruning_depth;
+    u32 search_depth;
+    boolean stop_after_first;
+    ParallelConfig parallel_config;
+    boolean ignore_corner_orientation;
+    boolean ignore_corner_permutation;
+    boolean ignore_edge_orientation;
+    boolean ignore_edge_permutation;
+};
+
+dictionary GeneratedBatchState {
+    u32 case_number;
+    string setup_moves;
+    sequence<u8> corner_positions;
+    sequence<u8> corner_orientations;
+    sequence<u8> edge_positions;
+    sequence<u8> edge_orientations;
+};
+
+dictionary BatchCaseResult {
+    u32 case_number;
+    string setup_moves;
+    sequence<string> solutions;
+    string? best_solution;
+    f64 solve_time;
+};
+
+dictionary BatchSolveResults {
+    u32 total_cases;
+    u32 solved_cases;
+    sequence<u32> failed_cases;
+    sequence<BatchCaseResult> case_results;
+    f64 total_time;
+    f64 average_time_per_case;
+};
+
+callback interface BatchSolverCallback {
+    void on_progress(ProgressEvent event);
+    void on_case_solved(BatchCaseResult result);
+    void on_complete(BatchSolveResults results);
+};
+
+interface BatchSolverHandle {
+    [Throws=BatchSolverError]
+    constructor(BatchSolverConfig config);
+    void set_callback(BatchSolverCallback callback);
+    [Throws=BatchSolverError]
+    sequence<GeneratedBatchState> generate_states();
+    void start();
+    void cancel();
+    boolean is_running();
+    u32 get_total_cases();
+};
+
+[Error]
+interface BatchSolverError {
+    ParseError(string error_message);
+    InvalidMove(string error_message);
+    InvalidPiece(string error_message);
+    InvalidScramble(string error_message);
+    InvalidAdjust(string error_message);
+    InvalidEquivalence(string error_message);
+};
