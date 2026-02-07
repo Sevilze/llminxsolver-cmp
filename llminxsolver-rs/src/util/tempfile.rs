@@ -106,3 +106,103 @@ pub fn cleanup_stale_temp_files() {
         let _ = fs::remove_file(&path);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_temp_file_creation() {
+        let temp_file = TempFile::new();
+        assert!(temp_file.is_ok());
+    }
+
+    #[test]
+    fn test_temp_file_append() {
+        let mut temp_file = TempFile::new().unwrap();
+        let result = temp_file.append("test solution");
+        assert!(result.is_ok());
+        assert_eq!(temp_file.count(), 1);
+    }
+
+    #[test]
+    fn test_temp_file_append_multiple() {
+        let mut temp_file = TempFile::new().unwrap();
+        for i in 0..5 {
+            let result = temp_file.append(&format!("solution {}", i));
+            assert!(result.is_ok());
+        }
+        assert_eq!(temp_file.count(), 5);
+    }
+
+    #[test]
+    fn test_temp_file_get_path() {
+        let temp_file = TempFile::new().unwrap();
+        let path = temp_file.get_path();
+        assert!(
+            path.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .contains("llminx")
+        );
+    }
+
+    #[test]
+    fn test_temp_file_close() {
+        let mut temp_file = TempFile::new().unwrap();
+        temp_file.append("test").unwrap();
+        temp_file.close();
+        // After close, append should fail
+        let result = temp_file.append("another");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_temp_file_flush_file() {
+        let temp_file = TempFile::new().unwrap();
+        temp_file.flush_file();
+    }
+
+    #[test]
+    fn test_temp_file_delete_file() {
+        let mut temp_file = TempFile::new().unwrap();
+        temp_file.append("test").unwrap();
+        let path = temp_file.get_path().to_path_buf();
+
+        temp_file.delete_file();
+        assert!(!path.exists() || temp_file.append("should fail").is_err());
+    }
+
+    #[test]
+    fn test_temp_file_count() {
+        let mut temp_file = TempFile::new().unwrap();
+        assert_eq!(temp_file.count(), 0);
+        temp_file.append("test").unwrap();
+        assert_eq!(temp_file.count(), 1);
+    }
+
+    #[test]
+    fn test_cleanup_stale_temp_files() {
+        // Create a temp file first
+        let temp_file = TempFile::new().unwrap();
+        let _path = temp_file.get_path().to_path_buf();
+
+        // Manually delete to trigger cleanup (drop will also delete)
+        drop(temp_file);
+
+        // Cleanup should not panic even if file doesn't exist
+        cleanup_stale_temp_files();
+    }
+
+    #[test]
+    fn test_temp_file_append_after_close() {
+        let mut temp_file = TempFile::new().unwrap();
+        temp_file.append("before close").unwrap();
+        temp_file.close();
+
+        let result = temp_file.append("after close");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Writer is closed"));
+    }
+}
