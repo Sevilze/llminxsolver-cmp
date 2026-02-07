@@ -1,7 +1,7 @@
 use crate::batch_solver::types::{
     BatchCaseResult, BatchSolveResults, BatchSolverConfig, BatchSolverError, GeneratedBatchState,
 };
-use crate::solver::ProgressEvent;
+use crate::dedicated_solver::ProgressEvent;
 use llminxsolver_rs::StatusEvent;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
