@@ -7,6 +7,15 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
+pub(crate) const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
+    true, true, true, true, true, false, false, false, false, false, false, false, false, false,
+    false, false, false,
+];
+pub(crate) const IGNORE_EDGE_5: [bool; NUM_EDGES] = [
+    true, true, true, true, true, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false,
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StatusEventType {
     StartSearch,
@@ -230,17 +239,13 @@ impl Solver {
         self.interrupted.load(Ordering::SeqCst)
     }
 
-    pub fn solve(&mut self) -> Vec<String> {
-        let num_threads = self.memory_config.search_threads;
-        let start_time = std::time::Instant::now();
-        self.interrupted.store(false, Ordering::SeqCst);
-
-        // Check if configuration changed or tables are missing
-        // Using Some checking is safer than unwrap_or which glosses over None
+    /// Prepare pruning tables without solving.
+    /// Call this to pre-load/build tables before batch solving multiple states.
+    pub fn prepare_tables(&mut self) {
         if Some(self.search_mode) != self.last_search_mode
             || Some(self.metric) != self.last_metric
             || Some(self.pruning_depth) != self.last_pruning_depth
-            || self.tables.len() != self.pruners.len() // Ensure tables match pruners count
+            || self.tables.len() != self.pruners.len()
             || self.tables.is_empty()
         {
             self.build_moves_table();
@@ -254,18 +259,19 @@ impl Solver {
                 self.last_search_mode = None;
                 self.last_metric = None;
                 self.last_pruning_depth = None;
-                return Vec::new();
             }
         }
+    }
 
-        const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
-            true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false, false, false, false,
-        ];
-        const IGNORE_EDGE_5: [bool; NUM_EDGES] = [
-            true, true, true, true, true, false, false, false, false, false, false, false, false,
-            false, false, false, false, false, false, false, false, false, false,
-        ];
+    pub fn solve(&mut self) -> Vec<String> {
+        let num_threads = self.memory_config.search_threads;
+        let start_time = std::time::Instant::now();
+        self.interrupted.store(false, Ordering::SeqCst);
+
+        self.prepare_tables();
+        if self.is_interrupted() {
+            return Vec::new();
+        }
 
         let mut start = self.start.clone();
         if self.ignore_corner_positions {
@@ -517,7 +523,7 @@ impl Solver {
         }
     }
 
-    fn next_node(
+    pub(crate) fn next_node(
         minx: &mut LLMinx,
         target_depth: usize,
         first_moves: &[Move],
@@ -537,7 +543,7 @@ impl Solver {
         }
     }
 
-    fn back_track(minx: &mut LLMinx, next_siblings: &[Vec<Option<Move>>]) -> bool {
+    pub(crate) fn back_track(minx: &mut LLMinx, next_siblings: &[Vec<Option<Move>>]) -> bool {
         if minx.depth() <= 1 {
             return true;
         }
@@ -994,7 +1000,7 @@ impl Solver {
         &self.next_siblings
     }
 
-    fn check_optimal(minx: &LLMinx) -> bool {
+    pub(crate) fn check_optimal(minx: &LLMinx) -> bool {
         let moves = minx.moves();
         for i in 1..moves.len() {
             if i < moves.len() - 1 && moves[i - 1] == moves[i] && moves[i] == moves[i + 1] {

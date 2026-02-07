@@ -1,4 +1,6 @@
-use crate::solver::types::{MegaminxState, ParallelSolverConfig, ProgressEvent, SolverConfig};
+use crate::dedicated_solver::types::{
+    MegaminxState, ParallelSolverConfig, ProgressEvent, SolverConfig,
+};
 use llminxsolver_rs::{LLMinx, MemoryConfig, ParallelSolver, Solver, StatusEvent, StatusEventType};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};

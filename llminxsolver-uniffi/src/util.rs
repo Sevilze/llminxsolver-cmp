@@ -1,4 +1,4 @@
-use crate::solver::MegaminxState;
+use crate::dedicated_solver::MegaminxState;
 use llminxsolver_rs::MemoryConfig;
 
 #[derive(Debug, Clone)]

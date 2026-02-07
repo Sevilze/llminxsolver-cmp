@@ -1,4 +1,4 @@
-use crate::solver::{Metric, ParallelConfig, SearchMode};
+use crate::dedicated_solver::{Metric, ParallelConfig, SearchMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortingType {
