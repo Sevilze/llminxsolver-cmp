@@ -613,6 +613,15 @@ internal open class UniffiForeignFutureResultVoid(
 internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultVoid.UniffiByValue,)
 }
+internal interface UniffiCallbackInterfaceBatchSolverCallbackMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceBatchSolverCallbackMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`result`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceBatchSolverCallbackMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`results`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
 internal interface UniffiCallbackInterfaceSolverCallbackMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
@@ -621,6 +630,31 @@ internal interface UniffiCallbackInterfaceSolverCallbackMethod1 : com.sun.jna.Ca
 }
 internal interface UniffiCallbackInterfaceSolverCallbackMethod2 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "onProgress", "onCaseSolved", "onComplete")
+internal open class UniffiVTableCallbackInterfaceBatchSolverCallback(
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+    @JvmField internal var `onProgress`: UniffiCallbackInterfaceBatchSolverCallbackMethod0? = null,
+    @JvmField internal var `onCaseSolved`: UniffiCallbackInterfaceBatchSolverCallbackMethod1? = null,
+    @JvmField internal var `onComplete`: UniffiCallbackInterfaceBatchSolverCallbackMethod2? = null,
+) : Structure() {
+    class UniffiByValue(
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+        `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+        `onProgress`: UniffiCallbackInterfaceBatchSolverCallbackMethod0? = null,
+        `onCaseSolved`: UniffiCallbackInterfaceBatchSolverCallbackMethod1? = null,
+        `onComplete`: UniffiCallbackInterfaceBatchSolverCallbackMethod2? = null,
+    ): UniffiVTableCallbackInterfaceBatchSolverCallback(`uniffiFree`,`uniffiClone`,`onProgress`,`onCaseSolved`,`onComplete`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceBatchSolverCallback) {
+        `uniffiFree` = other.`uniffiFree`
+        `uniffiClone` = other.`uniffiClone`
+        `onProgress` = other.`onProgress`
+        `onCaseSolved` = other.`onCaseSolved`
+        `onComplete` = other.`onComplete`
+    }
+
 }
 @Structure.FieldOrder("uniffiFree", "uniffiClone", "onProgress", "onSolutionFound", "onComplete")
 internal open class UniffiVTableCallbackInterfaceSolverCallback(
@@ -702,6 +736,20 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_validate_megaminx_state(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_cancel(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_generate_states(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_get_total_cases(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_is_running(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_set_callback(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_start(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_update_config(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_is_running(
@@ -730,11 +778,19 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_constructor_batchsolverhandle_new(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_solverhandle_new(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_tempfile_new(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_progress(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_case_solved(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_complete(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress(
     ): Short
@@ -758,10 +814,31 @@ internal object UniffiLib {
 
     init {
         Native.register(UniffiLib::class.java, findLibraryName(componentName = "llminxsolver"))
+        uniffiCallbackInterfaceBatchSolverCallback.register(this)
         uniffiCallbackInterfaceSolverCallback.register(this)
         
     }
-    external fun uniffi_llminxsolver_uniffi_fn_clone_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    external fun uniffi_llminxsolver_uniffi_fn_clone_batchsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_free_batchsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_constructor_batchsolverhandle_new(`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_cancel(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_generate_states(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_get_total_cases(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_is_running(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_set_callback(`ptr`: Long,`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_start(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_update_config(`ptr`: Long,`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_clone_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): Long
 external fun uniffi_llminxsolver_uniffi_fn_free_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
@@ -807,6 +884,8 @@ external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_get_path(`ptr`: Long,
 ): RustBuffer.ByValue
 external fun uniffi_llminxsolver_uniffi_fn_method_tempfile_read_page(`ptr`: Long,`offset`: Long,`limit`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_init_callback_vtable_batchsolvercallback(`vtable`: UniffiVTableCallbackInterfaceBatchSolverCallback,
+): Unit
 external fun uniffi_llminxsolver_uniffi_fn_init_callback_vtable_solvercallback(`vtable`: UniffiVTableCallbackInterfaceSolverCallback,
 ): Unit
 external fun uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(`sequence`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1008,6 +1087,27 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_validate_megaminx_state() != 36547.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_cancel() != 18950.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_generate_states() != 52032.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_get_total_cases() != 64639.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_is_running() != 30031.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_set_callback() != 65325.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_start() != 18267.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_update_config() != 50524.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel() != 56044.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1050,6 +1150,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page() != 50374.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_batchsolverhandle_new() != 18463.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new() != 29738.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1057,6 +1160,15 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_tempfile_new() != 33414.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_progress() != 18027.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_case_solved() != 43943.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolvercallback_on_complete() != 62774.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_solvercallback_on_progress() != 279.toShort()) {
@@ -1425,6 +1537,351 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
         val byteBuf = toUtf8(value)
         buf.putInt(byteBuf.limit())
         buf.put(byteBuf)
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+public interface BatchSolverHandleInterface {
+    
+    fun `cancel`()
+    
+    fun `generateStates`(): List<GeneratedBatchState>
+    
+    fun `getTotalCases`(): kotlin.UInt
+    
+    fun `isRunning`(): kotlin.Boolean
+    
+    fun `setCallback`(`callback`: BatchSolverCallback)
+    
+    fun `start`()
+    
+    fun `updateConfig`(`config`: BatchSolverConfig)
+    
+    companion object
+}
+
+open class BatchSolverHandle: Disposable, AutoCloseable, BatchSolverHandleInterface
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+    constructor(`config`: BatchSolverConfig) :
+        this(UniffiWithHandle, 
+    uniffiRustCallWithError(BatchSolverException) { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_constructor_batchsolverhandle_new(
+    
+        FfiConverterTypeBatchSolverConfig.lower(`config`),_status)
+}
+    )
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_llminxsolver_uniffi_fn_free_batchsolverhandle(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_llminxsolver_uniffi_fn_clone_batchsolverhandle(handle, status)
+        }
+    }
+
+    override fun `cancel`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_cancel(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
+    @Throws(BatchSolverException::class)override fun `generateStates`(): List<GeneratedBatchState> {
+            return FfiConverterSequenceTypeGeneratedBatchState.lift(
+    callWithHandle {
+    uniffiRustCallWithError(BatchSolverException) { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_generate_states(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `getTotalCases`(): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_get_total_cases(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `isRunning`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_is_running(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `setCallback`(`callback`: BatchSolverCallback)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_set_callback(
+        it,
+        FfiConverterTypeBatchSolverCallback.lower(`callback`),_status)
+}
+    }
+    
+    
+
+    override fun `start`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_start(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    override fun `updateConfig`(`config`: BatchSolverConfig)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_update_config(
+        it,
+        FfiConverterTypeBatchSolverConfig.lower(`config`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchSolverHandle: FfiConverter<BatchSolverHandle, Long> {
+    override fun lower(value: BatchSolverHandle): Long {
+        return value.uniffiCloneHandle()
+    }
+
+    override fun lift(value: Long): BatchSolverHandle {
+        return BatchSolverHandle(UniffiWithHandle, value)
+    }
+
+    override fun read(buf: ByteBuffer): BatchSolverHandle {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: BatchSolverHandle) = 8UL
+
+    override fun write(value: BatchSolverHandle, buf: ByteBuffer) {
+        buf.putLong(lower(value))
     }
 }
 
@@ -2361,6 +2818,278 @@ public object FfiConverterTypeTempFile: FfiConverter<TempFile, Long> {
 
 
 
+data class BatchCaseResult (
+    var `caseNumber`: kotlin.UInt
+    , 
+    var `setupMoves`: kotlin.String
+    , 
+    var `solutions`: List<kotlin.String>
+    , 
+    var `bestSolution`: kotlin.String?
+    , 
+    var `solveTime`: kotlin.Double
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchCaseResult: FfiConverterRustBuffer<BatchCaseResult> {
+    override fun read(buf: ByteBuffer): BatchCaseResult {
+        return BatchCaseResult(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterDouble.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BatchCaseResult) = (
+            FfiConverterUInt.allocationSize(value.`caseNumber`) +
+            FfiConverterString.allocationSize(value.`setupMoves`) +
+            FfiConverterSequenceString.allocationSize(value.`solutions`) +
+            FfiConverterOptionalString.allocationSize(value.`bestSolution`) +
+            FfiConverterDouble.allocationSize(value.`solveTime`)
+    )
+
+    override fun write(value: BatchCaseResult, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`caseNumber`, buf)
+            FfiConverterString.write(value.`setupMoves`, buf)
+            FfiConverterSequenceString.write(value.`solutions`, buf)
+            FfiConverterOptionalString.write(value.`bestSolution`, buf)
+            FfiConverterDouble.write(value.`solveTime`, buf)
+    }
+}
+
+
+
+data class BatchSolveResults (
+    var `totalCases`: kotlin.UInt
+    , 
+    var `solvedCases`: kotlin.UInt
+    , 
+    var `failedCases`: List<kotlin.UInt>
+    , 
+    var `caseResults`: List<BatchCaseResult>
+    , 
+    var `totalTime`: kotlin.Double
+    , 
+    var `averageTimePerCase`: kotlin.Double
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchSolveResults: FfiConverterRustBuffer<BatchSolveResults> {
+    override fun read(buf: ByteBuffer): BatchSolveResults {
+        return BatchSolveResults(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterSequenceUInt.read(buf),
+            FfiConverterSequenceTypeBatchCaseResult.read(buf),
+            FfiConverterDouble.read(buf),
+            FfiConverterDouble.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BatchSolveResults) = (
+            FfiConverterUInt.allocationSize(value.`totalCases`) +
+            FfiConverterUInt.allocationSize(value.`solvedCases`) +
+            FfiConverterSequenceUInt.allocationSize(value.`failedCases`) +
+            FfiConverterSequenceTypeBatchCaseResult.allocationSize(value.`caseResults`) +
+            FfiConverterDouble.allocationSize(value.`totalTime`) +
+            FfiConverterDouble.allocationSize(value.`averageTimePerCase`)
+    )
+
+    override fun write(value: BatchSolveResults, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`totalCases`, buf)
+            FfiConverterUInt.write(value.`solvedCases`, buf)
+            FfiConverterSequenceUInt.write(value.`failedCases`, buf)
+            FfiConverterSequenceTypeBatchCaseResult.write(value.`caseResults`, buf)
+            FfiConverterDouble.write(value.`totalTime`, buf)
+            FfiConverterDouble.write(value.`averageTimePerCase`, buf)
+    }
+}
+
+
+
+data class BatchSolverConfig (
+    var `scramble`: kotlin.String
+    , 
+    var `equivalences`: kotlin.String
+    , 
+    var `preAdjust`: kotlin.String
+    , 
+    var `postAdjust`: kotlin.String
+    , 
+    var `sortingCriteria`: List<SortingCriterion>
+    , 
+    var `searchMode`: SearchMode
+    , 
+    var `metric`: Metric
+    , 
+    var `pruningDepth`: kotlin.UByte
+    , 
+    var `searchDepth`: kotlin.UInt
+    , 
+    var `stopAfterFirst`: kotlin.Boolean
+    , 
+    var `parallelConfig`: ParallelConfig
+    , 
+    var `ignoreCornerOrientation`: kotlin.Boolean
+    , 
+    var `ignoreCornerPermutation`: kotlin.Boolean
+    , 
+    var `ignoreEdgeOrientation`: kotlin.Boolean
+    , 
+    var `ignoreEdgePermutation`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchSolverConfig: FfiConverterRustBuffer<BatchSolverConfig> {
+    override fun read(buf: ByteBuffer): BatchSolverConfig {
+        return BatchSolverConfig(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeSortingCriterion.read(buf),
+            FfiConverterTypeSearchMode.read(buf),
+            FfiConverterTypeMetric.read(buf),
+            FfiConverterUByte.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterTypeParallelConfig.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BatchSolverConfig) = (
+            FfiConverterString.allocationSize(value.`scramble`) +
+            FfiConverterString.allocationSize(value.`equivalences`) +
+            FfiConverterString.allocationSize(value.`preAdjust`) +
+            FfiConverterString.allocationSize(value.`postAdjust`) +
+            FfiConverterSequenceTypeSortingCriterion.allocationSize(value.`sortingCriteria`) +
+            FfiConverterTypeSearchMode.allocationSize(value.`searchMode`) +
+            FfiConverterTypeMetric.allocationSize(value.`metric`) +
+            FfiConverterUByte.allocationSize(value.`pruningDepth`) +
+            FfiConverterUInt.allocationSize(value.`searchDepth`) +
+            FfiConverterBoolean.allocationSize(value.`stopAfterFirst`) +
+            FfiConverterTypeParallelConfig.allocationSize(value.`parallelConfig`) +
+            FfiConverterBoolean.allocationSize(value.`ignoreCornerOrientation`) +
+            FfiConverterBoolean.allocationSize(value.`ignoreCornerPermutation`) +
+            FfiConverterBoolean.allocationSize(value.`ignoreEdgeOrientation`) +
+            FfiConverterBoolean.allocationSize(value.`ignoreEdgePermutation`)
+    )
+
+    override fun write(value: BatchSolverConfig, buf: ByteBuffer) {
+            FfiConverterString.write(value.`scramble`, buf)
+            FfiConverterString.write(value.`equivalences`, buf)
+            FfiConverterString.write(value.`preAdjust`, buf)
+            FfiConverterString.write(value.`postAdjust`, buf)
+            FfiConverterSequenceTypeSortingCriterion.write(value.`sortingCriteria`, buf)
+            FfiConverterTypeSearchMode.write(value.`searchMode`, buf)
+            FfiConverterTypeMetric.write(value.`metric`, buf)
+            FfiConverterUByte.write(value.`pruningDepth`, buf)
+            FfiConverterUInt.write(value.`searchDepth`, buf)
+            FfiConverterBoolean.write(value.`stopAfterFirst`, buf)
+            FfiConverterTypeParallelConfig.write(value.`parallelConfig`, buf)
+            FfiConverterBoolean.write(value.`ignoreCornerOrientation`, buf)
+            FfiConverterBoolean.write(value.`ignoreCornerPermutation`, buf)
+            FfiConverterBoolean.write(value.`ignoreEdgeOrientation`, buf)
+            FfiConverterBoolean.write(value.`ignoreEdgePermutation`, buf)
+    }
+}
+
+
+
+data class GeneratedBatchState (
+    var `caseNumber`: kotlin.UInt
+    , 
+    var `setupMoves`: kotlin.String
+    , 
+    var `cornerPositions`: List<kotlin.UByte>
+    , 
+    var `cornerOrientations`: List<kotlin.UByte>
+    , 
+    var `edgePositions`: List<kotlin.UByte>
+    , 
+    var `edgeOrientations`: List<kotlin.UByte>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGeneratedBatchState: FfiConverterRustBuffer<GeneratedBatchState> {
+    override fun read(buf: ByteBuffer): GeneratedBatchState {
+        return GeneratedBatchState(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceUByte.read(buf),
+            FfiConverterSequenceUByte.read(buf),
+            FfiConverterSequenceUByte.read(buf),
+            FfiConverterSequenceUByte.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GeneratedBatchState) = (
+            FfiConverterUInt.allocationSize(value.`caseNumber`) +
+            FfiConverterString.allocationSize(value.`setupMoves`) +
+            FfiConverterSequenceUByte.allocationSize(value.`cornerPositions`) +
+            FfiConverterSequenceUByte.allocationSize(value.`cornerOrientations`) +
+            FfiConverterSequenceUByte.allocationSize(value.`edgePositions`) +
+            FfiConverterSequenceUByte.allocationSize(value.`edgeOrientations`)
+    )
+
+    override fun write(value: GeneratedBatchState, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`caseNumber`, buf)
+            FfiConverterString.write(value.`setupMoves`, buf)
+            FfiConverterSequenceUByte.write(value.`cornerPositions`, buf)
+            FfiConverterSequenceUByte.write(value.`cornerOrientations`, buf)
+            FfiConverterSequenceUByte.write(value.`edgePositions`, buf)
+            FfiConverterSequenceUByte.write(value.`edgeOrientations`, buf)
+    }
+}
+
+
+
 data class MegaminxState (
     var `cornerPositions`: List<kotlin.UByte>
     , 
@@ -2747,6 +3476,44 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
 
 
 
+data class SortingCriterion (
+    var `sortingType`: SortingType
+    , 
+    var `pieces`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSortingCriterion: FfiConverterRustBuffer<SortingCriterion> {
+    override fun read(buf: ByteBuffer): SortingCriterion {
+        return SortingCriterion(
+            FfiConverterTypeSortingType.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SortingCriterion) = (
+            FfiConverterTypeSortingType.allocationSize(value.`sortingType`) +
+            FfiConverterString.allocationSize(value.`pieces`)
+    )
+
+    override fun write(value: SortingCriterion, buf: ByteBuffer) {
+            FfiConverterTypeSortingType.write(value.`sortingType`, buf)
+            FfiConverterString.write(value.`pieces`, buf)
+    }
+}
+
+
+
 data class ThemeColors (
     var `primary`: kotlin.String
     , 
@@ -2951,6 +3718,173 @@ public object FfiConverterTypeThemeColors: FfiConverterRustBuffer<ThemeColors> {
 
 
 
+
+sealed class BatchSolverException: kotlin.Exception() {
+    
+    class ParseException(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+    class InvalidMove(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+    class InvalidPiece(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+    class InvalidScramble(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+    class InvalidAdjust(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+    class InvalidEquivalence(
+        
+        val `errorMessage`: kotlin.String
+        ) : BatchSolverException() {
+        override val message
+            get() = "errorMessage=${ `errorMessage` }"
+    }
+    
+
+    
+
+
+    companion object ErrorHandler : UniffiRustCallStatusErrorHandler<BatchSolverException> {
+        override fun lift(error_buf: RustBuffer.ByValue): BatchSolverException = FfiConverterTypeBatchSolverError.lift(error_buf)
+    }
+
+    
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchSolverError : FfiConverterRustBuffer<BatchSolverException> {
+    override fun read(buf: ByteBuffer): BatchSolverException {
+        
+
+        return when(buf.getInt()) {
+            1 -> BatchSolverException.ParseException(
+                FfiConverterString.read(buf),
+                )
+            2 -> BatchSolverException.InvalidMove(
+                FfiConverterString.read(buf),
+                )
+            3 -> BatchSolverException.InvalidPiece(
+                FfiConverterString.read(buf),
+                )
+            4 -> BatchSolverException.InvalidScramble(
+                FfiConverterString.read(buf),
+                )
+            5 -> BatchSolverException.InvalidAdjust(
+                FfiConverterString.read(buf),
+                )
+            6 -> BatchSolverException.InvalidEquivalence(
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: BatchSolverException): ULong {
+        return when(value) {
+            is BatchSolverException.ParseException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+            is BatchSolverException.InvalidMove -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+            is BatchSolverException.InvalidPiece -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+            is BatchSolverException.InvalidScramble -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+            is BatchSolverException.InvalidAdjust -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+            is BatchSolverException.InvalidEquivalence -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`errorMessage`)
+            )
+        }
+    }
+
+    override fun write(value: BatchSolverException, buf: ByteBuffer) {
+        when(value) {
+            is BatchSolverException.ParseException -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+            is BatchSolverException.InvalidMove -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+            is BatchSolverException.InvalidPiece -> {
+                buf.putInt(3)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+            is BatchSolverException.InvalidScramble -> {
+                buf.putInt(4)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+            is BatchSolverException.InvalidAdjust -> {
+                buf.putInt(5)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+            is BatchSolverException.InvalidEquivalence -> {
+                buf.putInt(6)
+                FfiConverterString.write(value.`errorMessage`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+
+}
+
+
+
+
 enum class Metric {
     
     FACE,
@@ -3062,6 +3996,133 @@ public object FfiConverterTypeSearchMode: FfiConverterRustBuffer<SearchMode> {
 }
 
 
+
+
+
+
+enum class SortingType {
+    
+    SET_PRIORITY,
+    ORIENTATION_OF,
+    ORIENTATION_AT,
+    PERMUTATION_OF,
+    PERMUTATION_AT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSortingType: FfiConverterRustBuffer<SortingType> {
+    override fun read(buf: ByteBuffer) = try {
+        SortingType.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: SortingType) = 4UL
+
+    override fun write(value: SortingType, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+
+public interface BatchSolverCallback {
+    
+    fun `onProgress`(`event`: ProgressEvent)
+    
+    fun `onCaseSolved`(`result`: BatchCaseResult)
+    
+    fun `onComplete`(`results`: BatchSolveResults)
+    
+    companion object
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceBatchSolverCallback {
+    internal object `onProgress`: UniffiCallbackInterfaceBatchSolverCallbackMethod0 {
+        override fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeBatchSolverCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onProgress`(
+                    FfiConverterTypeProgressEvent.lift(`event`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onCaseSolved`: UniffiCallbackInterfaceBatchSolverCallbackMethod1 {
+        override fun callback(`uniffiHandle`: Long,`result`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeBatchSolverCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onCaseSolved`(
+                    FfiConverterTypeBatchCaseResult.lift(`result`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onComplete`: UniffiCallbackInterfaceBatchSolverCallbackMethod2 {
+        override fun callback(`uniffiHandle`: Long,`results`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeBatchSolverCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onComplete`(
+                    FfiConverterTypeBatchSolveResults.lift(`results`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeBatchSolverCallback.handleMap.remove(handle)
+        }
+    }
+
+    internal object uniffiClone: UniffiCallbackInterfaceClone {
+        override fun callback(handle: Long): Long {
+            return FfiConverterTypeBatchSolverCallback.handleMap.clone(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceBatchSolverCallback.UniffiByValue(
+        uniffiFree,
+        uniffiClone,
+        `onProgress`,
+        `onCaseSolved`,
+        `onComplete`,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_llminxsolver_uniffi_fn_init_callback_vtable_batchsolvercallback(vtable)
+    }
+}
+
+/**
+ * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
+ *
+ * @suppress
+ */
+public object FfiConverterTypeBatchSolverCallback: FfiConverterCallbackInterface<BatchSolverCallback>()
 
 
 
@@ -3314,6 +4375,34 @@ public object FfiConverterSequenceUByte: FfiConverterRustBuffer<List<kotlin.UByt
 /**
  * @suppress
  */
+public object FfiConverterSequenceUInt: FfiConverterRustBuffer<List<kotlin.UInt>> {
+    override fun read(buf: ByteBuffer): List<kotlin.UInt> {
+        val len = buf.getInt()
+        return List<kotlin.UInt>(len) {
+            FfiConverterUInt.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.UInt>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterUInt.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.UInt>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterUInt.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
     override fun read(buf: ByteBuffer): List<kotlin.String> {
         val len = buf.getInt()
@@ -3332,6 +4421,62 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeBatchCaseResult: FfiConverterRustBuffer<List<BatchCaseResult>> {
+    override fun read(buf: ByteBuffer): List<BatchCaseResult> {
+        val len = buf.getInt()
+        return List<BatchCaseResult>(len) {
+            FfiConverterTypeBatchCaseResult.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<BatchCaseResult>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeBatchCaseResult.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<BatchCaseResult>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeBatchCaseResult.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeGeneratedBatchState: FfiConverterRustBuffer<List<GeneratedBatchState>> {
+    override fun read(buf: ByteBuffer): List<GeneratedBatchState> {
+        val len = buf.getInt()
+        return List<GeneratedBatchState>(len) {
+            FfiConverterTypeGeneratedBatchState.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<GeneratedBatchState>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeGeneratedBatchState.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<GeneratedBatchState>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeGeneratedBatchState.write(it, buf)
         }
     }
 }
@@ -3388,6 +4533,34 @@ public object FfiConverterSequenceTypeScoredSolutionExport: FfiConverterRustBuff
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeScoredSolutionExport.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeSortingCriterion: FfiConverterRustBuffer<List<SortingCriterion>> {
+    override fun read(buf: ByteBuffer): List<SortingCriterion> {
+        val len = buf.getInt()
+        return List<SortingCriterion>(len) {
+            FfiConverterTypeSortingCriterion.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<SortingCriterion>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeSortingCriterion.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<SortingCriterion>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeSortingCriterion.write(it, buf)
         }
     }
 }
