@@ -262,6 +262,7 @@ interface BatchSolverHandle {
     [Throws=BatchSolverError]
     constructor(BatchSolverConfig config);
     void set_callback(BatchSolverCallback callback);
+    void update_config(BatchSolverConfig config);
     [Throws=BatchSolverError]
     sequence<GeneratedBatchState> generate_states();
     void start();

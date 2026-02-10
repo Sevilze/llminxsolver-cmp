@@ -355,19 +355,21 @@ class SolverOperations(private val scope: CoroutineScope) {
         searchThreads = config.parallelConfig.searchThreads.toUInt()
     )
 
-    private fun buildUniffiSolverConfig(config: SolverConfig): uniffi.llminxsolver.SolverConfig =
-        uniffi.llminxsolver.SolverConfig(
+    private fun buildUniffiSolverConfig(config: SolverConfig): uniffi.llminxsolver.SolverConfig {
+        val effectiveDepth = config.getEffectivePruningDepth(config.generatorMode)
+        return uniffi.llminxsolver.SolverConfig(
             searchMode = mapGeneratorModesToSearchMode(config.generatorMode),
             metric = mapMetricType(config.metric),
             limitSearchDepth = config.limitSearchDepth,
             maxSearchDepth = config.maxSearchDepth.toUInt(),
-            pruningDepth = config.getEffectivePruningDepth(config.generatorMode).toUByte(),
+            pruningDepth = effectiveDepth.toUByte(),
             ignoreCornerPositions = config.ignoreFlags.cornerPositions,
             ignoreEdgePositions = config.ignoreFlags.edgePositions,
             ignoreCornerOrientations = config.ignoreFlags.cornerOrientations,
             ignoreEdgeOrientations = config.ignoreFlags.edgeOrientations,
             parallelConfig = buildUniffiParallelConfig(config)
         )
+    }
 
     private fun buildUniffiParallelSolverConfig(config: SolverConfig): ParallelSolverConfig =
         ParallelSolverConfig(

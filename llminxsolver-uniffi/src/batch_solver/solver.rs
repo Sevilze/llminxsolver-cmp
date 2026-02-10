@@ -13,7 +13,7 @@ pub trait BatchSolverCallback: Send + Sync {
 }
 
 pub struct BatchSolverHandle {
-    config: BatchSolverConfig,
+    config: RwLock<BatchSolverConfig>,
     callback: RwLock<Option<Arc<dyn BatchSolverCallback>>>,
     running: Arc<AtomicBool>,
     interrupt: Arc<AtomicBool>,
@@ -24,7 +24,7 @@ pub struct BatchSolverHandle {
 impl BatchSolverHandle {
     pub fn new(config: BatchSolverConfig) -> Result<Self, BatchSolverError> {
         Ok(Self {
-            config,
+            config: RwLock::new(config),
             callback: RwLock::new(None),
             running: Arc::new(AtomicBool::new(false)),
             interrupt: Arc::new(AtomicBool::new(false)),
@@ -38,35 +38,35 @@ impl BatchSolverHandle {
         *cb = Some(Arc::from(callback));
     }
 
+    pub fn update_config(&self, config: BatchSolverConfig) {
+        let mut cfg = self.config.write().unwrap();
+        *cfg = config;
+    }
+
     pub fn generate_states(&self) -> Result<Vec<GeneratedBatchState>, BatchSolverError> {
-        let pre_adjust: Vec<String> = self
-            .config
+        let config = self.config.read().unwrap();
+        let pre_adjust: Vec<String> = config
             .pre_adjust
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
-        let post_adjust: Vec<String> = self
-            .config
+        let post_adjust: Vec<String> = config
             .post_adjust
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
-        let sort_criteria: Vec<_> = self
-            .config
-            .sorting_criteria
-            .iter()
-            .map(|c| c.to_rs())
-            .collect();
+        let sort_criteria: Vec<_> = config.sorting_criteria.iter().map(|c| c.to_rs()).collect();
 
         let gen_config = llminxsolver_rs::batch_solver::GeneratorConfig {
-            scramble: self.config.scramble.clone(),
-            equivalences_str: self.config.equivalences.clone(),
+            scramble: config.scramble.clone(),
+            equivalences_str: config.equivalences.clone(),
             pre_adjust,
             post_adjust,
             sort_criteria,
         };
+        drop(config);
 
         let callback: Option<llminxsolver_rs::batch_solver::GeneratorCallback> =
             if let Some(ref cb) = *self.callback.read().unwrap() {
@@ -137,18 +137,20 @@ impl BatchSolverHandle {
         let interrupt = Arc::clone(&self.interrupt);
         let running = Arc::clone(&self.running);
 
+        let config = self.config.read().unwrap();
         let solver_config = llminxsolver_rs::batch_solver::BatchSolverConfig {
-            search_mode: self.config.search_mode.into(),
-            metric: self.config.metric.into(),
-            pruning_depth: self.config.pruning_depth,
-            max_search_depth: self.config.search_depth as usize,
-            stop_after_first: self.config.stop_after_first,
-            memory_config: self.config.parallel_config.clone().into(),
-            ignore_corner_permutation: self.config.ignore_corner_permutation,
-            ignore_edge_permutation: self.config.ignore_edge_permutation,
-            ignore_corner_orientation: self.config.ignore_corner_orientation,
-            ignore_edge_orientation: self.config.ignore_edge_orientation,
+            search_mode: config.search_mode.into(),
+            metric: config.metric.into(),
+            pruning_depth: config.pruning_depth,
+            max_search_depth: config.search_depth as usize,
+            stop_after_first: config.stop_after_first,
+            memory_config: config.parallel_config.clone().into(),
+            ignore_corner_permutation: config.ignore_corner_permutation,
+            ignore_edge_permutation: config.ignore_edge_permutation,
+            ignore_corner_orientation: config.ignore_corner_orientation,
+            ignore_edge_orientation: config.ignore_edge_orientation,
         };
+        drop(config);
 
         std::thread::spawn(move || {
             let status_callback: Option<llminxsolver_rs::solver::StatusCallback> =
