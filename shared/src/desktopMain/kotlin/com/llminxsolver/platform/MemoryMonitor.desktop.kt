@@ -159,8 +159,20 @@ actual class MemoryMonitor actual constructor() {
     }
 
     private fun getWindowsAppMemory(): Long {
-        val runtime = Runtime.getRuntime()
-        return runtime.totalMemory() - runtime.freeMemory()
+        try {
+            val output = runCommand(
+                listOf(
+                    "powershell.exe",
+                    "-Command",
+                    "(Get-Process -Id $pid).WorkingSet64"
+                )
+            )
+            val memBytes = output?.trim()?.toLongOrNull()
+            if (memBytes != null) return memBytes
+        } catch (e: Exception) {
+            // Fall through
+        }
+        return getJvmAppMemory()
     }
 
     private fun getJvmAppMemory(): Long {
