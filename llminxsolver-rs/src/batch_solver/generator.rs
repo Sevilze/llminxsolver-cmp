@@ -234,7 +234,23 @@ impl StateGenerator {
         let mut states = self.generate(parsed)?;
         let solved = LLMinx::new();
         states.retain(|s| !s.state.state_equals(&solved));
+        states.retain(|s| !self.is_trivial_state(&s.state, &s.setup_moves));
         Ok(states)
+    }
+
+    fn is_trivial_state(&self, _state: &LLMinx, setup_moves: &str) -> bool {
+        let trimmed = setup_moves.trim();
+        if trimmed.is_empty() {
+            return false;
+        }
+
+        let moves: Vec<&str> = trimmed.split_whitespace().collect();
+        if moves.is_empty() {
+            return false;
+        }
+
+        let first_move = moves[0];
+        moves.iter().all(|&m| m == first_move)
     }
 
     /// Apply plain moves to all states
