@@ -347,7 +347,7 @@ fun ScoredSolutionsPanel(
 }
 
 @Composable
-private fun SortableHeaderCell(
+fun SortableHeaderCell(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -388,7 +388,7 @@ private fun SortableHeaderCell(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ScoredSolutionRow(
+fun ScoredSolutionRow(
     solution: ScoredSolution,
     metricLabel: String,
     isCopied: Boolean,
