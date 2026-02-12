@@ -1,4 +1,4 @@
-package com.llminxsolver.ui.batch
+package com.llminxsolver.ui.panels
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

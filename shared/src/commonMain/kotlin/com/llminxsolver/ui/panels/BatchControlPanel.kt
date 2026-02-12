@@ -1,4 +1,4 @@
-package com.llminxsolver.ui.batch
+package com.llminxsolver.ui.panels
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,8 +25,12 @@ import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.BatchSolverConfig
 import com.llminxsolver.data.BatchSolverState
 import com.llminxsolver.data.toIgnoreFlags
+import com.llminxsolver.ui.components.AdjustmentInputs
+import com.llminxsolver.ui.components.DepthSliders
+import com.llminxsolver.ui.components.EquivalencesInput
 import com.llminxsolver.ui.components.IgnoreOptions
-import com.llminxsolver.ui.components.MemoryIndicator
+import com.llminxsolver.ui.components.ScrambleInput
+import com.llminxsolver.ui.components.SearchModeSelector
 
 @Composable
 fun BatchControlPanel(

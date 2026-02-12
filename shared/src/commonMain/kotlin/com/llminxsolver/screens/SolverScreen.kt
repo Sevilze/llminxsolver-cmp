@@ -1,4 +1,4 @@
-package com.llminxsolver
+package com.llminxsolver.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,7 +18,7 @@ import com.llminxsolver.platform.MemoryInfo
 import com.llminxsolver.theme.MegaminxColorScheme
 import com.llminxsolver.viewmodel.SolverViewModel
 
-data class MainScreenState(
+data class SolverScreenState(
     val megaminxState: MegaminxState,
     val solverConfig: SolverConfig,
     val solverState: SolverState,
@@ -34,7 +34,7 @@ data class MainScreenState(
     val schemeType: SchemeType
 )
 
-data class MainScreenActions(
+data class SolverScreenActions(
     val onSwapCorners: (Int, Int) -> Unit,
     val onRotateCorner: (Int, Int) -> Unit,
     val onSwapEdges: (Int, Int) -> Unit,
@@ -61,10 +61,13 @@ data class MainScreenActions(
 )
 
 @Composable
-expect fun MainScreen(viewModel: SolverViewModel = remember { SolverViewModel() })
+expect fun SolverScreen(
+    viewModel: SolverViewModel = remember { SolverViewModel() },
+    onNavigateToBatchSolver: () -> Unit = {}
+)
 
 @Composable
-fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
+fun rememberSolverScreenState(viewModel: SolverViewModel): SolverScreenState {
     val megaminxState by viewModel.megaminxState.collectAsState()
     val solverConfig by viewModel.solverConfig.collectAsState()
     val solverState by viewModel.solverState.collectAsState()
@@ -79,7 +82,7 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
     val schemeType by viewModel.schemeType.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
 
-    return MainScreenState(
+    return SolverScreenState(
         megaminxState = megaminxState,
         solverConfig = solverConfig,
         solverState = solverState,
@@ -97,31 +100,32 @@ fun rememberMainScreenState(viewModel: SolverViewModel): MainScreenState {
 }
 
 @Composable
-fun rememberMainScreenActions(viewModel: SolverViewModel): MainScreenActions = MainScreenActions(
-    onSwapCorners = viewModel::swapCorners,
-    onRotateCorner = viewModel::rotateCorner,
-    onSwapEdges = viewModel::swapEdges,
-    onFlipEdge = viewModel::flipEdge,
-    onSelectedModesChange = viewModel::setSelectedModes,
-    onMetricChange = viewModel::setMetric,
-    onLimitSearchDepthChange = viewModel::setLimitSearchDepth,
-    onMaxSearchDepthChange = viewModel::setMaxSearchDepth,
-    onPruningDepthChange = viewModel::setPruningDepth,
-    onModePruningDepthChange = viewModel::setModePruningDepth,
-    onParallelConfigChange = viewModel::setParallelConfig,
-    onIgnoreFlagChange = viewModel::setIgnoreFlag,
-    onMegaminxColorSchemeChange = viewModel::setMegaminxColorScheme,
-    onSkipDeletionWarningChange = viewModel::setSkipDeletionWarning,
-    onWallpaperPathChange = viewModel::setWallpaperPath,
-    onDynamicColorModeChange = viewModel::setDynamicColorMode,
-    onSchemeTypeChange = viewModel::setSchemeType,
-    onThemeModeChange = viewModel::setThemeMode,
-    onReset = viewModel::reset,
-    onSolve = viewModel::solve,
-    onCancel = viewModel::cancelSolve,
-    readSolutionsPage = viewModel::readSolutionsPage,
-    flushTempFile = viewModel::flushTempFile
-)
+fun rememberSolverScreenActions(viewModel: SolverViewModel): SolverScreenActions =
+    SolverScreenActions(
+        onSwapCorners = viewModel::swapCorners,
+        onRotateCorner = viewModel::rotateCorner,
+        onSwapEdges = viewModel::swapEdges,
+        onFlipEdge = viewModel::flipEdge,
+        onSelectedModesChange = viewModel::setSelectedModes,
+        onMetricChange = viewModel::setMetric,
+        onLimitSearchDepthChange = viewModel::setLimitSearchDepth,
+        onMaxSearchDepthChange = viewModel::setMaxSearchDepth,
+        onPruningDepthChange = viewModel::setPruningDepth,
+        onModePruningDepthChange = viewModel::setModePruningDepth,
+        onParallelConfigChange = viewModel::setParallelConfig,
+        onIgnoreFlagChange = viewModel::setIgnoreFlag,
+        onMegaminxColorSchemeChange = viewModel::setMegaminxColorScheme,
+        onSkipDeletionWarningChange = viewModel::setSkipDeletionWarning,
+        onWallpaperPathChange = viewModel::setWallpaperPath,
+        onDynamicColorModeChange = viewModel::setDynamicColorMode,
+        onSchemeTypeChange = viewModel::setSchemeType,
+        onThemeModeChange = viewModel::setThemeMode,
+        onReset = viewModel::reset,
+        onSolve = viewModel::solve,
+        onCancel = viewModel::cancelSolve,
+        readSolutionsPage = viewModel::readSolutionsPage,
+        flushTempFile = viewModel::flushTempFile
+    )
 
 fun getMetricLabel(metric: MetricType): String = when (metric) {
     MetricType.FTM -> "FTM"

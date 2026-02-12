@@ -1,4 +1,4 @@
-package com.llminxsolver
+package com.llminxsolver.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,14 +46,13 @@ import com.llminxsolver.ui.panels.ControlPanel
 import com.llminxsolver.ui.panels.ScoredSolutionsPanel
 import com.llminxsolver.ui.panels.SolutionsPanel
 import com.llminxsolver.viewmodel.SolverViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-actual fun MainScreen(viewModel: SolverViewModel) {
-    val state = rememberMainScreenState(viewModel)
-    val actions = rememberMainScreenActions(viewModel)
+actual fun SolverScreen(viewModel: SolverViewModel, onNavigateToBatchSolver: () -> Unit) {
+    val state = rememberSolverScreenState(viewModel)
+    val actions = rememberSolverScreenActions(viewModel)
     var showStorageSettings by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -75,6 +75,12 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToBatchSolver) {
+                        Icon(
+                            imageVector = Icons.Default.Layers,
+                            contentDescription = "Batch Solver"
+                        )
+                    }
                     IconButton(onClick = { showStorageSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,

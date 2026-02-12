@@ -4,6 +4,7 @@ logs
 
 *.local
 *.sh
+*.lz4
 .gradle
 jniLibs
 shared/src/desktopMain/resources

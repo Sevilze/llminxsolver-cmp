@@ -1,4 +1,4 @@
-package com.llminxsolver.ui
+package com.llminxsolver.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring

@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.unit.IntSize
 import com.llminxsolver.data.IgnoreFlags
 import com.llminxsolver.data.MegaminxState
 import com.llminxsolver.theme.CornerColorMap

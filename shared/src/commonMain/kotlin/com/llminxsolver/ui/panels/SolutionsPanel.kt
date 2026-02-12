@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,8 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Done
@@ -105,12 +102,12 @@ fun SolutionsPanel(
         if (cachedPage != null && cachedPage.size >= expectedSize) return
 
         scope.launch {
-            loadingPages.value = loadingPages.value + pageIndex
+            loadingPages.value += pageIndex
             try {
                 val page = readSolutionsPage(offset, PAGE_SIZE)
                 pageCache[pageIndex] = page
             } finally {
-                loadingPages.value = loadingPages.value - pageIndex
+                loadingPages.value -= pageIndex
             }
         }
     }

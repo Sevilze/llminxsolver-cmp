@@ -1,4 +1,4 @@
-package com.llminxsolver.ui.batch
+package com.llminxsolver.ui.panels
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.dp
 import com.llminxsolver.data.BatchCaseResult
 import com.llminxsolver.data.MetricType
 import com.llminxsolver.data.ScoredSolution
-import com.llminxsolver.ui.panels.ScoredSolutionRow
-import com.llminxsolver.ui.panels.SortableHeaderCell
 import com.llminxsolver.util.setPlainText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -48,7 +46,7 @@ enum class BatchSortOption(val label: String) {
 }
 
 @Composable
-fun BatchScoredSolutionsPanel(
+fun BatchSolutionsPanel(
     caseResults: List<BatchCaseResult>,
     metric: MetricType,
     selectedCaseNumber: Int? = null,

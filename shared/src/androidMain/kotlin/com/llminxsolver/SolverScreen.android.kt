@@ -1,4 +1,4 @@
-package com.llminxsolver
+package com.llminxsolver.screens
 
 import android.content.res.Configuration
 import androidx.compose.animation.core.Spring
@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,9 +69,9 @@ private const val TABLET_MIN_WIDTH_DP = 600
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-actual fun MainScreen(viewModel: SolverViewModel) {
-    val state = rememberMainScreenState(viewModel)
-    val actions = rememberMainScreenActions(viewModel)
+actual fun SolverScreen(viewModel: SolverViewModel, onNavigateToBatchSolver: () -> Unit) {
+    val state = rememberSolverScreenState(viewModel)
+    val actions = rememberSolverScreenActions(viewModel)
     var showStorageSettings by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -121,6 +122,12 @@ actual fun MainScreen(viewModel: SolverViewModel) {
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToBatchSolver) {
+                        Icon(
+                            imageVector = Icons.Default.Layers,
+                            contentDescription = "Batch Solver"
+                        )
+                    }
                     IconButton(onClick = { showStorageSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -193,8 +200,8 @@ actual fun MainScreen(viewModel: SolverViewModel) {
 
 @Composable
 private fun PhoneLayout(
-    state: MainScreenState,
-    actions: MainScreenActions,
+    state: SolverScreenState,
+    actions: SolverScreenActions,
     paddingValues: PaddingValues,
     scrollState: ScrollState,
     snackbarHostState: SnackbarHostState,
@@ -305,8 +312,8 @@ private fun PhoneLayout(
 
 @Composable
 private fun TabletLayout(
-    state: MainScreenState,
-    actions: MainScreenActions,
+    state: SolverScreenState,
+    actions: SolverScreenActions,
     paddingValues: PaddingValues,
     snackbarHostState: SnackbarHostState,
     scope: CoroutineScope,
