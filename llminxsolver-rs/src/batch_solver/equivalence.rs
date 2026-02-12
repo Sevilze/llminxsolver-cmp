@@ -6,6 +6,7 @@
 
 use super::types::{BatchError, EquivalenceSet, NormalizedState, OrientationGroup, PieceMap};
 use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 /// Handler for equivalences and orientation groups
@@ -234,6 +235,44 @@ impl EquivalenceHandler {
             let normalized = self.normalize(&state.state);
             seen.insert(normalized)
         });
+    }
+
+    /// Parallel deduplication: normalizes states across threads, then deduplicates sequentially
+    pub fn deduplicate_parallel(
+        &self,
+        states: &mut Vec<super::types::GeneratedState>,
+        num_threads: usize,
+    ) {
+        if states.len() < 64 {
+            self.deduplicate(states);
+            return;
+        }
+
+        let pool_result = {
+            let mut builder = rayon::ThreadPoolBuilder::new();
+            if num_threads > 0 {
+                builder = builder.num_threads(num_threads);
+            }
+            builder.build()
+        };
+
+        let Ok(pool) = pool_result else {
+            self.deduplicate(states);
+            return;
+        };
+
+        let normalized: Vec<NormalizedState> = pool.install(|| {
+            states
+                .par_iter()
+                .map(|state| self.normalize(&state.state))
+                .collect()
+        });
+
+        let mut seen = HashSet::with_capacity(states.len());
+        let keep: Vec<bool> = normalized.into_iter().map(|n| seen.insert(n)).collect();
+
+        let mut keep_iter = keep.into_iter();
+        states.retain(|_| keep_iter.next().unwrap_or(false));
     }
 }
 

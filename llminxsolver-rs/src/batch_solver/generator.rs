@@ -14,6 +14,7 @@ use super::types::{
     PieceMap, ScrambleSegment, SortCriterion,
 };
 use crate::minx::{LLMinx, NUM_CORNERS, NUM_EDGES};
+use rayon::prelude::*;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,6 +29,7 @@ pub struct GeneratorConfig {
     pub pre_adjust: Vec<String>,
     pub post_adjust: Vec<String>,
     pub sort_criteria: Vec<SortCriterion>,
+    pub num_threads: usize,
 }
 
 /// Batch generation pipeline: parsing, equivalences, adjust, and sorting
@@ -69,6 +71,7 @@ pub fn generate_batch_states(
     };
 
     let mut generator = StateGenerator::new_solved();
+    generator.set_num_threads(config.num_threads);
 
     if let Some(int) = interrupt.clone() {
         generator.set_interrupt(int);
@@ -93,7 +96,7 @@ pub fn generate_batch_states(
     }
 
     if let Some(ref equiv) = equiv_handler {
-        equiv.deduplicate(&mut states);
+        equiv.deduplicate_parallel(&mut states, config.num_threads);
     }
 
     if (!config.pre_adjust.is_empty() || !config.post_adjust.is_empty())
@@ -121,6 +124,7 @@ pub struct StateGenerator {
     interrupted: Option<Arc<AtomicBool>>,
     callback: Option<GeneratorCallback>,
     equivalence: Option<Arc<EquivalenceHandler>>,
+    num_threads: usize,
 }
 
 impl StateGenerator {
@@ -131,6 +135,7 @@ impl StateGenerator {
             interrupted: None,
             callback: None,
             equivalence: None,
+            num_threads: 0,
         }
     }
 
@@ -155,6 +160,20 @@ impl StateGenerator {
     /// Set the equivalence handler for equivalence-aware BFS deduplication
     pub fn set_equivalence(&mut self, equivalence: Arc<EquivalenceHandler>) {
         self.equivalence = Some(equivalence);
+    }
+
+    pub fn set_num_threads(&mut self, num_threads: usize) {
+        self.num_threads = num_threads;
+    }
+
+    fn build_pool(&self) -> Result<rayon::ThreadPool, BatchError> {
+        let mut builder = rayon::ThreadPoolBuilder::new();
+        if self.num_threads > 0 {
+            builder = builder.num_threads(self.num_threads);
+        }
+        builder
+            .build()
+            .map_err(|e| BatchError::ParseError(format!("Thread pool error: {e}")))
     }
 
     /// Normalize a state, using equivalence handler if available
@@ -286,40 +305,58 @@ impl StateGenerator {
         states: Vec<GeneratedState>,
         options: &[String],
     ) -> Result<Vec<GeneratedState>, BatchError> {
-        use std::collections::HashMap;
+        let mut input_seen = HashSet::new();
+        let unique_states: Vec<GeneratedState> = states
+            .into_iter()
+            .filter(|state| {
+                let key = self.normalize_state(&state.state);
+                input_seen.insert(key)
+            })
+            .collect();
 
-        let mut result_map: HashMap<NormalizedState, GeneratedState> = HashMap::new();
+        let parsed_options: Vec<_> = options
+            .iter()
+            .map(|opt| {
+                let moves = ScrambleParser::parse_moves(opt)?;
+                Ok((opt.clone(), moves))
+            })
+            .collect::<Result<Vec<_>, BatchError>>()?;
 
-        for state in &states {
-            let key = self.normalize_state(&state.state);
-            result_map.entry(key).or_insert_with(|| state.clone());
-        }
+        let pool = self.build_pool()?;
+        let candidates: Vec<(GeneratedState, NormalizedState)> = pool.install(|| {
+            unique_states
+                .par_iter()
+                .flat_map_iter(|state| {
+                    parsed_options.iter().map(|(option, moves)| {
+                        let mut new_state = state.state.clone();
+                        for &mv in moves {
+                            new_state.apply_move(mv);
+                        }
+                        let key = self.normalize_state(&new_state);
+                        let new_moves = if state.setup_moves.is_empty() {
+                            option.clone()
+                        } else {
+                            format!("{} {}", state.setup_moves, option)
+                        };
+                        (GeneratedState::new(new_state, new_moves), key)
+                    })
+                })
+                .collect()
+        });
 
-        let mut new_map: HashMap<NormalizedState, GeneratedState> = HashMap::new();
-
-        for state in result_map.values() {
-            for option in options {
-                let moves = ScrambleParser::parse_moves(option)?;
-                let mut new_state = state.state.clone();
-
-                for &mv in &moves {
-                    new_state.apply_move(mv);
-                }
-
-                let new_moves = if state.setup_moves.is_empty() {
-                    option.clone()
+        let mut output_seen = HashSet::new();
+        let result = candidates
+            .into_iter()
+            .filter_map(|(state, key)| {
+                if output_seen.insert(key) {
+                    Some(state)
                 } else {
-                    format!("{} {}", state.setup_moves, option)
-                };
+                    None
+                }
+            })
+            .collect();
 
-                let key = self.normalize_state(&new_state);
-                new_map
-                    .entry(key)
-                    .or_insert_with(|| GeneratedState::new(new_state, new_moves));
-            }
-        }
-
-        Ok(new_map.into_values().collect())
+        Ok(result)
     }
 
     /// Apply BFS expansion using generators
@@ -328,76 +365,75 @@ impl StateGenerator {
         states: Vec<GeneratedState>,
         generators: &[String],
     ) -> Result<Vec<GeneratedState>, BatchError> {
-        // Parse all generator moves
-        let mut generator_moves = Vec::new();
-        for gen_str in generators {
-            let moves = ScrambleParser::parse_moves(gen_str)?;
-            generator_moves.push(moves);
-        }
+        let generator_moves: Vec<_> = generators
+            .iter()
+            .map(|gen_str| {
+                ScrambleParser::parse_moves(gen_str).map(|moves| (gen_str.clone(), moves))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
-        // Start with all input states
-        let mut all_states: HashSet<NormalizedState> = HashSet::new();
+        let mut seen: HashSet<NormalizedState> = HashSet::new();
         let mut result = Vec::new();
 
         for state in states {
             let normalized = self.normalize_state(&state.state);
-            if all_states.insert(normalized) {
+            if seen.insert(normalized) {
                 result.push(state);
             }
         }
 
-        // BFS expansion with interrupt support and progress callbacks
-        let mut queue = result.clone();
-        let mut last_callback_count = 0;
+        let pool = self.build_pool()?;
+        let mut frontier = result.clone();
 
-        while !queue.is_empty() {
+        while !frontier.is_empty() {
             if self.is_interrupted() {
                 break;
             }
 
-            let current = queue.remove(0);
+            self.fire_callback(
+                result.len(),
+                &format!("Generated {} states...", result.len()),
+            );
 
-            // Fire progress callback periodically
-            if result.len() - last_callback_count >= 10 {
-                self.fire_callback(
-                    result.len(),
-                    &format!("Generated {} states...", result.len()),
-                );
-                last_callback_count = result.len();
-            }
+            // Apply all generators to the entire frontier in parallel,
+            // computing normalized states alongside candidates
+            let candidates: Vec<(GeneratedState, NormalizedState)> = pool.install(|| {
+                frontier
+                    .par_iter()
+                    .flat_map_iter(|current| {
+                        generator_moves.iter().filter_map(|(gen_str, gen_moves)| {
+                            if self.is_interrupted() {
+                                return None;
+                            }
 
-            // Try each generator
-            for gen_moves in &generator_moves {
-                if self.is_interrupted() {
-                    break;
-                }
+                            let mut new_state = current.state.clone();
+                            for &mv in gen_moves {
+                                new_state.apply_move(mv);
+                            }
 
-                let mut new_state = current.state.clone();
+                            let normalized = self.normalize_state(&new_state);
+                            let new_moves = if current.setup_moves.is_empty() {
+                                gen_str.clone()
+                            } else {
+                                format!("{} {}", current.setup_moves, gen_str)
+                            };
 
-                for &mv in gen_moves {
-                    new_state.apply_move(mv);
-                }
+                            Some((GeneratedState::new(new_state, new_moves), normalized))
+                        })
+                    })
+                    .collect()
+            });
 
-                let normalized = self.normalize_state(&new_state);
-
-                if all_states.insert(normalized) {
-                    let gen_str = gen_moves
-                        .iter()
-                        .map(|m| m.to_string().trim())
-                        .collect::<Vec<_>>()
-                        .join(" ");
-
-                    let new_moves = if current.setup_moves.is_empty() {
-                        gen_str
-                    } else {
-                        format!("{} {}", current.setup_moves, gen_str)
-                    };
-
-                    let gen_result = GeneratedState::new(new_state, new_moves);
-                    queue.push(gen_result.clone());
-                    result.push(gen_result);
+            // Sequentially deduplicate against the seen set
+            let mut new_frontier = Vec::new();
+            for (candidate, normalized) in candidates {
+                if seen.insert(normalized) {
+                    new_frontier.push(candidate);
                 }
             }
+
+            result.extend(new_frontier.iter().cloned());
+            frontier = new_frontier;
         }
 
         self.fire_callback(
