@@ -65,6 +65,7 @@ impl BatchSolverHandle {
             pre_adjust,
             post_adjust,
             sort_criteria,
+            num_threads: config.parallel_config.search_threads as usize,
         };
         drop(config);
 

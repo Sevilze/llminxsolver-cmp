@@ -1,6 +1,6 @@
 use super::equivalence::EquivalenceHandler;
 use super::types::{BatchCaseResult, BatchResults, GeneratedState};
-use crate::memory_config::MemoryConfig;
+use crate::memory_config::{MemoryConfig, get_current_rss_bytes};
 use crate::minx::{LLMinx, Move};
 use crate::pruner::Pruner;
 use crate::search_mode::{Metric, SearchMode};
@@ -9,9 +9,15 @@ use crate::solver::{
 };
 use rayon::prelude::*;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 pub type CaseSolvedCallback = Arc<dyn Fn(BatchCaseResult) + Send + Sync>;
+
+const UPPER_BOUND: f64 = 0.90;
+const MIN_CONCURRENT_CASES: usize = 1;
+const PER_CASE_BASE_BYTES: usize = 4 * 1024;
+const PER_THREAD_STACK_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct BatchSolverConfig {
@@ -129,16 +135,8 @@ pub fn solve_batch_states(
 
     let cases = build_cases(&states, config, equivalence);
 
-    fire_event(
-        &status_callback,
-        StatusEvent::new(
-            StatusEventType::Message,
-            &format!("Starting batch search across {} cases...", cases.len()),
-            0.05,
-        ),
-    );
-
     let used_pruners = filter_pruning_tables(&master_solver, config);
+    let table_memory_bytes: usize = used_pruners.iter().map(|(t, _)| t.len()).sum();
     let tables: Vec<Arc<Vec<u8>>> = used_pruners.iter().map(|(t, _)| Arc::clone(t)).collect();
     let pruner_indices: Vec<usize> = master_solver
         .get_pruners()
@@ -160,9 +158,88 @@ pub fn solve_batch_states(
     let num_threads = config.memory_config.search_threads;
     let search_mode = config.search_mode;
 
-    let (solution_tx, solution_rx) = crossbeam_channel::unbounded::<(usize, String)>();
-    let (status_tx, status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+    let max_concurrent = calculate_max_concurrent(
+        config,
+        table_memory_bytes,
+        num_threads,
+        moves.len(),
+        total_cases,
+    );
 
+    fire_event(
+        &status_callback,
+        StatusEvent::new(
+            StatusEventType::Message,
+            &format!(
+                "Starting batch search: {} cases, {} concurrent (tables: {} MB)",
+                cases.len(),
+                max_concurrent,
+                table_memory_bytes / (1024 * 1024),
+            ),
+            0.05,
+        ),
+    );
+
+    let (solution_tx, solution_rx) = crossbeam_channel::unbounded::<(usize, String)>();
+
+    let case_solutions: Arc<Mutex<std::collections::HashMap<usize, Vec<String>>>> =
+        Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let case_solutions_for_thread = Arc::clone(&case_solutions);
+    let case_solved_cb_clone = case_solved_callback.clone();
+    let status_callback_for_sol = status_callback.clone();
+    let start_time_for_sol = start_time;
+
+    let cases_for_sol: Arc<Vec<(usize, String)>> = Arc::new(
+        cases
+            .iter()
+            .map(|c| (c.case_number, c.setup_moves.clone()))
+            .collect(),
+    );
+
+    let notified_cases: Arc<Mutex<std::collections::HashSet<usize>>> =
+        Arc::new(Mutex::new(std::collections::HashSet::new()));
+    let notified_for_thread = Arc::clone(&notified_cases);
+
+    let solution_thread = std::thread::spawn(move || {
+        for (case_number, solution) in solution_rx.iter() {
+            let elapsed = start_time_for_sol.elapsed().as_secs_f64();
+
+            {
+                let mut sols = case_solutions_for_thread.lock().unwrap();
+                sols.entry(case_number).or_default().push(solution.clone());
+            }
+
+            fire_event(
+                &status_callback_for_sol,
+                StatusEvent::new(
+                    StatusEventType::SolutionFound,
+                    &format!("Case {}: {}", case_number, solution),
+                    0.0,
+                ),
+            );
+
+            if let Some(ref cb) = case_solved_cb_clone {
+                let sols = case_solutions_for_thread.lock().unwrap();
+                let solutions = sols.get(&case_number).cloned().unwrap_or_default();
+                let setup_moves = cases_for_sol
+                    .iter()
+                    .find(|(cn, _)| *cn == case_number)
+                    .map(|(_, s)| s.clone())
+                    .unwrap_or_default();
+                drop(sols);
+
+                let mut result = BatchCaseResult::new(case_number, setup_moves);
+                result.best_solution = solutions.first().cloned();
+                result.solutions = solutions;
+                result.solve_time = elapsed;
+
+                notified_for_thread.lock().unwrap().insert(case_number);
+                cb(result);
+            }
+        }
+    });
+
+    let (status_tx, status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
     let status_callback_clone = status_callback.clone();
     let status_thread = std::thread::spawn(move || {
         for event in status_rx.iter() {
@@ -173,10 +250,8 @@ pub fn solve_batch_states(
     });
 
     let max_search_depth = config.max_search_depth;
-    let mut case_solutions: std::collections::HashMap<usize, Vec<String>> =
-        std::collections::HashMap::new();
+    let mut current_max_concurrent = max_concurrent;
     let mut results = BatchResults::new(total_cases);
-    let mut notified_cases: std::collections::HashSet<usize> = std::collections::HashSet::new();
 
     for depth in 1..=max_search_depth {
         if interrupt.load(Ordering::SeqCst) {
@@ -187,42 +262,29 @@ pub fn solve_batch_states(
             break;
         }
 
-        let depth_start_time = std::time::Instant::now();
-
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(num_threads)
-            .build()
-            .unwrap();
-
-        let moves_clone = moves.clone();
-        let first_moves_clone = first_moves.clone();
-        let next_siblings_clone = next_siblings.clone();
-        let tables_clone = tables.clone();
-        let pruner_indices_clone = pruner_indices.clone();
-        let interrupted_clone = Arc::clone(&interrupt);
-        let solution_tx_clone = solution_tx.clone();
-        let status_tx_clone = status_tx.clone();
-        let stop_after_first = config.stop_after_first;
-
-        let active_cases: Vec<usize> = cases
+        let active_case_indices: Vec<usize> = cases
             .iter()
             .enumerate()
-            .filter(|(_, c)| !stop_after_first || !c.solved.load(Ordering::Relaxed))
+            .filter(|(_, c)| !config.stop_after_first || !c.solved.load(Ordering::Relaxed))
             .map(|(i, _)| i)
             .collect();
 
-        let total_work = active_cases.len() * moves_clone.len();
-        let completed_work = Arc::new(AtomicUsize::new(0));
-        let depth_start_shared = Arc::new(depth_start_time);
+        if active_case_indices.is_empty() {
+            break;
+        }
+
+        let num_batchs = active_case_indices.len().div_ceil(current_max_concurrent);
 
         fire_event(
             &status_callback,
             StatusEvent::with_context(
                 StatusEventType::StartDepth,
                 &format!(
-                    "Searching depth {} ({} active cases)...",
+                    "Depth {}: {} active cases, {} concurrent ({} batchs)",
                     depth,
-                    active_cases.len()
+                    active_case_indices.len(),
+                    current_max_concurrent,
+                    num_batchs,
                 ),
                 0.0,
                 None,
@@ -230,71 +292,134 @@ pub fn solve_batch_states(
             ),
         );
 
-        pool.install(|| {
-            active_cases.par_iter().for_each(|&case_idx| {
-                let case = &cases[case_idx];
+        let rss_before = get_current_rss_bytes();
+        let depth_start_time = std::time::Instant::now();
 
-                for &first_move in &moves_clone {
-                    if interrupted_clone.load(Ordering::Relaxed) {
-                        return;
-                    }
-                    if stop_after_first && case.solved.load(Ordering::Relaxed) {
-                        completed_work.fetch_add(1, Ordering::Relaxed);
-                        continue;
-                    }
+        for (batch_idx, batch_chunk) in active_case_indices
+            .chunks(current_max_concurrent)
+            .enumerate()
+        {
+            if interrupt.load(Ordering::SeqCst) {
+                break;
+            }
 
-                    let mut minx = case.start.clone();
-                    minx.apply_move(first_move);
+            let batch_active: Vec<usize> = batch_chunk
+                .iter()
+                .copied()
+                .filter(|&i| !config.stop_after_first || !cases[i].solved.load(Ordering::Relaxed))
+                .collect();
 
-                    let all_pruners = search_mode.create_pruners();
-                    let local_pruners: Vec<&dyn Pruner> = pruner_indices_clone
-                        .iter()
-                        .filter_map(|&i| all_pruners.get(i).map(|p| p.as_ref()))
-                        .collect();
+            if batch_active.is_empty() {
+                continue;
+            }
 
-                    let ctx = SearchContext {
-                        tables: &tables_clone,
-                        pruners: &local_pruners,
-                        first_moves: &first_moves_clone,
-                        next_siblings: &next_siblings_clone,
-                        interrupted: &interrupted_clone,
-                        solution_tx: &solution_tx_clone,
-                        status_tx: &status_tx_clone,
-                        case_number: case.case_number,
-                        case_solved: &case.solved,
-                        stop_after_first,
-                    };
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(num_threads)
+                .build()
+                .unwrap();
 
-                    search_branch(&mut minx, &case.goal, depth, &ctx);
+            let moves_clone = moves.clone();
+            let first_moves_clone = first_moves.clone();
+            let next_siblings_clone = next_siblings.clone();
+            let tables_clone = tables.clone();
+            let pruner_indices_clone = pruner_indices.clone();
+            let interrupted_clone = Arc::clone(&interrupt);
+            let solution_tx_clone = solution_tx.clone();
+            let status_tx_clone = status_tx.clone();
+            let stop_after_first = config.stop_after_first;
 
-                    let done = completed_work.fetch_add(1, Ordering::Relaxed) + 1;
-                    let progress = done as f64 / total_work as f64;
-                    let elapsed = depth_start_shared.elapsed().as_secs_f64();
+            let total_work = batch_active.len() * moves_clone.len();
+            let completed_work = Arc::new(AtomicUsize::new(0));
+            let batch_start_time = Arc::new(std::time::Instant::now());
 
-                    let etr_str = if progress > 0.005 && elapsed > 0.5 {
-                        let total_estimated = elapsed / progress;
-                        let remaining = total_estimated - elapsed;
-                        if remaining < 60.0 {
-                            format!("ETR: {:.1}s", remaining)
-                        } else if remaining < 3600.0 {
-                            format!("ETR: {:.1}m", remaining / 60.0)
-                        } else {
-                            format!("ETR: {:.1}h", remaining / 3600.0)
+            let _ = status_tx_clone.send(StatusEvent::with_context(
+                StatusEventType::Message,
+                &format!(
+                    "Depth {} - batch {}/{} ({} cases)",
+                    depth,
+                    batch_idx + 1,
+                    num_batchs,
+                    batch_active.len(),
+                ),
+                0.0,
+                None,
+                depth as u32,
+            ));
+
+            pool.install(|| {
+                batch_active.par_iter().for_each(|&case_idx| {
+                    let case = &cases[case_idx];
+
+                    for &first_move in &moves_clone {
+                        if interrupted_clone.load(Ordering::Relaxed) {
+                            return;
                         }
-                    } else {
-                        "ETR: --".to_string()
-                    };
+                        if stop_after_first && case.solved.load(Ordering::Relaxed) {
+                            completed_work.fetch_add(1, Ordering::Relaxed);
+                            continue;
+                        }
 
-                    let _ = status_tx_clone.send(StatusEvent::with_context(
-                        StatusEventType::Message,
-                        &format!("Searching depth {}... ({})", depth, etr_str),
-                        progress,
-                        None,
-                        depth as u32,
-                    ));
-                }
+                        let mut minx = case.start.clone();
+                        minx.apply_move(first_move);
+
+                        let all_pruners = search_mode.create_pruners();
+                        let local_pruners: Vec<&dyn Pruner> = pruner_indices_clone
+                            .iter()
+                            .filter_map(|&i| all_pruners.get(i).map(|p| p.as_ref()))
+                            .collect();
+
+                        let ctx = SearchContext {
+                            tables: &tables_clone,
+                            pruners: &local_pruners,
+                            first_moves: &first_moves_clone,
+                            next_siblings: &next_siblings_clone,
+                            interrupted: &interrupted_clone,
+                            solution_tx: &solution_tx_clone,
+                            status_tx: &status_tx_clone,
+                            case_number: case.case_number,
+                            case_solved: &case.solved,
+                            stop_after_first,
+                        };
+
+                        search_branch(&mut minx, &case.goal, depth, &ctx);
+
+                        let done = completed_work.fetch_add(1, Ordering::Relaxed) + 1;
+                        let progress = done as f64 / total_work as f64;
+                        let elapsed = batch_start_time.elapsed().as_secs_f64();
+
+                        if done.is_multiple_of(50) || done == total_work {
+                            let etr_str = if progress > 0.005 && elapsed > 0.5 {
+                                let total_estimated = elapsed / progress;
+                                let remaining = total_estimated - elapsed;
+                                if remaining < 60.0 {
+                                    format!("ETR: {:.1}s", remaining)
+                                } else if remaining < 3600.0 {
+                                    format!("ETR: {:.1}m", remaining / 60.0)
+                                } else {
+                                    format!("ETR: {:.1}h", remaining / 3600.0)
+                                }
+                            } else {
+                                "ETR: --".to_string()
+                            };
+
+                            let _ = status_tx_clone.send(StatusEvent::with_context(
+                                StatusEventType::Message,
+                                &format!(
+                                    "Depth {} - batch {}/{}... ({})",
+                                    depth,
+                                    batch_idx + 1,
+                                    num_batchs,
+                                    etr_str
+                                ),
+                                progress,
+                                None,
+                                depth as u32,
+                            ));
+                        }
+                    }
+                });
             });
-        });
+        }
 
         let depth_elapsed = depth_start_time.elapsed().as_secs_f64();
 
@@ -309,23 +434,70 @@ pub fn solve_batch_states(
             ),
         );
 
-        while let Ok((case_number, solution)) = solution_rx.try_recv() {
-            case_solutions
-                .entry(case_number)
-                .or_default()
-                .push(solution);
+        let rss_after = get_current_rss_bytes();
+        if rss_before > 0 && rss_after > 0 {
+            let budget_bytes =
+                (config.memory_config.total_budget_bytes as f64 * UPPER_BOUND) as usize;
+
+            if rss_after > budget_bytes && current_max_concurrent > MIN_CONCURRENT_CASES {
+                let ratio = budget_bytes as f64 / rss_after as f64;
+                let adjusted =
+                    ((current_max_concurrent as f64 * ratio) as usize).max(MIN_CONCURRENT_CASES);
+                if adjusted != current_max_concurrent {
+                    fire_event(
+                        &status_callback,
+                        StatusEvent::new(
+                            StatusEventType::MemoryWarning,
+                            &format!(
+                                "Reducing concurrency {} -> {} (RSS: {} MB, budget: {} MB)",
+                                current_max_concurrent,
+                                adjusted,
+                                rss_after / (1024 * 1024),
+                                budget_bytes / (1024 * 1024),
+                            ),
+                            0.0,
+                        ),
+                    );
+                    current_max_concurrent = adjusted;
+                }
+            } else if rss_after < budget_bytes / 2 && current_max_concurrent < total_cases {
+                let headroom = budget_bytes as f64 / rss_after.max(1) as f64;
+                let adjusted = ((current_max_concurrent as f64 * headroom * 0.8) as usize)
+                    .min(total_cases)
+                    .max(current_max_concurrent);
+                if adjusted > current_max_concurrent {
+                    fire_event(
+                        &status_callback,
+                        StatusEvent::new(
+                            StatusEventType::Message,
+                            &format!(
+                                "Increasing concurrency {} -> {} (RSS: {} MB, budget: {} MB)",
+                                current_max_concurrent,
+                                adjusted,
+                                rss_after / (1024 * 1024),
+                                budget_bytes / (1024 * 1024),
+                            ),
+                            0.0,
+                        ),
+                    );
+                    current_max_concurrent = adjusted;
+                }
+            }
         }
+    }
 
-        let elapsed = start_time.elapsed().as_secs_f64();
-        for case in &cases {
-            if notified_cases.contains(&case.case_number) {
-                continue;
-            }
-            if !case.solved.load(Ordering::Relaxed) {
-                continue;
-            }
+    drop(solution_tx);
+    drop(status_tx);
+    let _ = solution_thread.join();
+    let _ = status_thread.join();
 
-            let solutions = case_solutions
+    let elapsed = start_time.elapsed().as_secs_f64();
+    let already_notified = notified_cases.lock().unwrap().clone();
+    let final_solutions = case_solutions.lock().unwrap();
+
+    for case in &cases {
+        if already_notified.contains(&case.case_number) {
+            let solutions = final_solutions
                 .get(&case.case_number)
                 .cloned()
                 .unwrap_or_default();
@@ -333,34 +505,14 @@ pub fn solve_batch_states(
             result.best_solution = solutions.first().cloned();
             result.solutions = solutions;
             result.solve_time = elapsed;
-
-            if let Some(ref callback) = case_solved_callback {
-                callback(result.clone());
-            }
-
             results.add_result(result);
-            notified_cases.insert(case.case_number);
-        }
-    }
-
-    drop(solution_tx);
-    drop(status_tx);
-    let _ = status_thread.join();
-
-    while let Ok((case_number, solution)) = solution_rx.try_recv() {
-        case_solutions
-            .entry(case_number)
-            .or_default()
-            .push(solution);
-    }
-
-    let elapsed = start_time.elapsed().as_secs_f64();
-    for case in &cases {
-        if notified_cases.contains(&case.case_number) {
             continue;
         }
 
-        let solutions = case_solutions.remove(&case.case_number).unwrap_or_default();
+        let solutions = final_solutions
+            .get(&case.case_number)
+            .cloned()
+            .unwrap_or_default();
         let mut result = BatchCaseResult::new(case.case_number, case.setup_moves.clone());
         result.best_solution = solutions.first().cloned();
         result.solutions = solutions;
@@ -393,6 +545,37 @@ pub fn solve_batch_states(
     );
 
     results
+}
+
+fn calculate_max_concurrent(
+    config: &BatchSolverConfig,
+    table_memory_bytes: usize,
+    num_threads: usize,
+    num_moves: usize,
+    total_cases: usize,
+) -> usize {
+    let budget_bytes = (config.memory_config.total_budget_bytes as f64 * UPPER_BOUND) as usize;
+    let search_budget = budget_bytes.saturating_sub(table_memory_bytes);
+
+    let pruner_instance_bytes: usize = config
+        .search_mode
+        .create_pruners()
+        .iter()
+        .map(|_| 256)
+        .sum::<usize>();
+
+    let per_case_bytes = PER_CASE_BASE_BYTES + (pruner_instance_bytes * num_moves.min(num_threads));
+
+    let thread_overhead = PER_THREAD_STACK_BYTES * num_threads;
+    let effective_budget = search_budget.saturating_sub(thread_overhead);
+
+    let max_concurrent = if per_case_bytes > 0 {
+        (effective_budget / per_case_bytes).max(MIN_CONCURRENT_CASES)
+    } else {
+        total_cases
+    };
+
+    max_concurrent.min(total_cases).max(MIN_CONCURRENT_CASES)
 }
 
 fn build_cases(
