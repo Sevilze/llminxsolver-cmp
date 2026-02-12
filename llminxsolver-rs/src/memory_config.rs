@@ -217,6 +217,74 @@ pub fn get_available_memory_mb() -> usize {
     get_available_system_memory_bytes() / BYTES_PER_MB
 }
 
+pub fn get_current_rss_bytes() -> usize {
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    {
+        if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+            for line in status.lines() {
+                if line.starts_with("VmRSS:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 2
+                        && let Ok(kb) = parts[1].parse::<usize>()
+                    {
+                        return kb * 1024;
+                    }
+                }
+            }
+        }
+        0
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        let pid = std::process::id();
+        if let Ok(output) = Command::new("ps")
+            .args(["-o", "rss=", "-p", &pid.to_string()])
+            .output()
+        {
+            if let Ok(s) = String::from_utf8(output.stdout) {
+                if let Ok(kb) = s.trim().parse::<usize>() {
+                    return kb * 1024;
+                }
+            }
+        }
+        0
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::System::ProcessStatus::GetProcessMemoryInfo;
+        use windows::Win32::System::ProcessStatus::PROCESS_MEMORY_COUNTERS;
+        use windows::Win32::System::Threading::GetCurrentProcess;
+
+        unsafe {
+            let process: HANDLE = GetCurrentProcess();
+            let mut counters = PROCESS_MEMORY_COUNTERS::default();
+            let result = GetProcessMemoryInfo(
+                process,
+                &mut counters,
+                std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+            );
+            match result {
+                Ok(_) => counters.WorkingSetSize as usize,
+                Err(_) => 0,
+            }
+        }
+    }
+
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "windows",
+        target_os = "android"
+    )))]
+    {
+        0
+    }
+}
+
 #[derive(Clone)]
 pub struct MemoryTracker {
     budget_bytes: usize,
