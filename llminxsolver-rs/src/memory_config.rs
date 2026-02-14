@@ -254,22 +254,17 @@ pub fn get_current_rss_bytes() -> usize {
 
     #[cfg(target_os = "windows")]
     {
-        use windows::Win32::Foundation::HANDLE;
-        use windows::Win32::System::ProcessStatus::{
-            GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS,
-        };
-        use windows::Win32::System::Threading::GetCurrentProcess;
-
-        let process: HANDLE = GetCurrentProcess();
-        let mut counters = PROCESS_MEMORY_COUNTERS::default();
-        if GetProcessMemoryInfo(
-            process,
-            &mut counters,
-            std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
-        )
-        .is_ok()
+        use std::process::Command;
+        let pid = std::process::id();
+        if let Ok(output) = Command::new("powershell.exe")
+            .args(["-NoProfile", "-Command", &format!("(Get-Process -Id {pid}).WorkingSet64")])
+            .output()
         {
-            return counters.WorkingSetSize as usize;
+            if let Ok(s) = String::from_utf8(output.stdout) {
+                if let Ok(bytes) = s.trim().parse::<usize>() {
+                    return bytes;
+                }
+            }
         }
         0
     }
