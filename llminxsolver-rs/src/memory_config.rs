@@ -255,23 +255,23 @@ pub fn get_current_rss_bytes() -> usize {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::Foundation::HANDLE;
-        use windows::Win32::System::ProcessStatus::GetProcessMemoryInfo;
-        use windows::Win32::System::ProcessStatus::PROCESS_MEMORY_COUNTERS;
+        use windows::Win32::System::ProcessStatus::{
+            GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS,
+        };
         use windows::Win32::System::Threading::GetCurrentProcess;
 
-        unsafe {
-            let process: HANDLE = GetCurrentProcess();
-            let mut counters = PROCESS_MEMORY_COUNTERS::default();
-            let result = GetProcessMemoryInfo(
-                process,
-                &mut counters,
-                std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
-            );
-            match result {
-                Ok(_) => counters.WorkingSetSize as usize,
-                Err(_) => 0,
-            }
+        let process: HANDLE = GetCurrentProcess();
+        let mut counters = PROCESS_MEMORY_COUNTERS::default();
+        if GetProcessMemoryInfo(
+            process,
+            &mut counters,
+            std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+        )
+        .is_ok()
+        {
+            return counters.WorkingSetSize as usize;
         }
+        0
     }
 
     #[cfg(not(any(
