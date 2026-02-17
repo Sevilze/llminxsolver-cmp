@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uniffi.llminxsolver.BatchSolverHandle
+import uniffi.llminxsolver.BatchTempFile
 import uniffi.llminxsolver.getAvailableCpus
 import uniffi.llminxsolver.getAvailableMemoryMb
 
@@ -34,7 +35,15 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
     private val memoryMonitor = MemoryMonitor()
 
     private var solverHandle: BatchSolverHandle? = null
+    private var batchTempFile: BatchTempFile? = null
     private var timerJob: Job? = null
+    private val writtenCounts = mutableMapOf<UInt, Int>()
+
+    private val _batchTempFilePath = MutableStateFlow<String?>(null)
+    val batchTempFilePath: StateFlow<String?> = _batchTempFilePath.asStateFlow()
+
+    private val _batchSolutionVersion = MutableStateFlow(0)
+    val batchSolutionVersion: StateFlow<Int> = _batchSolutionVersion.asStateFlow()
 
     private val _config = MutableStateFlow(BatchSolverConfig())
     val config: StateFlow<BatchSolverConfig> = _config.asStateFlow()
@@ -56,6 +65,7 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
         NativeLib.ensureLoaded()
         initializePlatformInfo()
         startMemoryMonitoring()
+        uniffi.llminxsolver.cleanupStaleBatchTempFiles()
         settingsViewModel.collectSettings {
                 memoryBudgetMb,
                 tableGenThreads,
@@ -264,6 +274,25 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
         }
     }
 
+    private fun initBatchTempFile() {
+        batchTempFile?.deleteFile()
+        batchTempFile = BatchTempFile()
+        _batchTempFilePath.value = batchTempFile?.getPath()
+        writtenCounts.clear()
+        _batchSolutionVersion.value = 0
+    }
+
+    fun readCasePage(caseNumber: Int, offset: Int, limit: Int): List<String> =
+        batchTempFile?.readCasePage(caseNumber.toUInt(), offset.toULong(), limit.toULong())
+            ?: emptyList()
+
+    fun getCaseCount(caseNumber: Int): Int =
+        batchTempFile?.caseCount(caseNumber.toUInt())?.toInt() ?: 0
+
+    fun flushBatchTempFile() {
+        batchTempFile?.flush()
+    }
+
     fun startSolve() {
         val handle = solverHandle ?: run {
             _state.update { it.copy(statusMessage = "Generate states first") }
@@ -274,6 +303,8 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
             try {
                 val uniffiConfig = buildUniffiConfig(_config.value)
                 handle.updateConfig(uniffiConfig)
+
+                initBatchTempFile()
 
                 _state.update {
                     it.copy(
@@ -299,13 +330,28 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
                     while (true) {
                         delay(100)
                         val elapsed = (System.currentTimeMillis() - startTime) / 1000.0
-                        _state.update { it.copy(elapsedTime = elapsed) }
+                        _state.update { currentState ->
+                            val updatedResults = currentState.results?.let { results ->
+                                val solvedCount = results.solvedCases
+                                results.copy(
+                                    totalTime = elapsed,
+                                    averageTimePerCase = if (solvedCount > 0) {
+                                        elapsed / solvedCount
+                                    } else {
+                                        0.0
+                                    }
+                                )
+                            }
+                            currentState.copy(
+                                elapsedTime = elapsed,
+                                results = updatedResults ?: currentState.results
+                            )
+                        }
                     }
                 }
 
                 handle.setCallback(object : uniffi.llminxsolver.BatchSolverCallback {
                     override fun onProgress(event: uniffi.llminxsolver.ProgressEvent) {
-                        // Filter out SolutionFound events to prevent status flickering
                         if (event.eventType == "SolutionFound") return
 
                         _state.update {
@@ -317,6 +363,19 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
                     }
 
                     override fun onCaseSolved(result: uniffi.llminxsolver.BatchCaseResult) {
+                        val alreadyWritten = writtenCounts[result.caseNumber] ?: 0
+                        val newSolutions = result.solutions.drop(alreadyWritten)
+                        for (solution in newSolutions) {
+                            batchTempFile?.append(
+                                result.caseNumber,
+                                solution
+                            )
+                        }
+                        if (newSolutions.isNotEmpty()) {
+                            writtenCounts[result.caseNumber] = alreadyWritten + newSolutions.size
+                            _batchSolutionVersion.value++
+                        }
+
                         val convertedResult = BatchCaseResult(
                             caseNumber = result.caseNumber.toInt(),
                             setupMoves = result.setupMoves,
@@ -326,8 +385,11 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
                         )
                         _state.update { currentState ->
                             val existingResults = currentState.results
-                            val updatedCaseResults =
-                                (existingResults?.caseResults ?: emptyList()) + convertedResult
+                            val currentCaseResults =
+                                existingResults?.caseResults ?: emptyList()
+                            val updatedCaseResults = currentCaseResults
+                                .filter { it.caseNumber != convertedResult.caseNumber } +
+                                convertedResult
                             val solvedCount = updatedCaseResults.count { it.solutions.isNotEmpty() }
                             val failedCases = updatedCaseResults.filter {
                                 it.solutions.isEmpty()
@@ -397,6 +459,7 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
     fun cancelSolve() {
         solverHandle?.cancel()
         timerJob?.cancel()
+        batchTempFile?.flush()
         _state.update {
             it.copy(isSearching = false, statusMessage = "Cancelled")
         }
@@ -405,6 +468,9 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
     fun reset() {
         cancelSolve()
         solverHandle = null
+        batchTempFile?.deleteFile()
+        batchTempFile = null
+        _batchTempFilePath.value = null
         _state.value = BatchSolverState()
     }
 
@@ -474,6 +540,9 @@ class BatchSolverViewModel(private val settingsViewModel: SettingsViewModel) {
 
     fun onCleared() {
         cancelSolve()
+        batchTempFile?.deleteFile()
+        batchTempFile = null
+        _batchTempFilePath.value = null
         memoryMonitor.stopMonitoring()
     }
 }

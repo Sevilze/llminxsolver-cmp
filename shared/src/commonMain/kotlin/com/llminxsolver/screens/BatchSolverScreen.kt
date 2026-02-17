@@ -339,8 +339,11 @@ private fun ExpandedBatchLayout(
                 )
             ) {
                 BatchSolutionsPanel(
-                    caseResults = state.results?.caseResults ?: emptyList(),
+                    caseNumbers = state.results?.caseResults?.map { it.caseNumber } ?: emptyList(),
                     metric = config.metric,
+                    readCasePage = viewModel::readCasePage,
+                    getCaseCount = viewModel::getCaseCount,
+                    solutionVersion = viewModel.batchSolutionVersion.collectAsState().value,
                     selectedCaseNumber = if (state.generatedStates.isNotEmpty()) {
                         state.currentStateIndex + 1
                     } else {

@@ -80,7 +80,7 @@ fun SearchDepthSelector(
                 Slider(
                     value = maxSearchDepth.toFloat(),
                     onValueChange = { if (enabled) onDepthChange(it.roundToInt()) },
-                    valueRange = 1f..30f,
+                    valueRange = 6f..30f,
                     enabled = enabled
                 )
 
