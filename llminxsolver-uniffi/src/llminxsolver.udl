@@ -9,6 +9,7 @@ namespace llminxsolver {
     u8 get_max_pruning_depth();
     string? validate_megaminx_state(MegaminxState state);
     void cleanup_stale_temp_files();
+    void cleanup_stale_batch_temp_files();
     ThemeColors? generate_theme_from_image(string image_path, boolean dark_theme, SchemeType scheme_type);
     ThemeColors? generate_theme_from_wallpaper(boolean dark_theme, SchemeType scheme_type);
     string? detect_wallpaper_path();
@@ -190,6 +191,17 @@ interface TempFile {
     void flush_file();
     void delete_file();
     sequence<string> read_page(u64 offset, u64 limit);
+};
+
+interface BatchTempFile {
+    constructor();
+    string? append(u32 case_number, string solution);
+    string get_path();
+    u64 count();
+    u64 case_count(u32 case_number);
+    void flush();
+    void delete_file();
+    sequence<string> read_case_page(u32 case_number, u64 offset, u64 limit);
 };
 
 // Batch Solver Types

@@ -6,10 +6,8 @@
 package uniffi.llminxsolver
 
 // Common helper code.
-//
 // Ideally this would live in a separate .kt file where it can be unittested etc
 // in isolation, and perhaps even published as a re-useable package.
-//
 // However, it's important that the details of how this helper code works (e.g. the
 // way that different builtin types are passed across the FFI) exactly match what's
 // expected by the Rust code on the other side of the interface. In practice right
@@ -313,7 +311,6 @@ private const val UNIFFI_HANDLEMAP_INITIAL = 1.toLong()
 private const val UNIFFI_HANDLEMAP_DELTA = 2.toLong()
 
 // Map handles to objects
-//
 // This is used pass an opaque 64-bit handle representing a foreign object to the Rust code.
 internal class UniffiHandleMap<T: Any> {
     private val map = ConcurrentHashMap<Long, T>()
@@ -689,13 +686,11 @@ internal open class UniffiVTableCallbackInterfaceSolverCallback(
 // N.B. the name of the extension is very misleading, since it is
 // rather `InterfaceTooLargeException`, caused by too many methods
 // in the interface for large crates.
-//
 // By splitting the otherwise huge interface into two parts
 // * UniffiLib (this)
 // * IntegrityCheckingUniffiLib
 // And all checksum methods are put into `IntegrityCheckingUniffiLib`
 // we allow for ~2x as many methods in the UniffiLib interface.
-//
 // Note: above all written when we used JNA's `loadIndirect` etc.
 // We now use JNA's "direct mapping" - unclear if same considerations apply exactly.
 internal object IntegrityCheckingUniffiLib {
@@ -705,6 +700,8 @@ internal object IntegrityCheckingUniffiLib {
         uniffiCheckApiChecksums(this)
     }
     external fun uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_batch_temp_files(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_temp_files(
     ): Short
@@ -750,6 +747,20 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_update_config(
     ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_append(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_case_count(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_count(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_delete_file(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_flush(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_get_path(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_read_case_page(
+    ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_is_running(
@@ -779,6 +790,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_llminxsolver_uniffi_checksum_method_tempfile_read_page(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_batchsolverhandle_new(
+    ): Short
+    external fun uniffi_llminxsolver_uniffi_checksum_constructor_batchtempfile_new(
     ): Short
     external fun uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new(
     ): Short
@@ -838,6 +851,26 @@ external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_start(`ptr`:
 ): Unit
 external fun uniffi_llminxsolver_uniffi_fn_method_batchsolverhandle_update_config(`ptr`: Long,`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
+external fun uniffi_llminxsolver_uniffi_fn_clone_batchtempfile(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_free_batchtempfile(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_constructor_batchtempfile_new(uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_append(`ptr`: Long,`caseNumber`: Int,`solution`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_case_count(`ptr`: Long,`caseNumber`: Int,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_count(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_delete_file(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_flush(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_get_path(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_llminxsolver_uniffi_fn_method_batchtempfile_read_case_page(`ptr`: Long,`caseNumber`: Int,`offset`: Long,`limit`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun uniffi_llminxsolver_uniffi_fn_clone_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): Long
 external fun uniffi_llminxsolver_uniffi_fn_free_parallelsolverhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -890,6 +923,8 @@ external fun uniffi_llminxsolver_uniffi_fn_init_callback_vtable_solvercallback(`
 ): Unit
 external fun uniffi_llminxsolver_uniffi_fn_func_calculate_mcc(`sequence`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Double
+external fun uniffi_llminxsolver_uniffi_fn_func_cleanup_stale_batch_temp_files(uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 external fun uniffi_llminxsolver_uniffi_fn_func_cleanup_stale_temp_files(uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_llminxsolver_uniffi_fn_func_detect_wallpaper_path(uniffi_out_err: UniffiRustCallStatus, 
@@ -1042,6 +1077,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_calculate_mcc() != 64330.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_batch_temp_files() != 6613.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_func_cleanup_stale_temp_files() != 62133.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1108,6 +1146,27 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchsolverhandle_update_config() != 50524.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_append() != 60497.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_case_count() != 20144.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_count() != 14341.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_delete_file() != 43875.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_flush() != 8008.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_get_path() != 1829.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_method_batchtempfile_read_case_page() != 6978.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_llminxsolver_uniffi_checksum_method_parallelsolverhandle_cancel() != 56044.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1151,6 +1210,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_batchsolverhandle_new() != 18463.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_batchtempfile_new() != 21660.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_llminxsolver_uniffi_checksum_constructor_parallelsolverhandle_new() != 29738.toShort()) {
@@ -1198,11 +1260,9 @@ public fun uniffiEnsureInitialized() {
 
 
 // Interface implemented by anything that can contain an object reference.
-//
 // Such types expose a `destroy()` method that must be called to cleanly
 // dispose of the contained objects. Failure to call this method may result
 // in memory leaks.
-//
 // The easiest way to ensure this method is called is to use the `.use`
 // helper method to execute a block and destroy the object at the end.
 interface Disposable {
@@ -1541,101 +1601,6 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 }
 
 
-// This template implements a class for working with a Rust struct via a handle
-// to the live Rust struct on the other side of the FFI.
-//
-// There's some subtlety here, because we have to be careful not to operate on a Rust
-// struct after it has been dropped, and because we must expose a public API for freeing
-// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
-//
-//   * Each instance holds an opaque handle to the underlying Rust struct.
-//     Method calls need to read this handle from the object's state and pass it in to
-//     the Rust FFI.
-//
-//   * When an instance is no longer needed, its handle should be passed to a
-//     special destructor function provided by the Rust FFI, which will drop the
-//     underlying Rust struct.
-//
-//   * Given an instance, calling code is expected to call the special
-//     `destroy` method in order to free it after use, either by calling it explicitly
-//     or by using a higher-level helper like the `use` method. Failing to do so risks
-//     leaking the underlying Rust struct.
-//
-//   * We can't assume that calling code will do the right thing, and must be prepared
-//     to handle Kotlin method calls executing concurrently with or even after a call to
-//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
-//
-//   * We must never allow Rust code to operate on the underlying Rust struct after
-//     the destructor has been called, and must never call the destructor more than once.
-//     Doing so may trigger memory unsafety.
-//
-//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
-//     is implemented to call the destructor when the Kotlin object becomes unreachable.
-//     This is done in a background thread. This is not a panacea, and client code should be aware that
-//      1. the thread may starve if some there are objects that have poorly performing
-//     `drop` methods or do significant work in their `drop` methods.
-//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
-//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
-//
-// If we try to implement this with mutual exclusion on access to the handle, there is the
-// possibility of a race between a method call and a concurrent call to `destroy`:
-//
-//    * Thread A starts a method call, reads the value of the handle, but is interrupted
-//      before it can pass the handle over the FFI to Rust.
-//    * Thread B calls `destroy` and frees the underlying Rust struct.
-//    * Thread A resumes, passing the already-read handle value to Rust and triggering
-//      a use-after-free.
-//
-// One possible solution would be to use a `ReadWriteLock`, with each method call taking
-// a read lock (and thus allowed to run concurrently) and the special `destroy` method
-// taking a write lock (and thus blocking on live method calls). However, we aim not to
-// generate methods with any hidden blocking semantics, and a `destroy` method that might
-// block if called incorrectly seems to meet that bar.
-//
-// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
-// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
-// has been called. These are updated according to the following rules:
-//
-//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
-//      The initial value for the flag is false.
-//
-//    * At the start of each method call, we atomically check the counter.
-//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
-//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
-//
-//    * At the end of each method call, we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-//    * When `destroy` is called, we atomically flip the flag from false to true.
-//      If the flag was already true we silently fail.
-//      Otherwise we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
-// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
-//
-// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
-// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
-// of the underlying Rust code.
-//
-// This makes a cleaner a better alternative to _not_ calling `destroy()` as
-// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
-// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
-// thread may be starved, and the app will leak memory.
-//
-// In this case, `destroy`ing manually may be a better solution.
-//
-// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
-// with Rust peers are reclaimed:
-//
-// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
-// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
-// 3. The memory is reclaimed when the process terminates.
-//
-// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
-//
-
-
 public interface BatchSolverHandleInterface {
     
     fun `cancel`()
@@ -1886,99 +1851,255 @@ public object FfiConverterTypeBatchSolverHandle: FfiConverter<BatchSolverHandle,
 }
 
 
-// This template implements a class for working with a Rust struct via a handle
-// to the live Rust struct on the other side of the FFI.
-//
-// There's some subtlety here, because we have to be careful not to operate on a Rust
-// struct after it has been dropped, and because we must expose a public API for freeing
-// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
-//
-//   * Each instance holds an opaque handle to the underlying Rust struct.
-//     Method calls need to read this handle from the object's state and pass it in to
-//     the Rust FFI.
-//
-//   * When an instance is no longer needed, its handle should be passed to a
-//     special destructor function provided by the Rust FFI, which will drop the
-//     underlying Rust struct.
-//
-//   * Given an instance, calling code is expected to call the special
-//     `destroy` method in order to free it after use, either by calling it explicitly
-//     or by using a higher-level helper like the `use` method. Failing to do so risks
-//     leaking the underlying Rust struct.
-//
-//   * We can't assume that calling code will do the right thing, and must be prepared
-//     to handle Kotlin method calls executing concurrently with or even after a call to
-//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
-//
-//   * We must never allow Rust code to operate on the underlying Rust struct after
-//     the destructor has been called, and must never call the destructor more than once.
-//     Doing so may trigger memory unsafety.
-//
-//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
-//     is implemented to call the destructor when the Kotlin object becomes unreachable.
-//     This is done in a background thread. This is not a panacea, and client code should be aware that
-//      1. the thread may starve if some there are objects that have poorly performing
-//     `drop` methods or do significant work in their `drop` methods.
-//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
-//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
-//
-// If we try to implement this with mutual exclusion on access to the handle, there is the
-// possibility of a race between a method call and a concurrent call to `destroy`:
-//
-//    * Thread A starts a method call, reads the value of the handle, but is interrupted
-//      before it can pass the handle over the FFI to Rust.
-//    * Thread B calls `destroy` and frees the underlying Rust struct.
-//    * Thread A resumes, passing the already-read handle value to Rust and triggering
-//      a use-after-free.
-//
-// One possible solution would be to use a `ReadWriteLock`, with each method call taking
-// a read lock (and thus allowed to run concurrently) and the special `destroy` method
-// taking a write lock (and thus blocking on live method calls). However, we aim not to
-// generate methods with any hidden blocking semantics, and a `destroy` method that might
-// block if called incorrectly seems to meet that bar.
-//
-// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
-// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
-// has been called. These are updated according to the following rules:
-//
-//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
-//      The initial value for the flag is false.
-//
-//    * At the start of each method call, we atomically check the counter.
-//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
-//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
-//
-//    * At the end of each method call, we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-//    * When `destroy` is called, we atomically flip the flag from false to true.
-//      If the flag was already true we silently fail.
-//      Otherwise we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
-// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
-//
-// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
-// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
-// of the underlying Rust code.
-//
-// This makes a cleaner a better alternative to _not_ calling `destroy()` as
-// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
-// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
-// thread may be starved, and the app will leak memory.
-//
-// In this case, `destroy`ing manually may be a better solution.
-//
-// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
-// with Rust peers are reclaimed:
-//
-// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
-// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
-// 3. The memory is reclaimed when the process terminates.
-//
-// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
-//
+public interface BatchTempFileInterface {
+    
+    fun `append`(`caseNumber`: kotlin.UInt, `solution`: kotlin.String): kotlin.String?
+    
+    fun `caseCount`(`caseNumber`: kotlin.UInt): kotlin.ULong
+    
+    fun `count`(): kotlin.ULong
+    
+    fun `deleteFile`()
+    
+    fun `flush`()
+    
+    fun `getPath`(): kotlin.String
+    
+    fun `readCasePage`(`caseNumber`: kotlin.UInt, `offset`: kotlin.ULong, `limit`: kotlin.ULong): List<kotlin.String>
+    
+    companion object
+}
+
+open class BatchTempFile: Disposable, AutoCloseable, BatchTempFileInterface
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+    constructor() :
+        this(UniffiWithHandle, 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_constructor_batchtempfile_new(
+    
+        _status)
+}
+    )
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_llminxsolver_uniffi_fn_free_batchtempfile(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_llminxsolver_uniffi_fn_clone_batchtempfile(handle, status)
+        }
+    }
+
+    override fun `append`(`caseNumber`: kotlin.UInt, `solution`: kotlin.String): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_append(
+        it,
+        FfiConverterUInt.lower(`caseNumber`),FfiConverterString.lower(`solution`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `caseCount`(`caseNumber`: kotlin.UInt): kotlin.ULong {
+            return FfiConverterULong.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_case_count(
+        it,
+        FfiConverterUInt.lower(`caseNumber`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `count`(): kotlin.ULong {
+            return FfiConverterULong.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_count(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `deleteFile`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_delete_file(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    override fun `flush`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_flush(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    override fun `getPath`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_get_path(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `readCasePage`(`caseNumber`: kotlin.UInt, `offset`: kotlin.ULong, `limit`: kotlin.ULong): List<kotlin.String> {
+            return FfiConverterSequenceString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_method_batchtempfile_read_case_page(
+        it,
+        FfiConverterUInt.lower(`caseNumber`),FfiConverterULong.lower(`offset`),FfiConverterULong.lower(`limit`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchTempFile: FfiConverter<BatchTempFile, Long> {
+    override fun lower(value: BatchTempFile): Long {
+        return value.uniffiCloneHandle()
+    }
+
+    override fun lift(value: Long): BatchTempFile {
+        return BatchTempFile(UniffiWithHandle, value)
+    }
+
+    override fun read(buf: ByteBuffer): BatchTempFile {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: BatchTempFile) = 8UL
+
+    override fun write(value: BatchTempFile, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
 
 
 public interface ParallelSolverHandleInterface {
@@ -2186,101 +2307,6 @@ public object FfiConverterTypeParallelSolverHandle: FfiConverter<ParallelSolverH
 }
 
 
-// This template implements a class for working with a Rust struct via a handle
-// to the live Rust struct on the other side of the FFI.
-//
-// There's some subtlety here, because we have to be careful not to operate on a Rust
-// struct after it has been dropped, and because we must expose a public API for freeing
-// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
-//
-//   * Each instance holds an opaque handle to the underlying Rust struct.
-//     Method calls need to read this handle from the object's state and pass it in to
-//     the Rust FFI.
-//
-//   * When an instance is no longer needed, its handle should be passed to a
-//     special destructor function provided by the Rust FFI, which will drop the
-//     underlying Rust struct.
-//
-//   * Given an instance, calling code is expected to call the special
-//     `destroy` method in order to free it after use, either by calling it explicitly
-//     or by using a higher-level helper like the `use` method. Failing to do so risks
-//     leaking the underlying Rust struct.
-//
-//   * We can't assume that calling code will do the right thing, and must be prepared
-//     to handle Kotlin method calls executing concurrently with or even after a call to
-//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
-//
-//   * We must never allow Rust code to operate on the underlying Rust struct after
-//     the destructor has been called, and must never call the destructor more than once.
-//     Doing so may trigger memory unsafety.
-//
-//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
-//     is implemented to call the destructor when the Kotlin object becomes unreachable.
-//     This is done in a background thread. This is not a panacea, and client code should be aware that
-//      1. the thread may starve if some there are objects that have poorly performing
-//     `drop` methods or do significant work in their `drop` methods.
-//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
-//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
-//
-// If we try to implement this with mutual exclusion on access to the handle, there is the
-// possibility of a race between a method call and a concurrent call to `destroy`:
-//
-//    * Thread A starts a method call, reads the value of the handle, but is interrupted
-//      before it can pass the handle over the FFI to Rust.
-//    * Thread B calls `destroy` and frees the underlying Rust struct.
-//    * Thread A resumes, passing the already-read handle value to Rust and triggering
-//      a use-after-free.
-//
-// One possible solution would be to use a `ReadWriteLock`, with each method call taking
-// a read lock (and thus allowed to run concurrently) and the special `destroy` method
-// taking a write lock (and thus blocking on live method calls). However, we aim not to
-// generate methods with any hidden blocking semantics, and a `destroy` method that might
-// block if called incorrectly seems to meet that bar.
-//
-// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
-// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
-// has been called. These are updated according to the following rules:
-//
-//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
-//      The initial value for the flag is false.
-//
-//    * At the start of each method call, we atomically check the counter.
-//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
-//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
-//
-//    * At the end of each method call, we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-//    * When `destroy` is called, we atomically flip the flag from false to true.
-//      If the flag was already true we silently fail.
-//      Otherwise we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
-// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
-//
-// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
-// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
-// of the underlying Rust code.
-//
-// This makes a cleaner a better alternative to _not_ calling `destroy()` as
-// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
-// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
-// thread may be starved, and the app will leak memory.
-//
-// In this case, `destroy`ing manually may be a better solution.
-//
-// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
-// with Rust peers are reclaimed:
-//
-// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
-// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
-// 3. The memory is reclaimed when the process terminates.
-//
-// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
-//
-
-
 public interface SolverHandleInterface {
     
     fun `cancel`()
@@ -2484,101 +2510,6 @@ public object FfiConverterTypeSolverHandle: FfiConverter<SolverHandle, Long> {
         buf.putLong(lower(value))
     }
 }
-
-
-// This template implements a class for working with a Rust struct via a handle
-// to the live Rust struct on the other side of the FFI.
-//
-// There's some subtlety here, because we have to be careful not to operate on a Rust
-// struct after it has been dropped, and because we must expose a public API for freeing
-// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
-//
-//   * Each instance holds an opaque handle to the underlying Rust struct.
-//     Method calls need to read this handle from the object's state and pass it in to
-//     the Rust FFI.
-//
-//   * When an instance is no longer needed, its handle should be passed to a
-//     special destructor function provided by the Rust FFI, which will drop the
-//     underlying Rust struct.
-//
-//   * Given an instance, calling code is expected to call the special
-//     `destroy` method in order to free it after use, either by calling it explicitly
-//     or by using a higher-level helper like the `use` method. Failing to do so risks
-//     leaking the underlying Rust struct.
-//
-//   * We can't assume that calling code will do the right thing, and must be prepared
-//     to handle Kotlin method calls executing concurrently with or even after a call to
-//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
-//
-//   * We must never allow Rust code to operate on the underlying Rust struct after
-//     the destructor has been called, and must never call the destructor more than once.
-//     Doing so may trigger memory unsafety.
-//
-//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
-//     is implemented to call the destructor when the Kotlin object becomes unreachable.
-//     This is done in a background thread. This is not a panacea, and client code should be aware that
-//      1. the thread may starve if some there are objects that have poorly performing
-//     `drop` methods or do significant work in their `drop` methods.
-//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
-//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
-//
-// If we try to implement this with mutual exclusion on access to the handle, there is the
-// possibility of a race between a method call and a concurrent call to `destroy`:
-//
-//    * Thread A starts a method call, reads the value of the handle, but is interrupted
-//      before it can pass the handle over the FFI to Rust.
-//    * Thread B calls `destroy` and frees the underlying Rust struct.
-//    * Thread A resumes, passing the already-read handle value to Rust and triggering
-//      a use-after-free.
-//
-// One possible solution would be to use a `ReadWriteLock`, with each method call taking
-// a read lock (and thus allowed to run concurrently) and the special `destroy` method
-// taking a write lock (and thus blocking on live method calls). However, we aim not to
-// generate methods with any hidden blocking semantics, and a `destroy` method that might
-// block if called incorrectly seems to meet that bar.
-//
-// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
-// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
-// has been called. These are updated according to the following rules:
-//
-//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
-//      The initial value for the flag is false.
-//
-//    * At the start of each method call, we atomically check the counter.
-//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
-//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
-//
-//    * At the end of each method call, we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-//    * When `destroy` is called, we atomically flip the flag from false to true.
-//      If the flag was already true we silently fail.
-//      Otherwise we atomically decrement and check the counter.
-//      If it has reached zero then we destroy the underlying Rust struct.
-//
-// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
-// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
-//
-// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
-// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
-// of the underlying Rust code.
-//
-// This makes a cleaner a better alternative to _not_ calling `destroy()` as
-// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
-// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
-// thread may be starved, and the app will leak memory.
-//
-// In this case, `destroy`ing manually may be a better solution.
-//
-// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
-// with Rust peers are reclaimed:
-//
-// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
-// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
-// 3. The memory is reclaimed when the process terminates.
-//
-// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
-//
 
 
 public interface TempFileInterface {
@@ -2816,8 +2747,6 @@ public object FfiConverterTypeTempFile: FfiConverter<TempFile, Long> {
     }
 }
 
-
-
 data class BatchCaseResult (
     var `caseNumber`: kotlin.UInt
     , 
@@ -2868,8 +2797,6 @@ public object FfiConverterTypeBatchCaseResult: FfiConverterRustBuffer<BatchCaseR
             FfiConverterDouble.write(value.`solveTime`, buf)
     }
 }
-
-
 
 data class BatchSolveResults (
     var `totalCases`: kotlin.UInt
@@ -2926,8 +2853,6 @@ public object FfiConverterTypeBatchSolveResults: FfiConverterRustBuffer<BatchSol
             FfiConverterDouble.write(value.`averageTimePerCase`, buf)
     }
 }
-
-
 
 data class BatchSolverConfig (
     var `scramble`: kotlin.String
@@ -3030,8 +2955,6 @@ public object FfiConverterTypeBatchSolverConfig: FfiConverterRustBuffer<BatchSol
     }
 }
 
-
-
 data class GeneratedBatchState (
     var `caseNumber`: kotlin.UInt
     , 
@@ -3088,8 +3011,6 @@ public object FfiConverterTypeGeneratedBatchState: FfiConverterRustBuffer<Genera
     }
 }
 
-
-
 data class MegaminxState (
     var `cornerPositions`: List<kotlin.UByte>
     , 
@@ -3136,8 +3057,6 @@ public object FfiConverterTypeMegaminxState: FfiConverterRustBuffer<MegaminxStat
     }
 }
 
-
-
 data class ModePruningDepth (
     var `mode`: SearchMode
     , 
@@ -3173,8 +3092,6 @@ public object FfiConverterTypeModePruningDepth: FfiConverterRustBuffer<ModePruni
             FfiConverterUByte.write(value.`depth`, buf)
     }
 }
-
-
 
 data class ParallelConfig (
     var `memoryBudgetMb`: kotlin.UInt
@@ -3216,8 +3133,6 @@ public object FfiConverterTypeParallelConfig: FfiConverterRustBuffer<ParallelCon
             FfiConverterUInt.write(value.`searchThreads`, buf)
     }
 }
-
-
 
 data class ParallelSolverConfig (
     var `searchModes`: List<SearchMode>
@@ -3300,8 +3215,6 @@ public object FfiConverterTypeParallelSolverConfig: FfiConverterRustBuffer<Paral
     }
 }
 
-
-
 data class ProgressEvent (
     var `eventType`: kotlin.String
     , 
@@ -3353,8 +3266,6 @@ public object FfiConverterTypeProgressEvent: FfiConverterRustBuffer<ProgressEven
     }
 }
 
-
-
 data class ScoredSolutionExport (
     var `mcc`: kotlin.Double
     , 
@@ -3395,8 +3306,6 @@ public object FfiConverterTypeScoredSolutionExport: FfiConverterRustBuffer<Score
             FfiConverterString.write(value.`algorithm`, buf)
     }
 }
-
-
 
 data class SolverConfig (
     var `searchMode`: SearchMode
@@ -3474,8 +3383,6 @@ public object FfiConverterTypeSolverConfig: FfiConverterRustBuffer<SolverConfig>
     }
 }
 
-
-
 data class SortingCriterion (
     var `sortingType`: SortingType
     , 
@@ -3511,8 +3418,6 @@ public object FfiConverterTypeSortingCriterion: FfiConverterRustBuffer<SortingCr
             FfiConverterString.write(value.`pieces`, buf)
     }
 }
-
-
 
 data class ThemeColors (
     var `primary`: kotlin.String
@@ -3717,8 +3622,6 @@ public object FfiConverterTypeThemeColors: FfiConverterRustBuffer<ThemeColors> {
 
 
 
-
-
 sealed class BatchSolverException: kotlin.Exception() {
     
     class ParseException(
@@ -3883,8 +3786,6 @@ public object FfiConverterTypeBatchSolverError : FfiConverterRustBuffer<BatchSol
 }
 
 
-
-
 enum class Metric {
     
     FACE,
@@ -3913,8 +3814,6 @@ public object FfiConverterTypeMetric: FfiConverterRustBuffer<Metric> {
         buf.putInt(value.ordinal + 1)
     }
 }
-
-
 
 
 
@@ -3958,8 +3857,6 @@ public object FfiConverterTypeSchemeType: FfiConverterRustBuffer<SchemeType> {
 
 
 
-
-
 enum class SearchMode {
     
     RU,
@@ -3998,8 +3895,6 @@ public object FfiConverterTypeSearchMode: FfiConverterRustBuffer<SearchMode> {
 
 
 
-
-
 enum class SortingType {
     
     SET_PRIORITY,
@@ -4034,10 +3929,6 @@ public object FfiConverterTypeSortingType: FfiConverterRustBuffer<SortingType> {
 
 
 
-
-
-
-
 public interface BatchSolverCallback {
     
     fun `onProgress`(`event`: ProgressEvent)
@@ -4048,8 +3939,6 @@ public interface BatchSolverCallback {
     
     companion object
 }
-
-
 
 // Put the implementation in an object so we don't pollute the top-level namespace
 internal object uniffiCallbackInterfaceBatchSolverCallback {
@@ -4126,8 +4015,6 @@ public object FfiConverterTypeBatchSolverCallback: FfiConverterCallbackInterface
 
 
 
-
-
 public interface SolverCallback {
     
     fun `onProgress`(`event`: ProgressEvent)
@@ -4138,8 +4025,6 @@ public interface SolverCallback {
     
     companion object
 }
-
-
 
 // Put the implementation in an object so we don't pollute the top-level namespace
 internal object uniffiCallbackInterfaceSolverCallback {
@@ -4214,8 +4099,6 @@ internal object uniffiCallbackInterfaceSolverCallback {
 public object FfiConverterTypeSolverCallback: FfiConverterCallbackInterface<SolverCallback>()
 
 
-
-
 /**
  * @suppress
  */
@@ -4244,8 +4127,6 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
         }
     }
 }
-
-
 
 
 /**
@@ -4278,8 +4159,6 @@ public object FfiConverterOptionalTypeParallelConfig: FfiConverterRustBuffer<Par
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4308,8 +4187,6 @@ public object FfiConverterOptionalTypeThemeColors: FfiConverterRustBuffer<ThemeC
         }
     }
 }
-
-
 
 
 /**
@@ -4342,8 +4219,6 @@ public object FfiConverterOptionalSequenceUByte: FfiConverterRustBuffer<List<kot
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4368,8 +4243,6 @@ public object FfiConverterSequenceUByte: FfiConverterRustBuffer<List<kotlin.UByt
         }
     }
 }
-
-
 
 
 /**
@@ -4398,8 +4271,6 @@ public object FfiConverterSequenceUInt: FfiConverterRustBuffer<List<kotlin.UInt>
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4424,8 +4295,6 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
         }
     }
 }
-
-
 
 
 /**
@@ -4454,8 +4323,6 @@ public object FfiConverterSequenceTypeBatchCaseResult: FfiConverterRustBuffer<Li
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4480,8 +4347,6 @@ public object FfiConverterSequenceTypeGeneratedBatchState: FfiConverterRustBuffe
         }
     }
 }
-
-
 
 
 /**
@@ -4510,8 +4375,6 @@ public object FfiConverterSequenceTypeModePruningDepth: FfiConverterRustBuffer<L
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4538,8 +4401,6 @@ public object FfiConverterSequenceTypeScoredSolutionExport: FfiConverterRustBuff
 }
 
 
-
-
 /**
  * @suppress
  */
@@ -4564,8 +4425,6 @@ public object FfiConverterSequenceTypeSortingCriterion: FfiConverterRustBuffer<L
         }
     }
 }
-
-
 
 
 /**
@@ -4600,6 +4459,15 @@ public object FfiConverterSequenceTypeSearchMode: FfiConverterRustBuffer<List<Se
 }
     )
     }
+    
+ fun `cleanupStaleBatchTempFiles`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_llminxsolver_uniffi_fn_func_cleanup_stale_batch_temp_files(
+    
+        _status)
+}
+    
     
  fun `cleanupStaleTempFiles`()
         = 
