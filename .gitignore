@@ -3,7 +3,6 @@ logs
 *.log
 
 *.local
-*.sh
 *.lz4
 .gradle
 jniLibs
