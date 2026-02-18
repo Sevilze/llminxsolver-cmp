@@ -132,3 +132,92 @@ pub fn handle_d2(ctx: &mut SimulationContext, j: usize, prev_move: &str) -> Move
     }
     MoveResult::Success
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcc::types::MCCParams;
+
+    fn new_ctx() -> SimulationContext<'static> {
+        let params = Box::leak(Box::new(MCCParams::default()));
+        SimulationContext::new(0, 0, 0.0, params)
+    }
+
+    #[test]
+    fn test_handle_d_variants() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_d(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        ctx2.r_wrist = 0;
+        assert!(matches!(handle_d(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 2;
+        ctx3.r_wrist = 2;
+        assert!(matches!(
+            handle_d(&mut ctx3, 0, "B"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_di_variants() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_di(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_di(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 2;
+        ctx3.r_wrist = 2;
+        assert!(matches!(
+            handle_di(&mut ctx3, 0, "B"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_d2_variants() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_d2(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_d2(&mut ctx2, 0, "B"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 2;
+        ctx3.r_wrist = 2;
+        assert!(matches!(
+            handle_d2(&mut ctx3, 0, "R"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_d_family_prev_b_moveblock_paths() {
+        let mut ctx_d = new_ctx();
+        ctx_d.r_wrist = 1;
+        assert!(matches!(handle_d(&mut ctx_d, 0, "B"), MoveResult::Success));
+
+        let mut ctx_di = new_ctx();
+        ctx_di.l_wrist = 1;
+        assert!(matches!(
+            handle_di(&mut ctx_di, 0, "B"),
+            MoveResult::Success
+        ));
+
+        let mut ctx_d2 = new_ctx();
+        ctx_d2.l_wrist = 1;
+        assert!(matches!(
+            handle_d2(&mut ctx_d2, 0, "B"),
+            MoveResult::Success
+        ));
+    }
+}

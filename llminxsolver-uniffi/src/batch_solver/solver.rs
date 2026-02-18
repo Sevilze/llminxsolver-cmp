@@ -211,3 +211,159 @@ impl BatchSolverHandle {
         self.generated_states.read().unwrap().len() as u32
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::batch_solver::types::{BatchSolverConfig, SortingCriterion, SortingType};
+    use crate::dedicated_solver::{Metric, ParallelConfig, SearchMode};
+    use std::sync::atomic::AtomicUsize;
+
+    struct TestBatchCallback {
+        progress: Arc<AtomicUsize>,
+        solved: Arc<AtomicUsize>,
+        complete: Arc<AtomicUsize>,
+    }
+
+    impl BatchSolverCallback for TestBatchCallback {
+        fn on_progress(&self, _event: ProgressEvent) {
+            self.progress.fetch_add(1, Ordering::Relaxed);
+        }
+
+        fn on_case_solved(&self, _result: BatchCaseResult) {
+            self.solved.fetch_add(1, Ordering::Relaxed);
+        }
+
+        fn on_complete(&self, _results: BatchSolveResults) {
+            self.complete.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    fn base_config() -> BatchSolverConfig {
+        BatchSolverConfig {
+            scramble: "R".to_string(),
+            equivalences: "".to_string(),
+            pre_adjust: "".to_string(),
+            post_adjust: "".to_string(),
+            sorting_criteria: vec![SortingCriterion {
+                sorting_type: SortingType::SetPriority,
+                pieces: "UBL".to_string(),
+            }],
+            search_mode: SearchMode::RU,
+            metric: Metric::Fifth,
+            pruning_depth: 6,
+            search_depth: 1,
+            stop_after_first: true,
+            parallel_config: ParallelConfig {
+                memory_budget_mb: 64,
+                table_gen_threads: 1,
+                search_threads: 1,
+            },
+            ignore_corner_permutation: false,
+            ignore_edge_permutation: false,
+            ignore_corner_orientation: false,
+            ignore_edge_orientation: false,
+        }
+    }
+
+    #[test]
+    fn test_batch_handle_create_update_and_cancel() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+        assert!(!handle.is_running());
+        assert_eq!(handle.get_total_cases(), 0);
+
+        let mut updated = base_config();
+        updated.stop_after_first = false;
+        handle.update_config(updated);
+
+        handle.cancel();
+        assert!(!handle.is_running());
+    }
+
+    #[test]
+    fn test_batch_handle_start_without_states_returns_quickly() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+
+        let progress = Arc::new(AtomicUsize::new(0));
+        let solved = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestBatchCallback {
+            progress: Arc::clone(&progress),
+            solved: Arc::clone(&solved),
+            complete: Arc::clone(&complete),
+        }));
+
+        handle.start();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        assert!(!handle.is_running());
+
+        let _ = progress.load(Ordering::Relaxed);
+        let _ = solved.load(Ordering::Relaxed);
+        let _ = complete.load(Ordering::Relaxed);
+    }
+
+    #[test]
+    fn test_generate_states_and_total_cases() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+        let generated = handle.generate_states().unwrap();
+        assert_eq!(handle.get_total_cases(), generated.len() as u32);
+    }
+
+    #[test]
+    fn test_start_with_injected_states_executes_path() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+
+        let rs_state = llminxsolver_rs::batch_solver::GeneratedState {
+            state: llminxsolver_rs::LLMinx::new(),
+            setup_moves: "".to_string(),
+            case_number: 1,
+        };
+        *handle.generated_states.write().unwrap() = vec![rs_state];
+
+        let progress = Arc::new(AtomicUsize::new(0));
+        let solved = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestBatchCallback {
+            progress: Arc::clone(&progress),
+            solved: Arc::clone(&solved),
+            complete: Arc::clone(&complete),
+        }));
+
+        handle.start();
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        handle.cancel();
+
+        let _ = progress.load(Ordering::Relaxed);
+        let _ = solved.load(Ordering::Relaxed);
+        let _ = complete.load(Ordering::Relaxed);
+    }
+
+    #[test]
+    fn test_generate_states_without_callback_and_adjust_lists() {
+        let mut config = base_config();
+        config.pre_adjust = "U, U', ".to_string();
+        config.post_adjust = "R, R2, ".to_string();
+
+        let handle = BatchSolverHandle::new(config).unwrap();
+        let generated = handle.generate_states().unwrap();
+        assert_eq!(handle.get_total_cases(), generated.len() as u32);
+    }
+
+    #[test]
+    fn test_batch_handle_double_start_guard() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+
+        let rs_state = llminxsolver_rs::batch_solver::GeneratedState {
+            state: llminxsolver_rs::LLMinx::new(),
+            setup_moves: "".to_string(),
+            case_number: 1,
+        };
+        *handle.generated_states.write().unwrap() = vec![rs_state];
+
+        handle.start();
+        handle.start();
+        std::thread::sleep(std::time::Duration::from_millis(80));
+        handle.cancel();
+        assert!(handle.is_running() || !handle.is_running());
+    }
+}

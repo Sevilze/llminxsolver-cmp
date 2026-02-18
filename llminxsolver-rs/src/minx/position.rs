@@ -80,3 +80,151 @@ impl Orientation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_corner_position_values() {
+        assert_eq!(CornerPosition::UC1 as u8, 0);
+        assert_eq!(CornerPosition::UC2 as u8, 1);
+        assert_eq!(CornerPosition::UC5 as u8, 4);
+        assert_eq!(CornerPosition::DC2 as u8, 16);
+    }
+
+    #[test]
+    fn test_edge_position_values() {
+        assert_eq!(EdgePosition::UE1 as u8, 0);
+        assert_eq!(EdgePosition::UE5 as u8, 4);
+        assert_eq!(EdgePosition::DE5 as u8, 22);
+    }
+
+    #[test]
+    fn test_orientation_values() {
+        assert_eq!(Orientation::Neutral as u8, 0);
+        assert_eq!(Orientation::Positive as u8, 1);
+        assert_eq!(Orientation::Negative as u8, 2);
+        assert_eq!(Orientation::Ignore as u8, 3);
+    }
+
+    #[test]
+    fn test_orientation_clockwise() {
+        assert_eq!(Orientation::Neutral.clockwise(), Orientation::Positive);
+        assert_eq!(Orientation::Positive.clockwise(), Orientation::Negative);
+        assert_eq!(Orientation::Negative.clockwise(), Orientation::Neutral);
+        assert_eq!(Orientation::Ignore.clockwise(), Orientation::Ignore);
+    }
+
+    #[test]
+    fn test_orientation_counter_clockwise() {
+        assert_eq!(
+            Orientation::Neutral.counter_clockwise(),
+            Orientation::Negative
+        );
+        assert_eq!(
+            Orientation::Positive.counter_clockwise(),
+            Orientation::Neutral
+        );
+        assert_eq!(
+            Orientation::Negative.counter_clockwise(),
+            Orientation::Positive
+        );
+        assert_eq!(Orientation::Ignore.counter_clockwise(), Orientation::Ignore);
+    }
+
+    #[test]
+    fn test_orientation_clockwise_cycle() {
+        let o = Orientation::Neutral;
+        assert_eq!(o.clockwise().clockwise().clockwise(), Orientation::Neutral);
+    }
+
+    #[test]
+    fn test_orientation_counter_clockwise_cycle() {
+        let o = Orientation::Neutral;
+        assert_eq!(
+            o.counter_clockwise()
+                .counter_clockwise()
+                .counter_clockwise(),
+            Orientation::Neutral
+        );
+    }
+
+    #[test]
+    fn test_corner_position_hash() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(CornerPosition::UC1);
+        set.insert(CornerPosition::UC1);
+        assert_eq!(set.len(), 1);
+        set.insert(CornerPosition::UC2);
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_edge_position_hash() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(EdgePosition::UE1);
+        set.insert(EdgePosition::UE1);
+        assert_eq!(set.len(), 1);
+        set.insert(EdgePosition::UE2);
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_orientation_hash() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(Orientation::Neutral);
+        set.insert(Orientation::Neutral);
+        assert_eq!(set.len(), 1);
+        set.insert(Orientation::Positive);
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_corner_position_debug() {
+        let cp = CornerPosition::UC1;
+        let debug_str = format!("{:?}", cp);
+        assert_eq!(debug_str, "UC1");
+    }
+
+    #[test]
+    fn test_edge_position_debug() {
+        let ep = EdgePosition::UE1;
+        let debug_str = format!("{:?}", ep);
+        assert_eq!(debug_str, "UE1");
+    }
+
+    #[test]
+    fn test_orientation_debug() {
+        let o = Orientation::Neutral;
+        let debug_str = format!("{:?}", o);
+        assert_eq!(debug_str, "Neutral");
+    }
+
+    #[test]
+    fn test_corner_position_serde() {
+        let cp = CornerPosition::UC1;
+        let serialized = serde_json::to_string(&cp).unwrap();
+        let deserialized: CornerPosition = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(cp, deserialized);
+    }
+
+    #[test]
+    fn test_edge_position_serde() {
+        let ep = EdgePosition::UE1;
+        let serialized = serde_json::to_string(&ep).unwrap();
+        let deserialized: EdgePosition = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(ep, deserialized);
+    }
+
+    #[test]
+    fn test_orientation_serde() {
+        let o = Orientation::Positive;
+        let serialized = serde_json::to_string(&o).unwrap();
+        let deserialized: Orientation = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(o, deserialized);
+    }
+}

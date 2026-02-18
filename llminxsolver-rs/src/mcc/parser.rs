@@ -78,3 +78,152 @@ pub fn get_move_count(algorithm: &str, metric: &str) -> u32 {
     }
     count
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_replace_double_single_moves() {
+        assert_eq!(replace_double("R R"), "R2");
+        assert_eq!(replace_double("U U"), "U2");
+        assert_eq!(replace_double("F F"), "F2");
+    }
+
+    #[test]
+    fn test_replace_double_prime_moves() {
+        assert_eq!(replace_double("R' R'"), "R2");
+        assert_eq!(replace_double("U' U'"), "U2");
+        assert_eq!(replace_double("F' F'"), "F2");
+    }
+
+    #[test]
+    fn test_replace_double_mixed_sequence() {
+        assert_eq!(replace_double("R U R U"), "R U R U");
+        assert_eq!(replace_double("R R U U"), "R2 U2");
+    }
+
+    #[test]
+    fn test_replace_double_no_double() {
+        assert_eq!(replace_double("R U F"), "R U F");
+        assert_eq!(replace_double("R U R'"), "R U R'");
+    }
+
+    #[test]
+    fn test_replace_double_empty() {
+        assert_eq!(replace_double(""), "");
+    }
+
+    #[test]
+    fn test_replace_double_single() {
+        assert_eq!(replace_double("R"), "R");
+    }
+
+    #[test]
+    fn test_is_valid_move_valid() {
+        assert!(is_valid_move("u"));
+        assert!(is_valid_move("U"));
+        assert!(is_valid_move("r"));
+        assert!(is_valid_move("R"));
+        assert!(is_valid_move("u'"));
+        assert!(is_valid_move("U'"));
+        assert!(is_valid_move("u2"));
+        assert!(is_valid_move("U2"));
+        assert!(is_valid_move("bl"));
+        assert!(is_valid_move("bl'"));
+        assert!(is_valid_move("bl2"));
+    }
+
+    #[test]
+    fn test_is_valid_move_invalid() {
+        assert!(!is_valid_move("invalid"));
+        assert!(!is_valid_move("xyz"));
+        assert!(!is_valid_move(""));
+    }
+
+    #[test]
+    fn test_process_alg_ignore_auf_d_start() {
+        let result = process_alg("d U R U F", true);
+        assert_eq!(result, vec!["d", "R", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_ignore_auf_d_end() {
+        let result = process_alg("R U F d U", true);
+        assert_eq!(result, vec!["R", "U", "F", "d"]);
+    }
+
+    #[test]
+    fn test_process_alg_filters_invalid() {
+        let result = process_alg("R invalid U", false);
+        assert_eq!(result, vec!["R", "U"]);
+    }
+
+    #[test]
+    fn test_process_alg_empty() {
+        let result = process_alg("", false);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_process_alg_replace_double() {
+        let result = process_alg("R R U", false);
+        assert_eq!(result, vec!["R2", "U"]);
+    }
+
+    #[test]
+    fn test_process_alg_basic() {
+        let result = process_alg("R U F", false);
+        assert_eq!(result, vec!["R", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_ignore_auf_start_u() {
+        let result = process_alg("U R U F", true);
+        assert_eq!(result, vec!["R", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_ignore_auf_end_u() {
+        let result = process_alg("R U F U'", true);
+        assert_eq!(result, vec!["R", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_ignore_auf_both() {
+        let result = process_alg("U R U F U'", true);
+        assert_eq!(result, vec!["R", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_double_prime() {
+        let result = process_alg("R2' U F", false);
+        assert_eq!(result, vec!["R2", "U", "F"]);
+    }
+
+    #[test]
+    fn test_process_alg_d_at_start_with_u() {
+        let result = process_alg("d U2 R F", true);
+        assert_eq!(result, vec!["d", "R", "F"]);
+    }
+
+    #[test]
+    fn test_get_move_count_ftm() {
+        assert_eq!(get_move_count("R U F", "FTM"), 3);
+        assert_eq!(get_move_count("R2 U F", "FTM"), 3);
+        assert_eq!(get_move_count("", "FTM"), 0);
+    }
+
+    #[test]
+    fn test_get_move_count_qtm() {
+        assert_eq!(get_move_count("R U F", "QTM"), 3);
+        assert_eq!(get_move_count("R2 U F", "QTM"), 4);
+        assert_eq!(get_move_count("R2 U2 F2", "QTM"), 6);
+    }
+
+    #[test]
+    fn test_get_move_count_with_auf() {
+        assert_eq!(get_move_count("U R U F U'", "FTM"), 3);
+        assert_eq!(get_move_count("U R2 U F U'", "QTM"), 4);
+    }
+}

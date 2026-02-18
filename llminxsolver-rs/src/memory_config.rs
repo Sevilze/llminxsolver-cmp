@@ -257,7 +257,11 @@ pub fn get_current_rss_bytes() -> usize {
         use std::process::Command;
         let pid = std::process::id();
         if let Ok(output) = Command::new("powershell.exe")
-            .args(["-NoProfile", "-Command", &format!("(Get-Process -Id {pid}).WorkingSet64")])
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!("(Get-Process -Id {pid}).WorkingSet64"),
+            ])
             .output()
         {
             if let Ok(s) = String::from_utf8(output.stdout) {
@@ -389,8 +393,105 @@ mod tests {
 
     #[test]
     fn test_min_threads() {
-        let config = MemoryConfig::new(256, 0, 0);
+        let config = MemoryConfig::new(128, 0, 0);
         assert_eq!(config.table_generation_threads, 1);
         assert_eq!(config.search_threads, 1);
+    }
+
+    #[test]
+    fn test_with_budget_and_setters() {
+        let mut config = MemoryConfig::with_budget(128, 0);
+        assert_eq!(config.budget_mb(), 128);
+        assert_eq!(config.table_generation_threads, 1);
+        assert_eq!(config.search_threads, 1);
+
+        config.set_budget_mb(384);
+        config.set_table_generation_threads(3);
+        config.set_search_threads(5);
+
+        assert_eq!(config.budget_mb(), 384);
+        assert_eq!(config.table_generation_threads, 3);
+        assert_eq!(config.search_threads, 5);
+    }
+
+    #[test]
+    fn test_for_desktop_reasonable_defaults() {
+        let config = MemoryConfig::for_desktop();
+        assert!(config.total_budget_bytes > 0);
+        assert!(config.table_generation_threads >= 1);
+        assert!(config.search_threads >= 1);
+    }
+
+    #[test]
+    fn test_available_system_info_non_zero() {
+        assert!(MemoryConfig::available_cpus() >= 1);
+        assert!(MemoryConfig::available_memory_mb() > 0);
+        assert!(get_available_system_memory_bytes() > 0);
+        assert!(get_available_memory_mb() > 0);
+    }
+
+    #[test]
+    fn test_current_rss_bytes_callable() {
+        let _ = get_current_rss_bytes();
+    }
+
+    #[test]
+    fn test_memory_tracker_allocate_and_deallocate() {
+        let tracker = MemoryTracker::new(16);
+        assert_eq!(tracker.budget_mb(), 16);
+        assert_eq!(tracker.used_bytes(), 0);
+        assert!(tracker.can_allocate(1024));
+
+        tracker.allocate(1024);
+        assert_eq!(tracker.used_bytes(), 1024);
+        assert!(tracker.remaining_bytes() < 16 * 1024 * 1024);
+
+        tracker.deallocate(1024);
+        assert_eq!(tracker.used_bytes(), 0);
+    }
+
+    #[test]
+    fn test_memory_tracker_try_allocate_limits() {
+        let tracker = MemoryTracker::new(1);
+        let mb = 1024 * 1024;
+
+        assert!(tracker.try_allocate(mb / 2));
+        assert!(tracker.try_allocate(mb / 2));
+        assert!(!tracker.try_allocate(1));
+    }
+
+    #[test]
+    fn test_memory_tracker_from_config_and_metrics() {
+        let config = MemoryConfig::new(10, 2, 2);
+        let tracker = MemoryTracker::from_config(&config);
+        assert_eq!(tracker.budget_mb(), 10);
+        assert_eq!(tracker.used_mb(), 0);
+        assert!((tracker.usage_percentage() - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_memory_tracker_warning_threshold() {
+        let tracker = MemoryTracker::new(10);
+        let bytes_for_79_percent = (10 * 1024 * 1024 * 79) / 100;
+        let bytes_for_80_percent = (10 * 1024 * 1024 * 80) / 100;
+
+        tracker.allocate(bytes_for_79_percent);
+        assert!(!tracker.is_at_warning_threshold());
+
+        tracker.deallocate(bytes_for_79_percent);
+        tracker.allocate(bytes_for_80_percent);
+        assert!(tracker.is_at_warning_threshold());
+    }
+
+    #[test]
+    fn test_memory_tracker_zero_budget_percentage() {
+        let config = MemoryConfig {
+            total_budget_bytes: 0,
+            table_generation_threads: 1,
+            search_threads: 1,
+        };
+        let tracker = MemoryTracker::from_config(&config);
+        assert_eq!(tracker.usage_percentage(), 100.0);
+        assert!(!tracker.can_allocate(1));
     }
 }

@@ -312,3 +312,277 @@ pub fn handle_f2(ctx: &mut SimulationContext, j: usize, prev_move: &str) -> Move
     }
     MoveResult::Success
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcc::types::MCCParams;
+
+    fn new_ctx() -> SimulationContext<'static> {
+        let params = Box::leak(Box::new(MCCParams::default()));
+        SimulationContext::new(0, 0, 0.0, params)
+    }
+
+    #[test]
+    fn test_handle_f_basic_and_early_return() {
+        let mut ctx = new_ctx();
+        let ok = handle_f(&mut ctx, 0, "f", " ");
+        assert!(matches!(ok, MoveResult::Success));
+
+        ctx.l_wrist = 2;
+        ctx.r_wrist = 2;
+        let bad = handle_f(&mut ctx, 1, "F", "R");
+        assert!(matches!(bad, MoveResult::EarlyReturn(_)));
+    }
+
+    #[test]
+    fn test_handle_fi_basic_and_early_return() {
+        let mut ctx = new_ctx();
+        let ok = handle_fi(&mut ctx, 0, "f'", " ");
+        assert!(matches!(ok, MoveResult::Success));
+
+        ctx.l_wrist = 2;
+        ctx.r_wrist = 2;
+        let bad = handle_fi(&mut ctx, 1, "F'", "R");
+        assert!(matches!(bad, MoveResult::EarlyReturn(_)));
+    }
+
+    #[test]
+    fn test_handle_f_wrist_specific_paths() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        assert!(matches!(
+            handle_f(&mut ctx, 0, "F", " "),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        assert!(matches!(
+            handle_f(&mut ctx2, 0, "F", "D"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_fi_wrist_specific_paths() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        assert!(matches!(
+            handle_fi(&mut ctx, 0, "F'", " "),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        assert!(matches!(
+            handle_fi(&mut ctx2, 0, "F'", "D"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_f2_variants() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        assert!(matches!(handle_f2(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = -1;
+        ctx2.r_wrist = 0;
+        assert!(matches!(handle_f2(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.r_wrist = 1;
+        assert!(matches!(handle_f2(&mut ctx3, 0, "D"), MoveResult::Success));
+
+        let mut ctx4 = new_ctx();
+        ctx4.l_wrist = 2;
+        ctx4.r_wrist = 2;
+        assert!(matches!(
+            handle_f2(&mut ctx4, 0, "R"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_f_additional_branches() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        ctx.r_wrist = 0;
+        ctx.r_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(
+            handle_f(&mut ctx, 1, "F", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = -1;
+        ctx2.r_wrist = 1;
+        ctx2.l_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(
+            handle_f(&mut ctx2, 1, "F", "D"),
+            MoveResult::Success
+        ));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = -1;
+        ctx3.grip = -1;
+        ctx3.r_index = FingerState {
+            time: ctx3.speed,
+            location: "home",
+        };
+        assert!(matches!(
+            handle_f(&mut ctx3, 1, "F", "D"),
+            MoveResult::Success
+        ));
+
+        let mut ctx4 = new_ctx();
+        ctx4.l_wrist = 0;
+        ctx4.grip = -1;
+        assert!(matches!(
+            handle_f(&mut ctx4, 1, "F", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx5 = new_ctx();
+        assert!(matches!(
+            handle_f(&mut ctx5, 0, "F", "R"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_fi_additional_branches() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        ctx.l_wrist = 0;
+        ctx.l_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(
+            handle_fi(&mut ctx, 1, "F'", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = -1;
+        ctx2.l_wrist = 1;
+        ctx2.r_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(
+            handle_fi(&mut ctx2, 1, "F'", "D"),
+            MoveResult::Success
+        ));
+
+        let mut ctx3 = new_ctx();
+        ctx3.r_wrist = -1;
+        ctx3.grip = 1;
+        ctx3.l_index = FingerState {
+            time: ctx3.speed,
+            location: "home",
+        };
+        assert!(matches!(
+            handle_fi(&mut ctx3, 1, "F'", "D"),
+            MoveResult::Success
+        ));
+
+        let mut ctx4 = new_ctx();
+        ctx4.r_wrist = 0;
+        ctx4.grip = 1;
+        assert!(matches!(
+            handle_fi(&mut ctx4, 1, "F'", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx5 = new_ctx();
+        assert!(matches!(
+            handle_fi(&mut ctx5, 0, "F'", "R"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_f2_remaining_success_paths() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        ctx.r_wrist = 0;
+        assert!(matches!(handle_f2(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_f2(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 1;
+        ctx3.r_wrist = 0;
+        assert!(matches!(handle_f2(&mut ctx3, 0, "D"), MoveResult::Success));
+    }
+
+    #[test]
+    fn test_handle_f_specific_prev_move_branches() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        ctx.grip = -1;
+        assert!(matches!(
+            handle_f(&mut ctx, 1, "F", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 0;
+        ctx2.grip = -1;
+        assert!(matches!(
+            handle_f(&mut ctx2, 1, "F", "D"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_fi_specific_prev_move_and_j0_fallback() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        ctx.grip = 1;
+        assert!(matches!(
+            handle_fi(&mut ctx, 1, "F'", "R"),
+            MoveResult::Success
+        ));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 0;
+        ctx2.grip = 1;
+        assert!(matches!(
+            handle_fi(&mut ctx2, 1, "F'", "D"),
+            MoveResult::Success
+        ));
+
+        let mut ctx3 = new_ctx();
+        ctx3.grip = 0;
+        assert!(matches!(
+            handle_fi(&mut ctx3, 0, "F", "R"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_f2_r_wrist_comparison_path() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = 1;
+        ctx.l_wrist = 1;
+        ctx.r_middle.location = "home";
+        ctx.r_ring.location = "home";
+        ctx.l_middle.location = "x";
+        ctx.l_ring.location = "x";
+        assert!(matches!(handle_f2(&mut ctx, 0, "R"), MoveResult::Success));
+    }
+}

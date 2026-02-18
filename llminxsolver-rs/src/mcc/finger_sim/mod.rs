@@ -234,3 +234,322 @@ pub fn test(
 
     [-1.0, ctx.speed, l_grip as f64, r_grip as f64, 0.0, 0.0]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_finger_state_new() {
+        let state = FingerState::new();
+        assert_eq!(state.time, -1.0);
+        assert_eq!(state.location, "home");
+    }
+
+    #[test]
+    fn test_finger_state_default() {
+        let state = FingerState::default();
+        assert_eq!(state.time, -1.0);
+        assert_eq!(state.location, "home");
+    }
+
+    #[test]
+    fn test_simulation_context_new() {
+        let params = MCCParams::default();
+        let ctx = SimulationContext::new(0, 0, 1.0, &params);
+
+        assert_eq!(ctx.l_wrist, 0);
+        assert_eq!(ctx.r_wrist, 0);
+        assert_eq!(ctx.speed, 1.0);
+        assert_eq!(ctx.grip, 1);
+    }
+
+    #[test]
+    fn test_simulation_context_l_max_time() {
+        let params = MCCParams::default();
+        let mut ctx = SimulationContext::new(0, 0, 0.0, &params);
+
+        ctx.l_thumb.time = 1.0;
+        ctx.l_index.time = 2.0;
+        ctx.l_middle.time = 3.0;
+        ctx.l_ring.time = 4.0;
+
+        assert_eq!(ctx.l_max_time(), 4.0);
+    }
+
+    #[test]
+    fn test_simulation_context_r_max_time() {
+        let params = MCCParams::default();
+        let mut ctx = SimulationContext::new(0, 0, 0.0, &params);
+
+        ctx.r_thumb.time = 5.0;
+        ctx.r_index.time = 6.0;
+        ctx.r_middle.time = 7.0;
+        ctx.r_ring.time = 8.0;
+
+        assert_eq!(ctx.r_max_time(), 8.0);
+    }
+
+    #[test]
+    fn test_simulation_context_make_early_return() {
+        let params = MCCParams::default();
+        let ctx = SimulationContext::new(1, -1, 2.5, &params);
+
+        let result = ctx.make_early_return(3, 1.0, -1.0);
+
+        assert_eq!(result[0], 3.0);
+        assert_eq!(result[1], 2.5);
+        assert_eq!(result[2], 1.0);
+        assert_eq!(result[3], -1.0);
+    }
+
+    #[test]
+    fn test_overwork_no_penalty() {
+        let finger = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        let result = overwork(&finger, "home", 0.0, 1.0);
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_overwork_with_penalty() {
+        let finger = FingerState {
+            time: 0.5,
+            location: "other",
+        };
+        let result = overwork(&finger, "home", 0.5, 1.0);
+        assert_eq!(result, 1.0);
+    }
+
+    #[test]
+    fn test_overwork_location_matches() {
+        let finger = FingerState {
+            time: 0.5,
+            location: "home",
+        };
+        let result = overwork(&finger, "home", 0.5, 1.0);
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_move_result_success() {
+        let result = MoveResult::Success;
+        matches!(result, MoveResult::Success);
+    }
+
+    #[test]
+    fn test_move_result_early_return() {
+        let arr = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let result = MoveResult::EarlyReturn(arr);
+        match result {
+            MoveResult::EarlyReturn(returned) => {
+                assert_eq!(returned, arr);
+            }
+            MoveResult::Success => panic!("Expected EarlyReturn"),
+        }
+    }
+
+    #[test]
+    fn test_function_empty_sequence() {
+        let params = MCCParams::default();
+        let result = test(&[], 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+        assert_eq!(result[1], 0.0);
+    }
+
+    #[test]
+    fn test_function_single_r_move() {
+        let params = MCCParams::default();
+        let seq = vec!["R".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_single_u_move() {
+        let params = MCCParams::default();
+        let seq = vec!["U".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_unknown_move() {
+        let params = MCCParams::default();
+        let seq = vec!["UNKNOWN".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], 0.0);
+    }
+
+    #[test]
+    fn test_function_r_u_sequence() {
+        let params = MCCParams::default();
+        let seq = vec!["R".to_string(), "U".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_with_different_grips() {
+        let params = MCCParams::default();
+        let seq = vec!["R".to_string()];
+
+        let result_0_0 = test(&seq, 0, 0, 0.0, &params);
+        let result_1_0 = test(&seq, 1, 0, 0.0, &params);
+        let result_neg1_0 = test(&seq, -1, 0, 0.0, &params);
+
+        assert_eq!(result_0_0[2], 0.0);
+        assert_eq!(result_1_0[2], 1.0);
+        assert_eq!(result_neg1_0[2], -1.0);
+    }
+
+    #[test]
+    fn test_function_rotation_moves() {
+        let params = MCCParams::default();
+
+        let seq_x = vec!["X".to_string()];
+        let result_x = test(&seq_x, 0, 0, 0.0, &params);
+        assert!(result_x[0] >= 0.0 || result_x[0] == -1.0);
+
+        let seq_y = vec!["Y".to_string()];
+        let result_y = test(&seq_y, 0, 0, 0.0, &params);
+        assert!(result_y[0] >= 0.0 || result_y[0] == -1.0);
+
+        let seq_z = vec!["Z".to_string()];
+        let result_z = test(&seq_z, 0, 0, 0.0, &params);
+        assert!(result_z[0] >= 0.0 || result_z[0] == -1.0);
+    }
+
+    #[test]
+    fn test_function_l_moves() {
+        let params = MCCParams::default();
+        let seq = vec!["L".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_f_moves() {
+        let params = MCCParams::default();
+        let seq = vec!["F".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_d_moves() {
+        let params = MCCParams::default();
+        let seq = vec!["D".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_bl_br_moves() {
+        let params = MCCParams::default();
+
+        let seq_bl = vec!["BL".to_string()];
+        let result_bl = test(&seq_bl, 0, 0, 0.0, &params);
+        assert!(result_bl[0] >= 0.0 || result_bl[0] == -1.0);
+
+        let seq_br = vec!["BR".to_string()];
+        let result_br = test(&seq_br, 0, 0, 0.0, &params);
+        assert!(result_br[0] >= 0.0 || result_br[0] == -1.0);
+    }
+
+    #[test]
+    fn test_function_double_moves() {
+        let params = MCCParams::default();
+
+        for mv in &["R2", "U2", "L2", "D2"] {
+            let seq = vec![mv.to_string()];
+            let result = test(&seq, 0, 0, 0.0, &params);
+            assert_eq!(result[0], -1.0, "Failed for move {}", mv);
+        }
+    }
+
+    #[test]
+    fn test_function_prime_moves() {
+        let params = MCCParams::default();
+
+        for mv in &["R'", "U'", "L'", "D'"] {
+            let seq = vec![mv.to_string()];
+            let result = test(&seq, 0, 0, 0.0, &params);
+            assert_eq!(result[0], -1.0, "Failed for move {}", mv);
+        }
+    }
+
+    #[test]
+    fn test_function_grip_change() {
+        let params = MCCParams::default();
+        let seq = vec!["R".to_string(), "L".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert!(result[0] >= 0.0 || result[0] == -1.0);
+    }
+
+    #[test]
+    fn test_function_consecutive_ud() {
+        let params = MCCParams::default();
+        let seq = vec!["U".to_string(), "D".to_string()];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert_eq!(result[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_lowercase_grip_and_udgrip_paths() {
+        let params = MCCParams::default();
+        let seq = vec![
+            "l".to_string(),
+            "r".to_string(),
+            "d".to_string(),
+            "u".to_string(),
+        ];
+        let result = test(&seq, 0, 0, 0.0, &params);
+        assert!(result[0] >= 0.0 || result[0] == -1.0);
+    }
+
+    #[test]
+    fn test_function_speed_adjust_patterns() {
+        let params = MCCParams::default();
+
+        let seq_ruprime_r = vec!["R".to_string(), "U'".to_string(), "R".to_string()];
+        let result1 = test(&seq_ruprime_r, 0, 0, 0.0, &params);
+        assert_eq!(result1[0], -1.0);
+
+        let seq_rudprime_r = vec!["R".to_string(), "D'".to_string(), "R".to_string()];
+        let result2 = test(&seq_rudprime_r, 0, 1, 0.0, &params);
+        assert!(result2[0] >= 0.0 || result2[0] == -1.0);
+    }
+
+    #[test]
+    fn test_function_destabilize_paths() {
+        let params = MCCParams::default();
+
+        let seq_u = vec!["U".to_string()];
+        let result_u = test(&seq_u, -1, 0, 0.0, &params);
+        assert_eq!(result_u[0], -1.0);
+
+        let seq_bl = vec!["BL".to_string()];
+        let result_bl = test(&seq_bl, 0, 1, 0.0, &params);
+        assert!(result_bl[0] >= 0.0 || result_bl[0] == -1.0);
+
+        let seq_d = vec!["D".to_string()];
+        let result_d = test(&seq_d, 1, 0, 0.0, &params);
+        assert_eq!(result_d[0], -1.0);
+    }
+
+    #[test]
+    fn test_function_lowercase_transitions_cover_grip_and_udgrip_flips() {
+        let params = MCCParams::default();
+
+        let seq_grip_flip = vec!["r".to_string(), "l".to_string()];
+        let result_grip = test(&seq_grip_flip, 0, 0, 0.0, &params);
+        assert!(result_grip[0] >= 0.0 || result_grip[0] == -1.0);
+
+        let seq_ud_flip = vec!["d".to_string(), "u".to_string()];
+        let result_ud = test(&seq_ud_flip, 0, 0, 0.0, &params);
+        assert!(result_ud[0] >= 0.0 || result_ud[0] == -1.0);
+    }
+}

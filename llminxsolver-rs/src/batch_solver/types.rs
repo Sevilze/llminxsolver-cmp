@@ -499,4 +499,229 @@ mod tests {
         assert!(map.get_edge("UE1").is_some());
         assert!(!map.contains("INVALID"));
     }
+
+    #[test]
+    fn test_batch_error_display() {
+        let err = BatchError::ParseError("test".to_string());
+        assert_eq!(format!("{}", err), "Parse error: test");
+
+        let err = BatchError::InvalidMove("R3".to_string());
+        assert_eq!(format!("{}", err), "Invalid move: R3");
+
+        let err = BatchError::InvalidPiece("XYZ".to_string());
+        assert_eq!(format!("{}", err), "Invalid piece: XYZ");
+
+        let err = BatchError::InvalidScramble("bad".to_string());
+        assert_eq!(format!("{}", err), "Invalid scramble: bad");
+
+        let err = BatchError::InvalidAdjust("bad".to_string());
+        assert_eq!(format!("{}", err), "Invalid adjust: bad");
+
+        let err = BatchError::InvalidEquivalence("bad".to_string());
+        assert_eq!(format!("{}", err), "Invalid equivalence: bad");
+    }
+
+    #[test]
+    fn test_scramble_segment_is_empty() {
+        let plain_empty = ScrambleSegment::Plain("   ".to_string());
+        assert!(plain_empty.is_empty());
+
+        let plain_content = ScrambleSegment::Plain("R U".to_string());
+        assert!(!plain_content.is_empty());
+
+        let series_empty = ScrambleSegment::Series(vec![]);
+        assert!(series_empty.is_empty());
+
+        let series_all_empty = ScrambleSegment::Series(vec!["  ".to_string()]);
+        assert!(series_all_empty.is_empty());
+
+        let series_content = ScrambleSegment::Series(vec!["R U".to_string()]);
+        assert!(!series_content.is_empty());
+
+        let gens_empty = ScrambleSegment::Generators(vec![]);
+        assert!(gens_empty.is_empty());
+    }
+
+    #[test]
+    fn test_case_modifiers_ranges() {
+        let modifiers = CaseModifiers {
+            specific_cases: vec![],
+            ranges: vec![(5, 10), (15, 20)],
+            start_from: None,
+        };
+
+        assert!(!modifiers.should_solve(4));
+        assert!(modifiers.should_solve(5));
+        assert!(modifiers.should_solve(7));
+        assert!(modifiers.should_solve(10));
+        assert!(!modifiers.should_solve(11));
+        assert!(modifiers.should_solve(15));
+        assert!(modifiers.should_solve(20));
+        assert!(!modifiers.should_solve(21));
+    }
+
+    #[test]
+    fn test_case_modifiers_is_empty() {
+        let empty = CaseModifiers::default();
+        assert!(empty.is_empty());
+
+        let with_specific = CaseModifiers {
+            specific_cases: vec![1],
+            ..Default::default()
+        };
+        assert!(!with_specific.is_empty());
+    }
+
+    #[test]
+    fn test_parsed_scramble_is_empty() {
+        let empty = ParsedScramble {
+            segments: vec![],
+            modifiers: CaseModifiers::default(),
+        };
+        assert!(empty.is_empty());
+
+        let with_empty_plain = ParsedScramble {
+            segments: vec![ScrambleSegment::Plain("".to_string())],
+            modifiers: CaseModifiers::default(),
+        };
+        assert!(with_empty_plain.is_empty());
+    }
+
+    #[test]
+    fn test_equivalence_set_contains() {
+        let set = EquivalenceSet {
+            pieces: vec!["UC1".to_string(), "UC2".to_string()],
+        };
+        assert!(set.contains("UC1"));
+        assert!(set.contains("UC2"));
+        assert!(!set.contains("UC3"));
+    }
+
+    #[test]
+    fn test_sort_criterion_pieces() {
+        let crit = SortCriterion::SetPriority {
+            pieces: vec!["UC1".to_string()],
+        };
+        assert_eq!(crit.pieces(), &["UC1".to_string()]);
+
+        let crit2 = SortCriterion::OrientationAt {
+            pieces: vec!["UC2".to_string()],
+        };
+        assert_eq!(crit2.pieces(), &["UC2".to_string()]);
+
+        let crit3 = SortCriterion::OrientationOf {
+            pieces: vec!["UC3".to_string()],
+        };
+        assert_eq!(crit3.pieces(), &["UC3".to_string()]);
+
+        let crit4 = SortCriterion::PermutationAt {
+            pieces: vec!["UC4".to_string()],
+        };
+        assert_eq!(crit4.pieces(), &["UC4".to_string()]);
+
+        let crit5 = SortCriterion::PermutationOf {
+            pieces: vec!["UC5".to_string()],
+        };
+        assert_eq!(crit5.pieces(), &["UC5".to_string()]);
+    }
+
+    #[test]
+    fn test_batch_config_with_methods() {
+        let config = BatchConfig::new("R U")
+            .with_equivalences(vec![EquivalenceSet {
+                pieces: vec!["UC1".to_string()],
+            }])
+            .with_orientation_groups(vec![OrientationGroup {
+                num_orientations: 1,
+                pieces: vec!["UC1".to_string()],
+            }])
+            .with_sort_criteria(vec![SortCriterion::SetPriority {
+                pieces: vec!["UC1".to_string()],
+            }])
+            .with_stop_after_first(true);
+
+        assert_eq!(config.equivalences.len(), 1);
+        assert_eq!(config.orientation_groups.len(), 1);
+        assert_eq!(config.sort_criteria.len(), 1);
+        assert!(config.stop_after_first);
+    }
+
+    #[test]
+    fn test_generated_state() {
+        let state = GeneratedState::new(LLMinx::new(), "R U".to_string());
+        assert_eq!(state.setup_moves, "R U");
+        assert_eq!(state.case_number, 0);
+
+        let cloned = state.clone();
+        assert_eq!(cloned.setup_moves, state.setup_moves);
+    }
+
+    #[test]
+    fn test_generated_state_debug() {
+        let state = GeneratedState::new(LLMinx::new(), "R".to_string());
+        let debug_str = format!("{:?}", state);
+        assert!(debug_str.contains("GeneratedState"));
+        assert!(debug_str.contains("setup_moves"));
+    }
+
+    #[test]
+    fn test_batch_case_result() {
+        let mut result = BatchCaseResult::new(1, "R U".to_string());
+        assert!(!result.is_solved());
+        assert_eq!(result.case_number, 1);
+
+        result.solutions.push("R' U'".to_string());
+        assert!(result.is_solved());
+    }
+
+    #[test]
+    fn test_batch_results() {
+        let mut results = BatchResults::new(10);
+        assert_eq!(results.total_cases, 10);
+        assert_eq!(results.solved_cases, 0);
+
+        let mut case1 = BatchCaseResult::new(1, "R".to_string());
+        case1.solutions.push("R'".to_string());
+        case1.solve_time = 1.0;
+        results.add_result(case1);
+
+        assert_eq!(results.solved_cases, 1);
+        assert_eq!(results.success_rate(), 10.0);
+
+        let case2 = BatchCaseResult::new(2, "R2".to_string());
+        results.add_result(case2);
+
+        assert_eq!(results.solved_cases, 1);
+        assert_eq!(results.failed_cases, vec![2]);
+    }
+
+    #[test]
+    fn test_batch_results_success_rate_zero() {
+        let results = BatchResults::new(0);
+        assert_eq!(results.success_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_piece_map_add_and_get() {
+        let mut map = PieceMap::new();
+        map.add_corner("TC1".to_string(), 0);
+        map.add_edge("TE1".to_string(), 0);
+
+        assert_eq!(map.get_corner("TC1"), Some(0));
+        assert_eq!(map.get_edge("TE1"), Some(0));
+        assert!(map.contains("TC1"));
+        assert!(map.contains("TE1"));
+        assert!(!map.contains("INVALID"));
+    }
+
+    #[test]
+    fn test_normalized_state_from_minx() {
+        let minx = LLMinx::new();
+        let normalized = NormalizedState::from_minx(&minx);
+
+        assert_eq!(normalized.corner_signature.len(), 17);
+        assert_eq!(normalized.edge_signature.len(), 23);
+        assert_eq!(normalized.corner_orientation.len(), 17);
+        assert_eq!(normalized.edge_orientation.len(), 23);
+    }
 }

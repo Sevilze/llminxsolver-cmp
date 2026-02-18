@@ -327,15 +327,23 @@ impl ParallelSolver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    fn lock() -> &'static Mutex<()> {
+        static LOCK: std::sync::OnceLock<Mutex<()>> = std::sync::OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     #[test]
     fn test_parallel_solver_creation() {
+        let _guard = lock().lock().unwrap();
         let solver = ParallelSolver::new(vec![SearchMode::RU, SearchMode::RUF]);
         assert_eq!(solver.modes().len(), 2);
     }
 
     #[test]
     fn test_add_remove_modes() {
+        let _guard = lock().lock().unwrap();
         let mut solver = ParallelSolver::new(vec![SearchMode::RU]);
         solver.add_mode(SearchMode::RUF);
         assert_eq!(solver.modes().len(), 2);
@@ -346,5 +354,136 @@ mod tests {
 
         solver.remove_mode(SearchMode::RUF);
         assert_eq!(solver.modes().len(), 1);
+    }
+
+    #[test]
+    fn test_default_mode_when_empty_modes_provided() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![]);
+        assert_eq!(solver.modes(), &[SearchMode::RU]);
+
+        solver.set_modes(vec![]);
+        assert_eq!(solver.modes(), &[SearchMode::RU]);
+    }
+
+    #[test]
+    fn test_metric_depth_and_memory_setters() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![SearchMode::RU]);
+
+        solver.set_metric(Metric::Face);
+        solver.set_max_search_depth(7);
+        solver.set_limit_search_depth(true);
+        solver.set_pruning_depth(255);
+        solver.set_mode_pruning_depth(SearchMode::RU, 1);
+
+        let cfg = MemoryConfig::new(128, 2, 2);
+        solver.set_memory_config(cfg);
+
+        assert_eq!(solver.metric(), Metric::Face);
+        assert_eq!(solver.max_search_depth(), 7);
+        assert!(solver.limit_search_depth());
+        assert_eq!(solver.pruning_depth(), MAX_PRUNING_DEPTH);
+        assert_eq!(solver.memory_config().budget_mb(), 128);
+    }
+
+    #[test]
+    fn test_interrupt_handle_and_interrupt() {
+        let _guard = lock().lock().unwrap();
+        let solver = ParallelSolver::new(vec![SearchMode::RU]);
+        let handle = solver.interrupt_handle();
+        assert!(!handle.load(Ordering::SeqCst));
+        solver.interrupt();
+        assert!(handle.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_single_mode_solve_returns_vec() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![SearchMode::RU]);
+        solver.set_max_search_depth(0);
+        solver.set_limit_search_depth(true);
+        solver.set_memory_config(MemoryConfig::new(0, 1, 1));
+        let out = solver.solve(LLMinx::new());
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn test_multi_mode_solve_and_callback_path() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![SearchMode::RU, SearchMode::RUF]);
+        solver.set_max_search_depth(0);
+        solver.set_limit_search_depth(true);
+        solver.set_memory_config(MemoryConfig::new(128, 1, 2));
+        solver.set_mode_pruning_depth(SearchMode::RU, 8);
+        solver.set_mode_pruning_depth(SearchMode::RUF, 9);
+
+        let interrupt = solver.interrupt_handle();
+
+        let event_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let event_count_clone = Arc::clone(&event_count);
+        solver.set_status_callback(move |_event| {
+            event_count_clone.fetch_add(1, Ordering::Relaxed);
+            interrupt.store(true, Ordering::SeqCst);
+        });
+
+        let out = solver.solve(LLMinx::new());
+        assert!(out.is_empty());
+        assert!(event_count.load(Ordering::Relaxed) > 0);
+    }
+
+    #[test]
+    fn test_default_constructor_and_set_modes_non_empty() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::default();
+        assert_eq!(solver.modes(), &[SearchMode::RU]);
+
+        solver.set_modes(vec![SearchMode::RUF]);
+        assert_eq!(solver.modes(), &[SearchMode::RUF]);
+    }
+
+    #[test]
+    fn test_single_mode_callback_branch_runs() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![SearchMode::RU]);
+        solver.set_max_search_depth(0);
+        solver.set_limit_search_depth(true);
+        solver.set_memory_config(MemoryConfig::new(0, 1, 1));
+
+        let seen = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let seen_clone = Arc::clone(&seen);
+        solver.set_status_callback(move |_event| {
+            seen_clone.fetch_add(1, Ordering::Relaxed);
+        });
+
+        let out = solver.solve(LLMinx::new());
+        assert!(out.is_empty());
+        assert!(seen.load(Ordering::Relaxed) > 0);
+    }
+
+    #[test]
+    fn test_multi_mode_non_interrupted_completion_path() {
+        let _guard = lock().lock().unwrap();
+        let mut solver = ParallelSolver::new(vec![SearchMode::RU, SearchMode::RUF]);
+        solver.set_max_search_depth(0);
+        solver.set_limit_search_depth(true);
+        solver.set_memory_config(MemoryConfig::new(0, 1, 2));
+        solver.set_mode_pruning_depth(SearchMode::RU, 8);
+        solver.set_mode_pruning_depth(SearchMode::RUF, 9);
+        solver.set_ignore_corner_positions(true);
+        solver.set_ignore_edge_positions(true);
+        solver.set_ignore_corner_orientations(true);
+        solver.set_ignore_edge_orientations(true);
+
+        let events = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let events_clone = Arc::clone(&events);
+        solver.set_status_callback(move |_event| {
+            events_clone.fetch_add(1, Ordering::Relaxed);
+        });
+
+        let out = solver.solve(LLMinx::new());
+        assert!(out.is_empty());
+        assert!(events.load(Ordering::Relaxed) > 0);
+        assert!(!solver.interrupt_handle().load(Ordering::SeqCst));
     }
 }

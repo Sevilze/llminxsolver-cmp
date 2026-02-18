@@ -281,3 +281,124 @@ impl PartialEq for LLMinx {
 }
 
 impl Eq for LLMinx {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_with_state_and_basic_accessors() {
+        let mut cp = [0u8; NUM_CORNERS];
+        let mut ep = [0u8; NUM_EDGES];
+        for (i, item) in cp.iter_mut().enumerate().take(NUM_CORNERS) {
+            *item = (NUM_CORNERS - 1 - i) as u8;
+        }
+        for (i, item) in ep.iter_mut().enumerate().take(NUM_EDGES) {
+            *item = (NUM_EDGES - 1 - i) as u8;
+        }
+
+        let mut state = LLMinx::with_state(cp, ep, 3, 5);
+        assert_eq!(state.corner_positions(), &cp);
+        assert_eq!(state.edge_positions(), &ep);
+        assert_eq!(state.corner_orientations(), 3);
+        assert_eq!(state.edge_orientations(), 5);
+
+        state.corner_positions_mut()[0] = 1;
+        state.edge_positions_mut()[0] = 2;
+        assert_eq!(state.corner_positions()[0], 1);
+        assert_eq!(state.edge_positions()[0], 2);
+    }
+
+    #[test]
+    fn test_setters_and_ignore_masks() {
+        let mut state = LLMinx::new();
+
+        let mut cp = [0u8; NUM_CORNERS];
+        let mut ep = [0u8; NUM_EDGES];
+        cp.copy_from_slice(state.corner_positions());
+        ep.copy_from_slice(state.edge_positions());
+        cp.swap(0, 1);
+        ep.swap(0, 1);
+
+        state.set_corner_positions(cp);
+        state.set_edge_positions(ep);
+        state.set_corner_orientations(0x55);
+        state.set_edge_orientations(0xAA);
+
+        let mut ignore_c = [false; NUM_CORNERS];
+        let mut ignore_e = [false; NUM_EDGES];
+        ignore_c[0] = true;
+        ignore_e[0] = true;
+        state.set_ignore_corner_positions(ignore_c);
+        state.set_ignore_edge_positions(ignore_e);
+        state.set_ignore_corner_orientations(ignore_c);
+        state.set_ignore_edge_orientations(ignore_e);
+
+        assert!(state.ignore_corner_positions()[0]);
+        assert!(state.ignore_edge_positions()[0]);
+        assert!(state.ignore_corner_orientations()[0]);
+        assert!(state.ignore_edge_orientations()[0]);
+    }
+
+    #[test]
+    fn test_single_piece_orientation_bits() {
+        let mut state = LLMinx::new();
+
+        state.set_corner_orientation(3, 2);
+        state.set_corner_orientation(4, 1);
+        assert_eq!(state.get_corner_orientation(3), 2);
+        assert_eq!(state.get_corner_orientation(4), 1);
+
+        state.set_edge_orientation(2, 1);
+        state.set_edge_orientation(4, 1);
+        assert_eq!(state.get_edge_orientation(2), 1);
+        assert_eq!(state.get_edge_orientation(4), 1);
+        assert_eq!(state.get_edge_orientation(3), 0);
+    }
+
+    #[test]
+    fn test_move_strings_lengths_and_clear() {
+        let mut state = LLMinx::new();
+        state.moves.push(Move::R);
+        state.moves.push(Move::R);
+        state.moves.push(Move::U);
+        state.last_move = Some(Move::U);
+
+        assert_eq!(state.depth(), 3);
+        assert_eq!(state.last_move(), Some(Move::U));
+        assert_eq!(state.get_generating_moves(), "R2 U ");
+        assert_eq!(state.get_solving_moves(), "U' R' R' ");
+        assert_eq!(state.get_fftm_length(), 3);
+        assert_eq!(state.get_ftm_length(), 2);
+
+        state.clear_moves();
+        assert_eq!(state.depth(), 0);
+        assert_eq!(state.last_move(), None);
+        assert!(state.moves().is_empty());
+    }
+
+    #[test]
+    fn test_state_equals_with_ignore_masks() {
+        let mut a = LLMinx::new();
+        let mut b = LLMinx::new();
+
+        b.corner_positions_mut()[0] = 1;
+        b.corner_positions_mut()[1] = 0;
+        assert_ne!(a, b);
+
+        let mut ignore = [false; NUM_CORNERS];
+        ignore[0] = true;
+        ignore[1] = true;
+        a.set_ignore_corner_positions(ignore);
+        b.set_ignore_corner_positions(ignore);
+        assert_eq!(a, b);
+
+        b.set_edge_orientation(0, 1);
+        assert_ne!(a, b);
+        let mut ignore_edges = [false; NUM_EDGES];
+        ignore_edges[0] = true;
+        a.set_ignore_edge_orientations(ignore_edges);
+        b.set_ignore_edge_orientations(ignore_edges);
+        assert_eq!(a, b);
+    }
+}

@@ -260,15 +260,6 @@ pub fn validate_full_state(state: &MegaminxState) -> Result<(), ValidationError>
 mod tests {
     use super::*;
 
-    fn create_solved_ll_state() -> MegaminxState {
-        MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        }
-    }
-
     fn create_solved_full_state() -> MegaminxState {
         MegaminxState {
             corner_positions: (0..NUM_CORNERS as u8).collect(),
@@ -276,251 +267,6 @@ mod tests {
             edge_positions: (0..NUM_EDGES as u8).collect(),
             edge_orientations: vec![0; NUM_EDGES],
         }
-    }
-
-    #[test]
-    fn test_valid_solved_state() {
-        let state = create_solved_ll_state();
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_valid_full_solved_state() {
-        let state = create_solved_full_state();
-        assert!(validate_full_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_invalid_double_swap_both_odd_parity() {
-        let state = MegaminxState {
-            corner_positions: vec![1, 0, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![1, 0, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(result, Err(ValidationError::PermutationParity(_))));
-    }
-
-    #[test]
-    fn test_valid_three_cycle_permutation() {
-        let state = MegaminxState {
-            corner_positions: vec![1, 2, 0, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![1, 2, 0, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_invalid_duplicate_corner() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 0, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidCornerPermutation(_))
-        ));
-    }
-
-    #[test]
-    fn test_invalid_duplicate_edge() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 0, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidEdgePermutation(_))
-        ));
-    }
-
-    #[test]
-    fn test_invalid_orientation_sum_corners() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![1, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidCornerOrientation(_))
-        ));
-    }
-
-    #[test]
-    fn test_valid_twisted_corners_sum_divisible_by_three() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![1, 2, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_valid_all_corners_twisted_clockwise() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![1, 1, 1, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_invalid_parity_corner_swap_only() {
-        // Single corner swap with no edge change - odd corner parity
-        let state = MegaminxState {
-            corner_positions: vec![1, 0, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(result, Err(ValidationError::PermutationParity(_))));
-    }
-
-    #[test]
-    fn test_invalid_parity_edge_swap_only() {
-        // Single edge swap with no corner change - odd edge parity
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![1, 0, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(result, Err(ValidationError::PermutationParity(_))));
-    }
-
-    #[test]
-    fn test_invalid_corner_orientation_value_exceeds_max() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![3, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidCornerOrientation(_))
-        ));
-    }
-
-    #[test]
-    fn test_invalid_edge_orientation_value_exceeds_max() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![2, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidEdgeOrientation(_))
-        ));
-    }
-
-    #[test]
-    fn test_invalid_edge_orientation_sum_odd() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![1, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidEdgeOrientation(_))
-        ));
-    }
-
-    #[test]
-    fn test_valid_flipped_edge_pair() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![1, 1, 0, 0, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_valid_four_flipped_edges() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![1, 1, 1, 1, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
-    }
-
-    #[test]
-    fn test_invalid_position_out_of_range() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 5],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(
-            result,
-            Err(ValidationError::InvalidCornerPermutation(_))
-        ));
-    }
-
-    #[test]
-    fn test_invalid_insufficient_corners() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3],
-            corner_orientations: vec![0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3, 4],
-            edge_orientations: vec![0, 0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
-    }
-
-    #[test]
-    fn test_invalid_insufficient_edges() {
-        let state = MegaminxState {
-            corner_positions: vec![0, 1, 2, 3, 4],
-            corner_orientations: vec![0, 0, 0, 0, 0],
-            edge_positions: vec![0, 1, 2, 3],
-            edge_orientations: vec![0, 0, 0, 0],
-        };
-        let result = validate_last_layer_state(&state);
-        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
-    }
-
-    #[test]
-    fn test_valid_complex_state_with_orientation_and_permutation() {
-        let state = MegaminxState {
-            corner_positions: vec![2, 0, 1, 3, 4],
-            corner_orientations: vec![1, 1, 1, 0, 0],
-            edge_positions: vec![2, 0, 1, 3, 4],
-            edge_orientations: vec![1, 1, 0, 0, 0],
-        };
-        assert!(validate_last_layer_state(&state).is_ok());
     }
 
     #[test]
@@ -540,12 +286,240 @@ mod tests {
     }
 
     #[test]
-    fn test_full_state_valid_with_double_swap() {
+    fn test_validation_error_display_messages() {
+        let errors = vec![
+            ValidationError::InvalidCornerPermutation("test corner".to_string()),
+            ValidationError::InvalidEdgePermutation("test edge".to_string()),
+            ValidationError::InvalidCornerOrientation("test corner ori".to_string()),
+            ValidationError::InvalidEdgeOrientation("test edge ori".to_string()),
+            ValidationError::PermutationParity("test parity".to_string()),
+            ValidationError::InvalidStateSize("test size".to_string()),
+        ];
+
+        for error in errors {
+            let display = format!("{}", error);
+            assert!(!display.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_validation_error_is_error_trait() {
+        let error: Box<dyn Error> = Box::new(ValidationError::InvalidStateSize("test".to_string()));
+        let _ = error.to_string();
+    }
+
+    #[test]
+    fn test_count_inversions() {
+        assert_eq!(count_inversions(&[0, 1, 2, 3, 4]), 0);
+        assert_eq!(count_inversions(&[1, 0, 2, 3, 4]), 1);
+        assert_eq!(count_inversions(&[4, 3, 2, 1, 0]), 10);
+        assert_eq!(count_inversions(&[1, 2, 0, 3, 4]), 2);
+    }
+
+    #[test]
+    fn test_is_valid_permutation_success() {
+        assert!(is_valid_permutation(&[0, 1, 2, 3, 4], 5).is_ok());
+        assert!(is_valid_permutation(&[4, 3, 2, 1, 0], 5).is_ok());
+    }
+
+    #[test]
+    fn test_is_valid_permutation_wrong_size() {
+        let result = is_valid_permutation(&[0, 1, 2], 5);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Expected"));
+    }
+
+    #[test]
+    fn test_is_valid_permutation_out_of_range() {
+        let result = is_valid_permutation(&[0, 1, 5], 3);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("out of range"));
+    }
+
+    #[test]
+    fn test_is_valid_permutation_duplicate() {
+        let result = is_valid_permutation(&[0, 0, 2], 3);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Duplicate"));
+    }
+
+    #[test]
+    fn test_validate_orientation_values_success() {
+        assert!(validate_orientation_values(&[0, 1, 2, 1, 0], 2, "Corner").is_ok());
+        assert!(validate_orientation_values(&[0, 1, 0, 1, 0], 1, "Edge").is_ok());
+    }
+
+    #[test]
+    fn test_validate_orientation_values_failure() {
+        let result = validate_orientation_values(&[0, 3, 0], 2, "Corner");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("out of range"));
+    }
+
+    #[test]
+    fn test_validate_orientation_sum_success() {
+        assert!(validate_orientation_sum(&[0, 0, 0], 3, "corner").is_ok());
+        assert!(validate_orientation_sum(&[1, 2, 0], 3, "corner").is_ok());
+        assert!(validate_orientation_sum(&[1, 1, 0], 2, "edge").is_ok());
+    }
+
+    #[test]
+    fn test_validate_orientation_sum_failure() {
+        let result = validate_orientation_sum(&[1, 0, 0], 3, "corner");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("not divisible"));
+    }
+
+    #[test]
+    fn test_validate_permutation_parity_success() {
+        assert!(validate_permutation_parity(&[0, 1, 2], &[0, 1, 2]).is_ok());
+        assert!(validate_permutation_parity(&[1, 2, 0], &[1, 2, 0]).is_ok());
+    }
+
+    #[test]
+    fn test_validate_permutation_parity_corner_failure() {
+        let result = validate_permutation_parity(&[1, 0, 2], &[0, 1, 2]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Corner"));
+    }
+
+    #[test]
+    fn test_validate_permutation_parity_edge_failure() {
+        let result = validate_permutation_parity(&[0, 1, 2], &[1, 0, 2]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Edge"));
+    }
+
+    #[test]
+    fn test_full_state_invalid_corner_orientation_count() {
+        let mut state = create_solved_full_state();
+        state.corner_orientations.pop();
+        let result = validate_full_state(&state);
+        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
+    }
+
+    #[test]
+    fn test_full_state_invalid_edge_orientation_count() {
+        let mut state = create_solved_full_state();
+        state.edge_orientations.pop();
+        let result = validate_full_state(&state);
+        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
+    }
+
+    #[test]
+    fn test_full_state_invalid_corner_orientation_value() {
+        let mut state = create_solved_full_state();
+        state.corner_orientations[0] = 5;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidCornerOrientation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_invalid_edge_orientation_value() {
+        let mut state = create_solved_full_state();
+        state.edge_orientations[0] = 3;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidEdgeOrientation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_invalid_corner_permutation() {
+        let mut state = create_solved_full_state();
+        state.corner_positions[0] = 100;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidCornerPermutation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_invalid_edge_permutation() {
+        let mut state = create_solved_full_state();
+        state.edge_positions[0] = 100;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidEdgePermutation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_corner_orientation_sum() {
+        let mut state = create_solved_full_state();
+        state.corner_orientations[0] = 1;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidCornerOrientation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_edge_orientation_sum() {
+        let mut state = create_solved_full_state();
+        state.edge_orientations[0] = 1;
+        let result = validate_full_state(&state);
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidEdgeOrientation(_))
+        ));
+    }
+
+    #[test]
+    fn test_full_state_permutation_parity() {
         let mut state = create_solved_full_state();
         state.corner_positions.swap(0, 1);
-        state.corner_positions.swap(2, 3);
-        state.edge_positions.swap(0, 1);
-        state.edge_positions.swap(2, 3);
+        let result = validate_full_state(&state);
+        assert!(matches!(result, Err(ValidationError::PermutationParity(_))));
+    }
+
+    #[test]
+    fn test_last_layer_short_orientations() {
+        let state = MegaminxState {
+            corner_positions: vec![0, 1, 2, 3, 4],
+            corner_orientations: vec![0, 0, 0],
+            edge_positions: vec![0, 1, 2, 3, 4],
+            edge_orientations: vec![0, 0, 0],
+        };
+        assert!(validate_last_layer_state(&state).is_ok());
+    }
+
+    #[test]
+    fn test_last_layer_invalid_corner_position_count() {
+        let state = MegaminxState {
+            corner_positions: vec![0, 1, 2, 3],
+            corner_orientations: vec![0; 5],
+            edge_positions: vec![0, 1, 2, 3, 4],
+            edge_orientations: vec![0; 5],
+        };
+
+        let result = validate_last_layer_state(&state);
+        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
+    }
+
+    #[test]
+    fn test_last_layer_invalid_edge_position_count() {
+        let state = MegaminxState {
+            corner_positions: vec![0, 1, 2, 3, 4],
+            corner_orientations: vec![0; 5],
+            edge_positions: vec![0, 1, 2, 3],
+            edge_orientations: vec![0; 5],
+        };
+
+        let result = validate_last_layer_state(&state);
+        assert!(matches!(result, Err(ValidationError::InvalidStateSize(_))));
+    }
+
+    #[test]
+    fn test_full_state_valid_success() {
+        let state = create_solved_full_state();
         assert!(validate_full_state(&state).is_ok());
     }
 }

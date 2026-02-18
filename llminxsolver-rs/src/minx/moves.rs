@@ -130,3 +130,115 @@ impl Move {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_move_all_array() {
+        assert_eq!(Move::ALL.len(), 28);
+        assert_eq!(Move::ALL[0], Move::R);
+        assert_eq!(Move::ALL[27], Move::D2i);
+    }
+
+    #[test]
+    fn test_move_inverse() {
+        assert_eq!(Move::R.inverse(), Move::Ri);
+        assert_eq!(Move::Ri.inverse(), Move::R);
+        assert_eq!(Move::R2.inverse(), Move::R2i);
+        assert_eq!(Move::R2i.inverse(), Move::R2);
+        assert_eq!(Move::U.inverse(), Move::Ui);
+        assert_eq!(Move::D.inverse(), Move::Di);
+    }
+
+    #[test]
+    fn test_move_face() {
+        assert_eq!(Move::R.face(), 0);
+        assert_eq!(Move::Ri.face(), 0);
+        assert_eq!(Move::R2.face(), 0);
+        assert_eq!(Move::R2i.face(), 0);
+        assert_eq!(Move::L.face(), 1);
+        assert_eq!(Move::U.face(), 2);
+        assert_eq!(Move::F.face(), 3);
+        assert_eq!(Move::bL.face(), 4);
+        assert_eq!(Move::bR.face(), 5);
+        assert_eq!(Move::D.face(), 6);
+    }
+
+    #[test]
+    fn test_move_is_double() {
+        assert!(!Move::R.is_double());
+        assert!(!Move::Ri.is_double());
+        assert!(Move::R2.is_double());
+        assert!(Move::R2i.is_double());
+
+        assert!(!Move::U.is_double());
+        assert!(Move::U2.is_double());
+
+        assert!(!Move::D.is_double());
+        assert!(Move::D2.is_double());
+    }
+
+    #[test]
+    fn test_move_to_string() {
+        assert_eq!(Move::R.to_string(), "R ");
+        assert_eq!(Move::Ri.to_string(), "R' ");
+        assert_eq!(Move::R2.to_string(), "R2 ");
+        assert_eq!(Move::R2i.to_string(), "R2' ");
+        assert_eq!(Move::bL.to_string(), "bL ");
+        assert_eq!(Move::bLi.to_string(), "bL' ");
+    }
+
+    #[test]
+    fn test_move_from_u8_valid() {
+        assert_eq!(Move::from_u8(0), Some(Move::R));
+        assert_eq!(Move::from_u8(1), Some(Move::Ri));
+        assert_eq!(Move::from_u8(8), Some(Move::U));
+        assert_eq!(Move::from_u8(27), Some(Move::D2i));
+    }
+
+    #[test]
+    fn test_move_from_u8_invalid() {
+        assert_eq!(Move::from_u8(28), None);
+        assert_eq!(Move::from_u8(100), None);
+        assert_eq!(Move::from_u8(255), None);
+    }
+
+    #[test]
+    fn test_move_inverse_inverse() {
+        for m in Move::ALL {
+            assert_eq!(m.inverse().inverse(), m);
+        }
+    }
+
+    #[test]
+    fn test_inverse_array_consistency() {
+        for (i, m) in Move::ALL.iter().enumerate() {
+            assert_eq!(Move::INVERSE[i], m.inverse());
+        }
+    }
+
+    #[test]
+    fn test_strings_array() {
+        assert_eq!(Move::STRINGS.len(), 28);
+        for (i, m) in Move::ALL.iter().enumerate() {
+            assert_eq!(Move::STRINGS[i], m.to_string());
+        }
+    }
+
+    #[test]
+    fn test_move_serde() {
+        let m = Move::R;
+        let serialized = serde_json::to_string(&m).unwrap();
+        let deserialized: Move = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(m, deserialized);
+    }
+
+    #[test]
+    fn test_move_debug() {
+        let m = Move::R;
+        let debug_str = format!("{:?}", m);
+        assert_eq!(debug_str, "R");
+    }
+}

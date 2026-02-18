@@ -248,3 +248,147 @@ pub fn handle_bl2(ctx: &mut SimulationContext, j: usize, prev_move: &str) -> Mov
     }
     MoveResult::Success
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcc::types::MCCParams;
+
+    fn new_ctx() -> SimulationContext<'static> {
+        let params = Box::leak(Box::new(MCCParams::default()));
+        SimulationContext::new(0, 0, 0.0, params)
+    }
+
+    #[test]
+    fn test_handle_bl_and_bli_paths() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = 1;
+        assert!(matches!(handle_bl(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        assert!(matches!(handle_bli(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 2;
+        ctx3.r_wrist = 2;
+        assert!(matches!(
+            handle_bl(&mut ctx3, 0, "U"),
+            MoveResult::EarlyReturn(_)
+        ));
+        assert!(matches!(
+            handle_bli(&mut ctx3, 0, "U"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_bl2_paths() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = 1;
+        assert!(matches!(handle_bl2(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        assert!(matches!(handle_bl2(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 2;
+        ctx3.r_wrist = 2;
+        assert!(matches!(
+            handle_bl2(&mut ctx3, 0, "R"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_bl_additional_paths() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        assert!(matches!(handle_bl(&mut ctx, 0, "U"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        ctx2.l_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(handle_bl(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 0;
+        ctx3.r_wrist = -1;
+        assert!(matches!(handle_bl(&mut ctx3, 0, "U"), MoveResult::Success));
+
+        let mut ctx4 = new_ctx();
+        ctx4.r_wrist = -1;
+        assert!(matches!(handle_bl(&mut ctx4, 0, "R"), MoveResult::Success));
+    }
+
+    #[test]
+    fn test_handle_bli_additional_paths() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        assert!(matches!(handle_bli(&mut ctx, 0, "U"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.r_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(handle_bli(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.r_wrist = 0;
+        ctx3.l_wrist = -1;
+        assert!(matches!(handle_bli(&mut ctx3, 0, "U"), MoveResult::Success));
+
+        let mut ctx4 = new_ctx();
+        ctx4.l_wrist = -1;
+        assert!(matches!(handle_bli(&mut ctx4, 0, "R"), MoveResult::Success));
+    }
+
+    #[test]
+    fn test_handle_bl2_remaining_success_paths() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = -1;
+        ctx.r_wrist = 0;
+        assert!(matches!(handle_bl2(&mut ctx, 0, "U"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = -1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_bl2(&mut ctx2, 0, "U"), MoveResult::Success));
+    }
+
+    #[test]
+    fn test_handle_bl_branches_non_u_and_non_uflick_variants() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = -1;
+        ctx.l_wrist = 2;
+        assert!(matches!(handle_bl(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.r_index = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        assert!(matches!(handle_bli(&mut ctx2, 0, "R"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = -1;
+        ctx3.r_wrist = 2;
+        assert!(matches!(handle_bli(&mut ctx3, 0, "R"), MoveResult::Success));
+
+        let mut ctx4 = new_ctx();
+        ctx4.l_wrist = -1;
+        ctx4.r_wrist = -1;
+        ctx4.r_middle.location = "x";
+        ctx4.r_ring.location = "x";
+        ctx4.l_middle.location = "home";
+        ctx4.l_ring.location = "home";
+        assert!(matches!(handle_bl2(&mut ctx4, 0, "R"), MoveResult::Success));
+    }
+}

@@ -290,4 +290,39 @@ mod tests {
         let _ = fs::remove_file(solutions_path);
         let _ = fs::remove_file(output_path);
     }
+
+    #[test]
+    fn test_export_scored_xlsx_with_image_bytes() {
+        let temp_path = "/tmp/test_scored_with_image.xlsx";
+        let png_1x1: &[u8] = &[
+            137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
+            8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 15, 4,
+            0, 9, 251, 3, 253, 167, 137, 129, 145, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+        ];
+
+        let solutions = vec![ScoredSolutionExport {
+            mcc: 1.2,
+            move_count: 4,
+            algorithm: "R U".to_string(),
+        }];
+
+        let result = export_scored_xlsx(temp_path, &solutions, Some(png_1x1), 120);
+        assert!(result.is_ok());
+        let _ = fs::remove_file(temp_path);
+    }
+
+    #[test]
+    fn test_export_raw_xlsx_with_image_bytes() {
+        let temp_path = "/tmp/test_raw_with_image.xlsx";
+        let png_1x1: &[u8] = &[
+            137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
+            8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 15, 4,
+            0, 9, 251, 3, 253, 167, 137, 129, 145, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+        ];
+
+        let algorithms = vec!["R U R'".to_string()];
+        let result = export_raw_xlsx(temp_path, &algorithms, Some(png_1x1), 90);
+        assert!(result.is_ok());
+        let _ = fs::remove_file(temp_path);
+    }
 }

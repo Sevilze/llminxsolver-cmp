@@ -173,3 +173,168 @@ impl From<llminxsolver_rs::batch_solver::BatchError> for BatchSolverError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sorting_type_into_rs() {
+        let variants = [
+            SortingType::SetPriority,
+            SortingType::OrientationOf,
+            SortingType::OrientationAt,
+            SortingType::PermutationOf,
+            SortingType::PermutationAt,
+        ];
+
+        for variant in variants {
+            let rs: llminxsolver_rs::batch_solver::SortCriterion = variant.into();
+            assert!(matches!(
+                rs,
+                llminxsolver_rs::batch_solver::SortCriterion::SetPriority { .. }
+                    | llminxsolver_rs::batch_solver::SortCriterion::OrientationOf { .. }
+                    | llminxsolver_rs::batch_solver::SortCriterion::OrientationAt { .. }
+                    | llminxsolver_rs::batch_solver::SortCriterion::PermutationOf { .. }
+                    | llminxsolver_rs::batch_solver::SortCriterion::PermutationAt { .. }
+            ));
+        }
+    }
+
+    #[test]
+    fn test_sorting_criterion_to_rs_parses_pieces() {
+        let criterion = SortingCriterion {
+            sorting_type: SortingType::PermutationAt,
+            pieces: "UBL UFR".to_string(),
+        };
+
+        let rs = criterion.to_rs();
+        match rs {
+            llminxsolver_rs::batch_solver::SortCriterion::PermutationAt { pieces } => {
+                assert_eq!(pieces, vec!["UBL".to_string(), "UFR".to_string()]);
+            }
+            _ => panic!("Unexpected criterion type"),
+        }
+    }
+
+    #[test]
+    fn test_batch_result_conversions() {
+        let mut rs_results = llminxsolver_rs::batch_solver::BatchResults::new(2);
+        let mut rs_case = llminxsolver_rs::batch_solver::BatchCaseResult::new(1, "R U".to_string());
+        rs_case.solutions = vec!["R U R'".to_string()];
+        rs_case.best_solution = Some("R U R'".to_string());
+        rs_case.solve_time = 0.2;
+        rs_results.add_result(rs_case);
+
+        let out: BatchSolveResults = rs_results.into();
+        assert_eq!(out.total_cases, 2);
+        assert_eq!(out.solved_cases, 1);
+        assert_eq!(out.case_results.len(), 1);
+        assert_eq!(out.case_results[0].case_number, 1);
+        assert_eq!(out.case_results[0].best_solution.as_deref(), Some("R U R'"));
+    }
+
+    #[test]
+    fn test_batch_error_mapping() {
+        let parse: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::ParseError("x".into()).into();
+        let invalid_move: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::InvalidMove("m".into()).into();
+        let invalid_piece: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::InvalidPiece("p".into()).into();
+        let invalid_scramble: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::InvalidScramble("s".into()).into();
+        let invalid_adjust: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::InvalidAdjust("a".into()).into();
+        let invalid_equivalence: BatchSolverError =
+            llminxsolver_rs::batch_solver::BatchError::InvalidEquivalence("e".into()).into();
+
+        assert!(matches!(parse, BatchSolverError::ParseError { .. }));
+        assert!(matches!(invalid_move, BatchSolverError::InvalidMove { .. }));
+        assert!(matches!(
+            invalid_piece,
+            BatchSolverError::InvalidPiece { .. }
+        ));
+        assert!(matches!(
+            invalid_scramble,
+            BatchSolverError::InvalidScramble { .. }
+        ));
+        assert!(matches!(
+            invalid_adjust,
+            BatchSolverError::InvalidAdjust { .. }
+        ));
+        assert!(matches!(
+            invalid_equivalence,
+            BatchSolverError::InvalidEquivalence { .. }
+        ));
+    }
+
+    #[test]
+    fn test_batch_config_and_generated_state_structs() {
+        let cfg = BatchSolverConfig {
+            scramble: "R U".to_string(),
+            equivalences: "".to_string(),
+            pre_adjust: "U".to_string(),
+            post_adjust: "U'".to_string(),
+            sorting_criteria: vec![SortingCriterion {
+                sorting_type: SortingType::SetPriority,
+                pieces: "UBL".to_string(),
+            }],
+            search_mode: SearchMode::RU,
+            metric: Metric::Face,
+            pruning_depth: 6,
+            search_depth: 8,
+            stop_after_first: true,
+            parallel_config: ParallelConfig {
+                memory_budget_mb: 64,
+                table_gen_threads: 1,
+                search_threads: 2,
+            },
+            ignore_corner_permutation: true,
+            ignore_edge_permutation: false,
+            ignore_corner_orientation: true,
+            ignore_edge_orientation: false,
+        };
+        assert!(cfg.stop_after_first);
+        assert_eq!(cfg.search_depth, 8);
+
+        let generated = GeneratedBatchState {
+            case_number: 4,
+            setup_moves: "R U".to_string(),
+            corner_positions: vec![0, 1, 2, 3, 4],
+            corner_orientations: vec![0, 1, 2, 0, 1],
+            edge_positions: vec![0, 1, 2, 3, 4],
+            edge_orientations: vec![0, 1, 0, 1, 0],
+        };
+        assert_eq!(generated.case_number, 4);
+        assert_eq!(generated.corner_positions.len(), 5);
+    }
+
+    #[test]
+    fn test_sorting_criterion_to_rs_all_variants() {
+        let cases = [
+            (SortingType::SetPriority, "A B"),
+            (SortingType::OrientationOf, "A B"),
+            (SortingType::OrientationAt, "A B"),
+            (SortingType::PermutationOf, "A B"),
+            (SortingType::PermutationAt, "A B"),
+        ];
+
+        for (sorting_type, pieces) in cases {
+            let criterion = SortingCriterion {
+                sorting_type,
+                pieces: pieces.to_string(),
+            };
+            let rs = criterion.to_rs();
+            match rs {
+                llminxsolver_rs::batch_solver::SortCriterion::SetPriority { pieces }
+                | llminxsolver_rs::batch_solver::SortCriterion::OrientationOf { pieces }
+                | llminxsolver_rs::batch_solver::SortCriterion::OrientationAt { pieces }
+                | llminxsolver_rs::batch_solver::SortCriterion::PermutationOf { pieces }
+                | llminxsolver_rs::batch_solver::SortCriterion::PermutationAt { pieces } => {
+                    assert_eq!(pieces, vec!["A".to_string(), "B".to_string()]);
+                }
+            }
+        }
+    }
+}

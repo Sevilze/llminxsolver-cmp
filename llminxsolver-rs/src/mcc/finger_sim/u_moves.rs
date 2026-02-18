@@ -214,3 +214,148 @@ pub fn handle_u2(ctx: &mut SimulationContext, j: usize) -> MoveResult {
     }
     MoveResult::Success
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcc::types::MCCParams;
+
+    fn new_ctx() -> SimulationContext<'static> {
+        let params = Box::leak(Box::new(MCCParams::default()));
+        SimulationContext::new(0, 0, 0.0, params)
+    }
+
+    #[test]
+    fn test_handle_u_success_and_early_return() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_u(&mut ctx, 0, "R"), MoveResult::Success));
+
+        ctx.r_wrist = 2;
+        ctx.l_wrist = 2;
+        assert!(matches!(
+            handle_u(&mut ctx, 1, "F"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_ui_success_and_early_return() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_ui(&mut ctx, 0, "R"), MoveResult::Success));
+
+        ctx.r_wrist = 2;
+        ctx.l_wrist = 2;
+        assert!(matches!(
+            handle_ui(&mut ctx, 1, "F"),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_u2_paths() {
+        let mut ctx = new_ctx();
+        assert!(matches!(handle_u2(&mut ctx, 0), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_u2(&mut ctx2, 0), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.r_wrist = 2;
+        ctx3.l_wrist = 2;
+        assert!(matches!(
+            handle_u2(&mut ctx3, 0),
+            MoveResult::EarlyReturn(_)
+        ));
+    }
+
+    #[test]
+    fn test_handle_u_additional_paths() {
+        let mut ctx = new_ctx();
+        ctx.r_wrist = 0;
+        ctx.r_index = FingerState {
+            time: ctx.speed,
+            location: "other",
+        };
+        ctx.r_middle = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        assert!(matches!(handle_u(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.r_wrist = 1;
+        ctx2.l_wrist = 0;
+        assert!(matches!(handle_u(&mut ctx2, 0, "B'"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.r_wrist = 1;
+        ctx3.l_wrist = 0;
+        assert!(matches!(handle_u(&mut ctx3, 0, "B'2"), MoveResult::Success));
+
+        let mut ctx4 = new_ctx();
+        ctx4.l_wrist = 0;
+        ctx4.r_wrist = -1;
+        ctx4.l_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(handle_u(&mut ctx4, 0, "R"), MoveResult::Success));
+
+        let mut ctx5 = new_ctx();
+        ctx5.l_wrist = 0;
+        ctx5.r_wrist = -1;
+        ctx5.l_index = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        assert!(matches!(handle_u(&mut ctx5, 0, "R"), MoveResult::Success));
+    }
+
+    #[test]
+    fn test_handle_ui_additional_paths() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = 0;
+        ctx.l_index = FingerState {
+            time: ctx.speed,
+            location: "other",
+        };
+        ctx.l_middle = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        assert!(matches!(handle_ui(&mut ctx, 0, "R"), MoveResult::Success));
+
+        let mut ctx2 = new_ctx();
+        ctx2.l_wrist = 1;
+        ctx2.r_wrist = 0;
+        assert!(matches!(handle_ui(&mut ctx2, 0, "B"), MoveResult::Success));
+
+        let mut ctx3 = new_ctx();
+        ctx3.l_wrist = 1;
+        ctx3.r_wrist = 0;
+        assert!(matches!(
+            handle_ui(&mut ctx3, 0, "B'2"),
+            MoveResult::Success
+        ));
+
+        let mut ctx4 = new_ctx();
+        ctx4.r_wrist = 0;
+        ctx4.l_wrist = -1;
+        ctx4.r_index = FingerState {
+            time: -1.0,
+            location: "uflick",
+        };
+        assert!(matches!(handle_ui(&mut ctx4, 0, "R"), MoveResult::Success));
+
+        let mut ctx5 = new_ctx();
+        ctx5.r_wrist = 0;
+        ctx5.l_wrist = -1;
+        ctx5.r_index = FingerState {
+            time: -1.0,
+            location: "home",
+        };
+        assert!(matches!(handle_ui(&mut ctx5, 0, "R"), MoveResult::Success));
+    }
+}

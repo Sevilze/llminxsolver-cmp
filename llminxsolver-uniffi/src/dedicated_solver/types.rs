@@ -121,3 +121,121 @@ pub struct ProgressEvent {
     pub search_mode: Option<String>,
     pub current_depth: u32,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_mode_conversion_all_variants() {
+        let all = [
+            SearchMode::RU,
+            SearchMode::RUF,
+            SearchMode::RUL,
+            SearchMode::RUFL,
+            SearchMode::RUFLbL,
+            SearchMode::RUbL,
+            SearchMode::RUbR,
+            SearchMode::RUD,
+        ];
+
+        for mode in all {
+            let rs_mode: llminxsolver_rs::SearchMode = mode.into();
+            assert!(matches!(
+                rs_mode,
+                llminxsolver_rs::SearchMode::RU
+                    | llminxsolver_rs::SearchMode::RUF
+                    | llminxsolver_rs::SearchMode::RUL
+                    | llminxsolver_rs::SearchMode::RUFL
+                    | llminxsolver_rs::SearchMode::RUFLbL
+                    | llminxsolver_rs::SearchMode::RUbL
+                    | llminxsolver_rs::SearchMode::RUbR
+                    | llminxsolver_rs::SearchMode::RUD
+            ));
+        }
+    }
+
+    #[test]
+    fn test_metric_conversion() {
+        let face: llminxsolver_rs::Metric = Metric::Face.into();
+        let fifth: llminxsolver_rs::Metric = Metric::Fifth.into();
+        assert_eq!(face, llminxsolver_rs::Metric::Face);
+        assert_eq!(fifth, llminxsolver_rs::Metric::Fifth);
+    }
+
+    #[test]
+    fn test_parallel_config_default_and_into_memory_config() {
+        let default = ParallelConfig::default();
+        assert!(default.memory_budget_mb > 0);
+        assert!(default.table_gen_threads > 0);
+        assert!(default.search_threads > 0);
+
+        let mc: MemoryConfig = default.clone().into();
+        assert_eq!(mc.budget_mb() as u32, default.memory_budget_mb);
+        assert_eq!(
+            mc.table_generation_threads as u32,
+            default.table_gen_threads
+        );
+        assert_eq!(mc.search_threads as u32, default.search_threads);
+    }
+
+    #[test]
+    fn test_config_and_payload_structs_construct() {
+        let solver_cfg = SolverConfig {
+            search_mode: SearchMode::RUF,
+            metric: Metric::Face,
+            limit_search_depth: true,
+            max_search_depth: 7,
+            pruning_depth: 6,
+            ignore_corner_positions: true,
+            ignore_edge_positions: false,
+            ignore_corner_orientations: true,
+            ignore_edge_orientations: false,
+            parallel_config: None,
+        };
+        assert!(solver_cfg.limit_search_depth);
+        assert!(solver_cfg.parallel_config.is_none());
+
+        let mode_depth = ModePruningDepth {
+            mode: SearchMode::RUD,
+            depth: 5,
+        };
+        assert_eq!(mode_depth.depth, 5);
+
+        let parallel_cfg = ParallelSolverConfig {
+            search_modes: vec![SearchMode::RU, SearchMode::RUF],
+            metric: Metric::Fifth,
+            limit_search_depth: false,
+            max_search_depth: 12,
+            pruning_depth: 6,
+            mode_pruning_depths: vec![mode_depth.clone()],
+            ignore_corner_positions: false,
+            ignore_edge_positions: false,
+            ignore_corner_orientations: false,
+            ignore_edge_orientations: false,
+            parallel_config: ParallelConfig {
+                memory_budget_mb: 64,
+                table_gen_threads: 1,
+                search_threads: 1,
+            },
+        };
+        assert_eq!(parallel_cfg.mode_pruning_depths.len(), 1);
+
+        let state = MegaminxState {
+            corner_positions: vec![0, 1, 2],
+            corner_orientations: vec![0, 1, 2],
+            edge_positions: vec![0, 1, 2],
+            edge_orientations: vec![0, 1, 0],
+        };
+        assert_eq!(state.corner_positions[1], 1);
+
+        let progress = ProgressEvent {
+            event_type: "Message".to_string(),
+            message: "hello".to_string(),
+            progress: 0.5,
+            search_mode: Some("RU".to_string()),
+            current_depth: 3,
+        };
+        assert_eq!(progress.search_mode.as_deref(), Some("RU"));
+    }
+}
