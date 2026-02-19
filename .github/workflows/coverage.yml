@@ -15,4 +15,4 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-tarpaulin
-      - run: cargo tarpaulin --workspace --coveralls ${{ secrets.COVERALLS_REPO_TOKEN }} -- --test-threads=1
+      - run: RUST_TEST_THREADS=1 cargo tarpaulin --workspace --coveralls ${{ secrets.COVERALLS_REPO_TOKEN }}
