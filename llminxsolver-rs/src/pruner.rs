@@ -479,10 +479,6 @@ mod tests {
         EdgePermutationPruner::new("Test Edge Permutation", "testedgepermutations", &[0, 1, 2])
     }
 
-    fn create_test_separation_pruner() -> SeparationPruner {
-        SeparationPruner::new("Test Separation", "testseparation", &[0, 1], &[0, 1])
-    }
-
     #[test]
     fn test_pruner_constants() {
         assert_eq!(MIN_PRUNING_DEPTH, 8);
@@ -581,36 +577,6 @@ mod tests {
     }
 
     #[test]
-    fn test_separation_pruner_name() {
-        let pruner = create_test_separation_pruner();
-        assert_eq!(pruner.name(), "Test Separation");
-        assert_eq!(pruner.table_path(), "testseparation");
-    }
-
-    #[test]
-    fn test_separation_pruner_uses() {
-        let pruner = create_test_separation_pruner();
-        assert!(pruner.uses_corner_permutation());
-        assert!(pruner.uses_edge_permutation());
-        assert!(!pruner.uses_corner_orientation());
-        assert!(!pruner.uses_edge_orientation());
-    }
-
-    #[test]
-    fn test_separation_pruner_uses_single_corner() {
-        let pruner = SeparationPruner::new("Test", "test", &[0], &[0, 1]);
-        assert!(!pruner.uses_corner_permutation());
-        assert!(pruner.uses_edge_permutation());
-    }
-
-    #[test]
-    fn test_separation_pruner_uses_single_edge() {
-        let pruner = SeparationPruner::new("Test", "test", &[0, 1], &[0]);
-        assert!(pruner.uses_corner_permutation());
-        assert!(!pruner.uses_edge_permutation());
-    }
-
-    #[test]
     fn test_get_table_file_fifth() {
         let pruner = create_test_corner_orientation_pruner();
         let path = pruner.get_table_file(Metric::Fifth, 12);
@@ -638,8 +604,8 @@ mod tests {
     #[test]
     fn test_find_best_existing_table_none() {
         let pruner = create_test_corner_orientation_pruner();
-        // Should return None for non-existent tables
-        let result = pruner.find_best_existing_table(Metric::Fifth, 10);
+        // Deterministic None: max depth below MIN_PRUNING_DEPTH means no candidate depths.
+        let result = pruner.find_best_existing_table(Metric::Fifth, MIN_PRUNING_DEPTH - 1);
         assert!(result.is_none());
     }
 
@@ -759,6 +725,31 @@ mod tests {
     }
 
     #[test]
+    fn test_separation_pruner_single_vs_multiple_flags() {
+        let single = SeparationPruner::new("single", "sep", &[0], &[0]);
+        assert!(!single.uses_corner_permutation());
+        assert!(!single.uses_edge_permutation());
+
+        let multiple = SeparationPruner::new("multi", "sep", &[0, 1], &[0, 1]);
+        assert!(multiple.uses_corner_permutation());
+        assert!(multiple.uses_edge_permutation());
+        assert!(!multiple.uses_corner_orientation());
+        assert!(!multiple.uses_edge_orientation());
+    }
+
+    #[test]
+    fn test_composite_pruner_uses_flags_cover_all_methods() {
+        let cp = create_test_corner_permutation_pruner();
+        let eo = create_test_edge_orientation_pruner();
+        let composite = CompositePruner::new("combo", "combo", Box::new(cp), Box::new(eo));
+
+        assert!(composite.uses_corner_permutation());
+        assert!(!composite.uses_edge_permutation());
+        assert!(!composite.uses_corner_orientation());
+        assert!(composite.uses_edge_orientation());
+    }
+
+    #[test]
     fn test_set_minx_edge_orientation() {
         let pruner = EdgeOrientationPruner::new("Test", "test", &[0, 1]);
         let mut minx = LLMinx::new();
@@ -783,5 +774,203 @@ mod tests {
         pruner.set_minx(0, &mut minx);
         let coord = pruner.get_coordinate(&minx);
         assert_eq!(coord, 0);
+    }
+
+    #[test]
+    fn test_composite_pruner_set_minx() {
+        let inner1 = Box::new(CornerOrientationPruner::new("CO", "co", &[0, 1]));
+        let inner2 = Box::new(EdgeOrientationPruner::new("EO", "eo", &[0, 1]));
+        let composite = CompositePruner::new("Test", "test", inner1, inner2);
+        let mut minx = LLMinx::new();
+        composite.set_minx(0, &mut minx);
+        let coord = composite.get_coordinate(&minx);
+        assert!(coord < composite.table_size());
+    }
+
+    #[test]
+    fn test_get_table_file_extensions() {
+        let pruner = create_test_corner_orientation_pruner();
+        let path = pruner.get_table_file(Metric::Fifth, 12);
+        let path_str = path.to_string_lossy();
+        assert!(path_str.ends_with(".prn.lz4"));
+    }
+
+    #[test]
+    fn test_load_compressed_table_invalid_path() {
+        let pruner = create_test_corner_orientation_pruner();
+        let invalid_path = std::path::PathBuf::from("/nonexistent/path/table.prn.lz4");
+        let result = pruner.load_compressed_table(&invalid_path);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_corner_orientation_pruner_various_coords() {
+        let pruner = CornerOrientationPruner::new("Test", "test", &[0, 1, 2]);
+        for coord in 0..pruner.table_size() {
+            let mut minx = LLMinx::new();
+            pruner.set_minx(coord, &mut minx);
+            let back_coord = pruner.get_coordinate(&minx);
+            assert_eq!(back_coord, coord, "Roundtrip failed for coord {}", coord);
+        }
+    }
+
+    #[test]
+    fn test_edge_orientation_pruner_various_coords() {
+        let pruner = EdgeOrientationPruner::new("Test", "test", &[0, 1, 2]);
+        for coord in 0..pruner.table_size() {
+            let mut minx = LLMinx::new();
+            pruner.set_minx(coord, &mut minx);
+        }
+    }
+
+    #[test]
+    fn test_composite_coordinate_calculation() {
+        let inner1 = Box::new(CornerOrientationPruner::new("CO", "co", &[0, 1]));
+        let inner2 = Box::new(EdgeOrientationPruner::new("EO", "eo", &[0, 1]));
+        let _size_b = inner2.table_size();
+        let composite = CompositePruner::new("Test", "test", inner1, inner2);
+
+        let minx = LLMinx::new();
+        let coord = composite.get_coordinate(&minx);
+
+        assert!(coord < composite.table_size());
+
+        let expected_size = 3 * 2;
+        assert_eq!(composite.table_size(), expected_size);
+    }
+
+    #[test]
+    fn test_larger_corner_orientation_pruner() {
+        let pruner = CornerOrientationPruner::new("Test", "test", &[0, 1, 2, 3, 4]);
+        assert_eq!(pruner.table_size(), 81);
+
+        let minx = LLMinx::new();
+        let coord = pruner.get_coordinate(&minx);
+        assert_eq!(coord, 0);
+    }
+
+    #[test]
+    fn test_larger_edge_orientation_pruner() {
+        let pruner = EdgeOrientationPruner::new("Test", "test", &[0, 1, 2, 3, 4, 5]);
+        assert_eq!(pruner.table_size(), 32);
+
+        let minx = LLMinx::new();
+        let coord = pruner.get_coordinate(&minx);
+        assert_eq!(coord, 0);
+    }
+
+    #[test]
+    fn test_larger_corner_permutation_pruner() {
+        let pruner = CornerPermutationPruner::new("Test", "test", &[0, 1, 2, 3, 4]);
+        assert_eq!(pruner.table_size(), 60);
+
+        let minx = LLMinx::new();
+        let coord = pruner.get_coordinate(&minx);
+        assert_eq!(coord, 0);
+    }
+
+    #[test]
+    fn test_larger_edge_permutation_pruner() {
+        let pruner = EdgePermutationPruner::new("Test", "test", &[0, 1, 2, 3, 4]);
+        // FAC[5] / 2 = 120 / 2 = 60
+        assert_eq!(pruner.table_size(), 60);
+
+        let minx = LLMinx::new();
+        let coord = pruner.get_coordinate(&minx);
+        assert_eq!(coord, 0);
+    }
+
+    #[test]
+    fn test_nested_composite_pruner() {
+        let inner1 = Box::new(CornerOrientationPruner::new("CO1", "co1", &[0]));
+        let inner2 = Box::new(CornerOrientationPruner::new("CO2", "co2", &[1]));
+        let composite1 = Box::new(CompositePruner::new("C1", "c1", inner1, inner2));
+
+        let inner3 = Box::new(EdgeOrientationPruner::new("EO", "eo", &[0]));
+        let final_composite = CompositePruner::new("Final", "final", composite1, inner3);
+
+        let minx = LLMinx::new();
+        let coord = final_composite.get_coordinate(&minx);
+        assert_eq!(coord, 0);
+
+        assert!(final_composite.uses_corner_orientation());
+        assert!(final_composite.uses_edge_orientation());
+    }
+
+    #[test]
+    fn test_get_table_file_both_metrics() {
+        let pruner = create_test_edge_orientation_pruner();
+        let face = pruner.get_table_file(Metric::Face, 9);
+        let fifth = pruner.get_table_file(Metric::Fifth, 9);
+
+        let face_name = face.file_name().unwrap().to_string_lossy().to_string();
+        let fifth_name = fifth.file_name().unwrap().to_string_lossy().to_string();
+
+        assert!(face_name.contains("FACE"));
+        assert!(fifth_name.contains("FIFTH"));
+    }
+
+    #[test]
+    fn test_save_load_and_find_best_existing_table() {
+        use crate::data_directory::set_data_directory;
+
+        let temp_dir = std::env::temp_dir().join("llminx_pruner_test_data");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        set_data_directory(temp_dir.to_string_lossy().as_ref());
+
+        let pruner = create_test_corner_orientation_pruner();
+        let table_a = vec![0u8, 1, 2, 3, 4, 5, 6, 7, 8];
+        let table_b = vec![8u8, 7, 6, 5, 4, 3, 2, 1, 0];
+
+        pruner.save_table(&table_a, Metric::Fifth, MIN_PRUNING_DEPTH);
+        pruner.save_table(&table_b, Metric::Fifth, MIN_PRUNING_DEPTH + 1);
+
+        assert!(pruner.is_precomputed(Metric::Fifth, MIN_PRUNING_DEPTH));
+
+        let loaded = pruner
+            .load_table(Metric::Fifth, MIN_PRUNING_DEPTH + 1)
+            .expect("expected table");
+        assert_eq!(loaded, table_b);
+
+        let best = pruner
+            .find_best_existing_table(Metric::Fifth, MIN_PRUNING_DEPTH + 1)
+            .expect("best table expected");
+        assert_eq!(best.1, MIN_PRUNING_DEPTH + 1);
+    }
+
+    #[test]
+    fn test_get_table_file_name_format_includes_all_parts() {
+        let pruner = create_test_edge_permutation_pruner();
+        let face_path = pruner.get_table_file(Metric::Face, 11);
+        let fifth_path = pruner.get_table_file(Metric::Fifth, 11);
+
+        let face_name = face_path
+            .file_name()
+            .expect("face name should exist")
+            .to_string_lossy()
+            .to_string();
+        let fifth_name = fifth_path
+            .file_name()
+            .expect("fifth name should exist")
+            .to_string_lossy()
+            .to_string();
+
+        assert!(face_name.starts_with("d11_"));
+        assert!(face_name.contains("FACE"));
+        assert!(face_name.ends_with(".prn.lz4"));
+        assert!(fifth_name.contains("FIFTH"));
+    }
+
+    #[test]
+    fn test_separation_pruner_core_methods() {
+        let pruner = SeparationPruner::new("sep-core", "sep-core", &[0], &[0]);
+        assert_eq!(pruner.name(), "sep-core");
+        assert_eq!(pruner.table_path(), "sep-core");
+        assert!(pruner.table_size() > 0);
+
+        let mut minx = LLMinx::new();
+        pruner.set_minx(0, &mut minx);
+        let coord = pruner.get_coordinate(&minx);
+        assert!(coord < pruner.table_size());
     }
 }

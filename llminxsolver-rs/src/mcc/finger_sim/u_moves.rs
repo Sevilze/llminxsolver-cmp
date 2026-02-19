@@ -358,4 +358,12 @@ mod tests {
         };
         assert!(matches!(handle_ui(&mut ctx5, 0, "R"), MoveResult::Success));
     }
+
+    #[test]
+    fn test_handle_ui_prev_move_non_b_uses_push_mult_else() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = 1;
+        ctx.r_wrist = 0;
+        assert!(matches!(handle_ui(&mut ctx, 0, "R"), MoveResult::Success));
+    }
 }

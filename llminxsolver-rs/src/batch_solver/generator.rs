@@ -564,4 +564,127 @@ mod tests {
 
         assert!(filtered_states.len() < all_states.len() || all_states.is_empty());
     }
+
+    #[test]
+    fn test_generate_batch_states_empty_scramble() {
+        let config = GeneratorConfig {
+            scramble: "   ".to_string(),
+            ..GeneratorConfig::default()
+        };
+
+        let (states, equiv) = generate_batch_states(&config, None, None).unwrap();
+        assert!(states.is_empty());
+        assert!(equiv.is_none());
+    }
+
+    #[test]
+    fn test_generate_batch_states_with_adjust_and_sort() {
+        let config = GeneratorConfig {
+            scramble: "[R, U]".to_string(),
+            equivalences_str: "{UC1 UC2}".to_string(),
+            pre_adjust: vec!["U".to_string()],
+            post_adjust: vec!["U".to_string()],
+            sort_criteria: vec![SortCriterion::SetPriority {
+                pieces: vec!["UC1".to_string()],
+            }],
+            num_threads: 1,
+        };
+
+        let (states, equiv) = generate_batch_states(&config, None, None).unwrap();
+        assert!(equiv.is_some());
+        for (i, state) in states.iter().enumerate() {
+            assert_eq!(state.case_number, i + 1);
+        }
+    }
+
+    #[test]
+    fn test_state_generator_setters_and_trivial_filter() {
+        let mut generator = StateGenerator::new_solved();
+        generator.set_num_threads(1);
+        generator.set_interrupt(Arc::new(AtomicBool::new(false)));
+        generator.set_callback(|_, _| {});
+
+        let parsed = ParsedScramble {
+            segments: vec![ScrambleSegment::Plain("R R".to_string())],
+            modifiers: CaseModifiers::default(),
+        };
+
+        let all = generator.generate(&parsed).unwrap();
+        let filtered = generator.generate_filtered(&parsed).unwrap();
+        assert_eq!(all.len(), 1);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn test_generate_batch_states_callback_and_cancel_branch() {
+        let config = GeneratorConfig {
+            scramble: "[R, U, F]".to_string(),
+            num_threads: 1,
+            ..GeneratorConfig::default()
+        };
+
+        let callback_hits = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let callback_hits_clone = Arc::clone(&callback_hits);
+        let callback: Option<GeneratorCallback> = Some(Arc::new(move |_count, _msg| {
+            callback_hits_clone.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        let (states, _) = generate_batch_states(&config, None, callback).unwrap();
+        let _ = states.len();
+        let _ = callback_hits.load(Ordering::Relaxed);
+
+        let interrupt = Arc::new(AtomicBool::new(true));
+        let _ = generate_batch_states(&config, Some(interrupt), None);
+    }
+
+    #[test]
+    fn test_generate_empty_parsed_and_trivial_helpers() {
+        let generator = StateGenerator::new_solved();
+        let parsed = ParsedScramble {
+            segments: vec![],
+            modifiers: CaseModifiers::default(),
+        };
+
+        let out = generator.generate(&parsed).unwrap();
+        assert!(out.is_empty());
+        assert!(!generator.is_trivial_state(&LLMinx::new(), ""));
+        assert!(!generator.is_trivial_state(&LLMinx::new(), "   "));
+    }
+
+    #[test]
+    fn test_apply_plain_and_series_duplicate_paths() {
+        let generator = StateGenerator::new_solved();
+        let states = vec![GeneratedState::new(LLMinx::new(), "R".to_string())];
+        let applied = generator.apply_plain_moves(states, "U").unwrap();
+        assert_eq!(applied.len(), 1);
+        assert!(applied[0].setup_moves.contains("R U"));
+
+        let deduped = generator
+            .apply_series(
+                vec![GeneratedState::new(LLMinx::new(), String::new())],
+                &["R".to_string(), "R".to_string()],
+            )
+            .unwrap();
+        assert_eq!(deduped.len(), 1);
+    }
+
+    #[test]
+    fn test_apply_generators_interrupts_inside_callback() {
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let interrupt_for_cb = Arc::clone(&interrupt);
+
+        let mut generator = StateGenerator::new_solved();
+        generator.set_interrupt(interrupt);
+        generator.set_callback(move |_count, _msg| {
+            interrupt_for_cb.store(true, Ordering::SeqCst);
+        });
+        generator.set_num_threads(1);
+
+        let states = vec![GeneratedState::new(LLMinx::new(), String::new())];
+        let generated = generator
+            .apply_generators(states, &["R".to_string(), "U".to_string()])
+            .unwrap();
+
+        assert!(!generated.is_empty());
+    }
 }

@@ -15,6 +15,12 @@ opt-level = 1
 [profile.dev.package.llminxsolver-rs]
 opt-level = 3
 
+[profile.test]
+opt-level = 0
+
+[profile.test.package.llminxsolver-rs]
+opt-level = 0
+
 [profile.profiling]
 inherits = "release"
 debug = true

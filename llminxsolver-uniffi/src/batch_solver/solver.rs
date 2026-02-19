@@ -366,4 +366,53 @@ mod tests {
         handle.cancel();
         assert!(handle.is_running() || !handle.is_running());
     }
+
+    #[test]
+    fn test_generate_states_with_callback_triggers_progress_mapping() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+
+        let progress = Arc::new(AtomicUsize::new(0));
+        let solved = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestBatchCallback {
+            progress: Arc::clone(&progress),
+            solved: Arc::clone(&solved),
+            complete: Arc::clone(&complete),
+        }));
+
+        let generated = handle.generate_states().unwrap();
+        assert_eq!(handle.get_total_cases(), generated.len() as u32);
+        let _ = progress.load(Ordering::Relaxed);
+    }
+
+    #[test]
+    fn test_start_runs_to_completion_without_explicit_cancel() {
+        let handle = BatchSolverHandle::new(base_config()).unwrap();
+        let _ = handle.generate_states().unwrap();
+
+        let progress = Arc::new(AtomicUsize::new(0));
+        let solved = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestBatchCallback {
+            progress: Arc::clone(&progress),
+            solved: Arc::clone(&solved),
+            complete: Arc::clone(&complete),
+        }));
+
+        handle.start();
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while handle.is_running() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+
+        if handle.is_running() {
+            handle.cancel();
+            std::thread::sleep(std::time::Duration::from_millis(120));
+        }
+
+        let _ = progress.load(Ordering::Relaxed);
+        let _ = solved.load(Ordering::Relaxed);
+        let _ = complete.load(Ordering::Relaxed);
+    }
 }

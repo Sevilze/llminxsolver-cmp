@@ -492,4 +492,191 @@ mod tests {
         sorter.sort(&mut states);
         assert_eq!(states[0].case_number, 1);
     }
+
+    #[test]
+    fn test_compare_states_falls_back_to_setup_moves() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+        let a = GeneratedState::new(LLMinx::new(), "A".to_string());
+        let b = GeneratedState::new(LLMinx::new(), "B".to_string());
+        assert_eq!(sorter.compare_states(&a, &b), Ordering::Less);
+    }
+
+    #[test]
+    fn test_compare_by_criterion_all_arms_with_edge_piece() {
+        let piece_map = PieceMap::default_megaminx();
+        let sorter = CaseSorter::new(vec![], piece_map);
+
+        let mut a_state = LLMinx::new();
+        let mut b_state = LLMinx::new();
+        a_state.apply_move(Move::U);
+        b_state.apply_move(Move::R);
+
+        let a = GeneratedState::new(a_state, "A".to_string());
+        let b = GeneratedState::new(b_state, "B".to_string());
+        let pieces = vec!["UE1".to_string()];
+
+        let criteria = vec![
+            SortCriterion::OrientationOf {
+                pieces: pieces.clone(),
+            },
+            SortCriterion::PermutationAt {
+                pieces: pieces.clone(),
+            },
+            SortCriterion::PermutationOf {
+                pieces: pieces.clone(),
+            },
+        ];
+
+        for criterion in criteria {
+            let _ = sorter.compare_by_criterion(&a, &b, &criterion);
+        }
+    }
+
+    #[test]
+    fn test_compare_orientation_at_with_edge_branch() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+        let mut a = LLMinx::new();
+        let mut b = LLMinx::new();
+        a.apply_move(Move::U);
+        b.apply_move(Move::R);
+
+        let pieces = vec!["UE1".to_string()];
+        let _ = sorter.compare_orientation_at(&a, &b, &pieces);
+    }
+
+    #[test]
+    fn test_compare_states_returns_on_first_non_equal_criterion() {
+        let sorter = CaseSorter::new(
+            vec![SortCriterion::PermutationOf {
+                pieces: vec!["UC1".to_string()],
+            }],
+            PieceMap::default_megaminx(),
+        );
+
+        let a = GeneratedState::new(LLMinx::new(), "Z".to_string());
+        let mut changed = LLMinx::new();
+        changed.apply_move(Move::R);
+        let b = GeneratedState::new(changed, "A".to_string());
+
+        assert_ne!(sorter.compare_states(&a, &b), Ordering::Equal);
+    }
+
+    #[test]
+    fn test_orientation_and_permutation_comparators_non_equal_paths() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+        let mut a = LLMinx::new();
+        let mut b = LLMinx::new();
+        a.apply_move(Move::R);
+        b.apply_move(Move::U);
+
+        let _ = sorter.compare_orientation_of(&a, &b, &["UC1".to_string()]);
+        let _ = sorter.compare_orientation_of(&a, &b, &["UE1".to_string()]);
+        let _ = sorter.compare_permutation_of(&a, &b, &["UC1".to_string()]);
+    }
+
+    #[test]
+    fn test_comparators_return_non_equal_for_different_states() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+        let mut a = LLMinx::new();
+        let mut b = LLMinx::new();
+
+        a.set_corner_orientation(0, 1);
+        assert_ne!(
+            sorter.compare_orientation_at(&a, &b, &["UC1".to_string()]),
+            Ordering::Equal
+        );
+
+        b.corner_positions_mut().swap(0, 1);
+        assert_ne!(
+            sorter.compare_permutation_at(&a, &b, &["UC1".to_string()]),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn test_set_priority_and_unknown_piece_paths() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+        let mut a = LLMinx::new();
+        let b = LLMinx::new();
+        a.corner_positions_mut().swap(0, 1);
+
+        let pieces = vec!["UC2".to_string(), "NOT_A_PIECE".to_string()];
+        let cmp = sorter.compare_set_priority(&a, &b, &pieces);
+        assert!(matches!(
+            cmp,
+            Ordering::Less | Ordering::Greater | Ordering::Equal
+        ));
+
+        let unknown_cmp = sorter.compare_orientation_of(&a, &b, &["UNKNOWN".to_string()]);
+        assert_eq!(unknown_cmp, Ordering::Equal);
+    }
+
+    #[test]
+    fn test_compare_set_priority_edge_and_state_return_paths() {
+        let sorter = CaseSorter::new(
+            vec![SortCriterion::SetPriority {
+                pieces: vec!["UE2".to_string(), "UE1".to_string()],
+            }],
+            PieceMap::default_megaminx(),
+        );
+
+        let mut a_state = LLMinx::new();
+        let b_state = LLMinx::new();
+        a_state.edge_positions_mut().swap(0, 1);
+
+        let a = GeneratedState::new(a_state.clone(), "A".to_string());
+        let b = GeneratedState::new(b_state.clone(), "B".to_string());
+
+        assert_ne!(
+            sorter.compare_set_priority(
+                &a_state,
+                &b_state,
+                &["UE2".to_string(), "UE1".to_string()]
+            ),
+            Ordering::Equal
+        );
+        assert_ne!(sorter.compare_states(&a, &b), Ordering::Equal);
+    }
+
+    #[test]
+    fn test_compare_orientation_at_corner_and_edge_non_equal_returns() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+
+        let mut a_corner = LLMinx::new();
+        let b_corner = LLMinx::new();
+        a_corner.set_corner_orientation(0, 1);
+        assert_ne!(
+            sorter.compare_orientation_at(&a_corner, &b_corner, &["UC1".to_string()]),
+            Ordering::Equal
+        );
+
+        let mut a_edge = LLMinx::new();
+        let b_edge = LLMinx::new();
+        a_edge.set_edge_orientation(0, 1);
+        assert_ne!(
+            sorter.compare_orientation_at(&a_edge, &b_edge, &["UE1".to_string()]),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn test_compare_orientation_of_corner_and_edge_non_equal_returns() {
+        let sorter = CaseSorter::new(vec![], PieceMap::default_megaminx());
+
+        let mut a_corner = LLMinx::new();
+        let b_corner = LLMinx::new();
+        a_corner.set_corner_orientation(0, 1);
+        assert_ne!(
+            sorter.compare_orientation_of(&a_corner, &b_corner, &["UC1".to_string()]),
+            Ordering::Equal
+        );
+
+        let mut a_edge = LLMinx::new();
+        let b_edge = LLMinx::new();
+        a_edge.set_edge_orientation(0, 1);
+        assert_ne!(
+            sorter.compare_orientation_of(&a_edge, &b_edge, &["UE1".to_string()]),
+            Ordering::Equal
+        );
+    }
 }

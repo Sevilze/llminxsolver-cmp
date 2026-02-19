@@ -279,6 +279,7 @@ impl EquivalenceHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::batch_solver::types::GeneratedState;
 
     fn create_test_handler() -> EquivalenceHandler {
         let piece_map = PieceMap::default_megaminx();
@@ -334,6 +335,18 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_edge_orientation_group() {
+        let piece_map = PieceMap::default_megaminx();
+        let orientation_groups = vec![OrientationGroup {
+            num_orientations: 3,
+            pieces: vec!["UE1".to_string()],
+        }];
+
+        let result = EquivalenceHandler::new(vec![], orientation_groups, piece_map);
+        assert!(matches!(result, Err(BatchError::InvalidEquivalence(_))));
+    }
+
+    #[test]
     fn test_mixed_piece_types_in_equivalence() {
         let piece_map = PieceMap::default_megaminx();
         let equivalences = vec![EquivalenceSet {
@@ -379,5 +392,110 @@ mod tests {
         after_u.apply_move(Move::U);
         let norm_u = handler.normalize(&after_u);
         assert_eq!(norm_solved, norm_u,);
+    }
+
+    #[test]
+    fn test_apply_to_state_sets_ignore_flags() {
+        let handler = create_test_handler();
+        let mut state = LLMinx::new();
+        handler.apply_to_state(&mut state);
+
+        assert!(state.ignore_corner_positions().iter().any(|&v| v));
+        assert!(state.ignore_corner_orientations().iter().any(|&v| v));
+    }
+
+    #[test]
+    fn test_invalid_piece_in_orientation_group() {
+        let piece_map = PieceMap::default_megaminx();
+        let orientation_groups = vec![OrientationGroup {
+            num_orientations: 1,
+            pieces: vec!["NO_SUCH_PIECE".to_string()],
+        }];
+
+        let result = EquivalenceHandler::new(vec![], orientation_groups, piece_map);
+        assert!(matches!(result, Err(BatchError::InvalidPiece(_))));
+    }
+
+    #[test]
+    fn test_deduplicate_and_parallel_small_input() {
+        let handler = create_test_handler();
+        let state = LLMinx::new();
+        let mut states = vec![
+            GeneratedState::new(state.clone(), "".to_string()),
+            GeneratedState::new(state, "".to_string()),
+        ];
+
+        handler.deduplicate(&mut states);
+        assert_eq!(states.len(), 1);
+
+        let mut states2 = vec![
+            GeneratedState::new(LLMinx::new(), "".to_string()),
+            GeneratedState::new(LLMinx::new(), "".to_string()),
+        ];
+        handler.deduplicate_parallel(&mut states2, 1);
+        assert_eq!(states2.len(), 1);
+    }
+
+    #[test]
+    fn test_corner_and_edge_maps_and_unknown_equivalence_piece() {
+        let piece_map = PieceMap::default_megaminx();
+        let handler = EquivalenceHandler::new(
+            vec![
+                EquivalenceSet {
+                    pieces: vec!["UC1".to_string(), "UC2".to_string()],
+                },
+                EquivalenceSet {
+                    pieces: vec!["UE1".to_string(), "UE2".to_string()],
+                },
+            ],
+            vec![],
+            piece_map.clone(),
+        )
+        .expect("handler should build");
+
+        assert!(!handler.corner_map().is_empty());
+        assert!(!handler.edge_map().is_empty());
+
+        let bad = EquivalenceHandler::new(
+            vec![EquivalenceSet {
+                pieces: vec!["NO_SUCH_PIECE".to_string()],
+            }],
+            vec![],
+            piece_map,
+        );
+        assert!(matches!(bad, Err(BatchError::InvalidPiece(_))));
+    }
+
+    #[test]
+    fn test_edge_orientation_groups_and_parallel_large_input() {
+        let piece_map = PieceMap::default_megaminx();
+        let handler = EquivalenceHandler::new(
+            vec![EquivalenceSet {
+                pieces: vec!["UE1".to_string(), "UE2".to_string()],
+            }],
+            vec![OrientationGroup {
+                num_orientations: 1,
+                pieces: vec!["UE3".to_string()],
+            }],
+            piece_map,
+        )
+        .expect("valid edge orientation group");
+
+        let mut state = LLMinx::new();
+        state.set_edge_orientation(2, 1);
+        let normalized = handler.normalize(&state);
+        assert_eq!(normalized.edge_orientation[2], 0);
+
+        let mut ignored = LLMinx::new();
+        handler.apply_to_state(&mut ignored);
+        assert!(ignored.ignore_edge_positions().iter().any(|&v| v));
+        assert!(ignored.ignore_edge_orientations().iter().any(|&v| v));
+
+        let mut states = Vec::new();
+        for i in 0..70 {
+            states.push(GeneratedState::new(LLMinx::new(), format!("case{}", i % 3)));
+        }
+        handler.deduplicate_parallel(&mut states, 2);
+        assert_eq!(states.len(), 1);
     }
 }

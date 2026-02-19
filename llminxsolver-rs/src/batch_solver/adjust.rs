@@ -287,6 +287,8 @@ impl AdjustHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::batch_solver::equivalence::EquivalenceHandler;
+    use crate::batch_solver::types::{EquivalenceSet, PieceMap};
 
     #[test]
     fn test_adjust_handler_base_move_expansion() {
@@ -381,5 +383,69 @@ mod tests {
         let pre = vec!["X".to_string()];
         let result = AdjustHandler::new(&pre, &[]);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_apply_post_adjust_inverse_and_alias_parse() {
+        let pre = vec!["Ri".to_string(), "bL2i".to_string()];
+        let post = vec!["U".to_string()];
+        let handler = AdjustHandler::new(&pre, &post).unwrap();
+
+        let state = LLMinx::new();
+        let mut moved = state.clone();
+        moved.apply_move(Move::U);
+
+        let (adjusted, _) = handler.apply_post_adjust(&moved, &[Move::U]);
+        assert!(adjusted.state_equals(&state));
+        assert_eq!(handler.pre_adjust_sequences().len(), 2);
+    }
+
+    #[test]
+    fn test_reduce_states_without_equivalence_keeps_unique() {
+        let handler = AdjustHandler::new(&[], &[]).unwrap();
+        let states = vec![
+            GeneratedState::new(LLMinx::new(), "".to_string()),
+            GeneratedState::new(
+                {
+                    let mut s = LLMinx::new();
+                    s.apply_move(Move::R);
+                    s
+                },
+                "R".to_string(),
+            ),
+        ];
+
+        let reduced = handler.reduce_states(&states, None);
+        assert_eq!(reduced.len(), 2);
+    }
+
+    #[test]
+    fn test_reduce_states_with_equivalence_and_no_post_adjust_solution() {
+        let handler = AdjustHandler::new(&["R".to_string()], &["U".to_string()]).unwrap();
+
+        let piece_map = PieceMap::default_megaminx();
+        let equiv = Arc::new(
+            EquivalenceHandler::new(
+                vec![EquivalenceSet {
+                    pieces: vec!["UC1".to_string(), "UC2".to_string()],
+                }],
+                vec![],
+                piece_map,
+            )
+            .unwrap(),
+        );
+
+        let states = vec![GeneratedState::new(LLMinx::new(), "R".to_string())];
+        let reduced = handler.reduce_states(&states, Some(&equiv));
+        assert!(!reduced.is_empty());
+
+        let mut unsolved = LLMinx::new();
+        unsolved.apply_move(Move::R);
+        let goal = LLMinx::new();
+        assert!(
+            handler
+                .find_post_adjust_solution(&unsolved, &goal)
+                .is_none()
+        );
     }
 }

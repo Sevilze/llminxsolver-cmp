@@ -262,6 +262,8 @@ mod tests {
         assert_eq!(ctx.r_wrist, 0);
         assert_eq!(ctx.speed, 1.0);
         assert_eq!(ctx.grip, 1);
+        assert_eq!(ctx.l_oh_cool, -1.0);
+        assert_eq!(ctx.r_oh_cool, -1.0);
     }
 
     #[test]
@@ -521,6 +523,10 @@ mod tests {
         let seq_rudprime_r = vec!["R".to_string(), "D'".to_string(), "R".to_string()];
         let result2 = test(&seq_rudprime_r, 0, 1, 0.0, &params);
         assert!(result2[0] >= 0.0 || result2[0] == -1.0);
+
+        let seq_rprime_d_rprime = vec!["R'".to_string(), "D".to_string(), "R'".to_string()];
+        let result3 = test(&seq_rprime_d_rprime, 0, 0, 0.0, &params);
+        assert!(result3[0] >= 0.0 || result3[0] == -1.0);
     }
 
     #[test]

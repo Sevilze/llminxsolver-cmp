@@ -208,6 +208,12 @@ mod tests {
     }
 
     #[test]
+    fn test_process_alg_d_at_end_with_u_before() {
+        let result = process_alg("R U D", true);
+        assert_eq!(result, vec!["R", "D"]);
+    }
+
+    #[test]
     fn test_get_move_count_ftm() {
         assert_eq!(get_move_count("R U F", "FTM"), 3);
         assert_eq!(get_move_count("R2 U F", "FTM"), 3);

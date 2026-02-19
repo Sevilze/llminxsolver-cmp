@@ -401,4 +401,14 @@ mod tests {
         b.set_ignore_edge_orientations(ignore_edges);
         assert_eq!(a, b);
     }
+
+    #[test]
+    fn test_state_equals_returns_false_on_edge_position_mismatch_without_ignore() {
+        let a = LLMinx::new();
+        let mut b = LLMinx::new();
+
+        b.edge_positions_mut().swap(0, 1);
+
+        assert!(!a.state_equals(&b));
+    }
 }

@@ -25,7 +25,9 @@ pub use validation::{
     MegaminxState, ValidationError, validate_full_state, validate_last_layer_state,
 };
 
-pub use tempfile::{BatchTempFile, TempFile, cleanup_stale_batch_temp_files, cleanup_stale_temp_files};
+pub use tempfile::{
+    BatchTempFile, TempFile, cleanup_stale_batch_temp_files, cleanup_stale_temp_files,
+};
 pub use theme_gen::{
     SchemeType, ThemeColors, generate_theme_from_image, generate_theme_from_wallpaper,
 };

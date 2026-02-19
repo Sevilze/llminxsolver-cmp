@@ -125,19 +125,31 @@ mod tests {
         let mut ctx3 = new_ctx();
         ctx3.l_wrist = 1;
         ctx3.r_wrist = 0;
-        assert!(matches!(handle_x2(&mut ctx3, 0), MoveResult::EarlyReturn(_)));
+        assert!(matches!(
+            handle_x2(&mut ctx3, 0),
+            MoveResult::EarlyReturn(_)
+        ));
 
         let mut ctx4 = new_ctx();
         ctx4.l_wrist = -1;
         ctx4.r_wrist = 0;
-        assert!(matches!(handle_x2(&mut ctx4, 0), MoveResult::EarlyReturn(_)));
+        assert!(matches!(
+            handle_x2(&mut ctx4, 0),
+            MoveResult::EarlyReturn(_)
+        ));
     }
 
     #[test]
     fn test_handle_y_z_variants() {
         let mut ctx = new_ctx();
-        assert!(matches!(handle_y_z(&mut ctx, 0), MoveResult::EarlyReturn(_)));
-        assert!(matches!(handle_y2_z2(&mut ctx, 1), MoveResult::EarlyReturn(_)));
+        assert!(matches!(
+            handle_y_z(&mut ctx, 0),
+            MoveResult::EarlyReturn(_)
+        ));
+        assert!(matches!(
+            handle_y2_z2(&mut ctx, 1),
+            MoveResult::EarlyReturn(_)
+        ));
         assert!(ctx.speed > 0.0);
     }
 }

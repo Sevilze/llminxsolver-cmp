@@ -1,11 +1,11 @@
 use crate::memory_config::{MemoryConfig, MemoryTracker};
 use crate::minx::{LLMinx, Move, NUM_CORNERS, NUM_EDGES};
-use crate::pruner::{Pruner, DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH};
+use crate::pruner::{DEFAULT_PRUNING_DEPTH, MAX_PRUNING_DEPTH, MIN_PRUNING_DEPTH, Pruner};
 use crate::search_mode::{Metric, SearchMode};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 pub(crate) const IGNORE_CORNER_5: [bool; NUM_CORNERS] = [
     true, true, true, true, true, false, false, false, false, false, false, false, false, false,
@@ -1032,6 +1032,120 @@ impl Solver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use std::sync::Mutex;
+    use std::sync::atomic::AtomicUsize;
+
+    struct MockPruner {
+        name: String,
+        table_path: String,
+        table_size: usize,
+        load_table_result: Option<Vec<u8>>,
+        precomputed: bool,
+        saved: Arc<Mutex<Vec<Vec<u8>>>>,
+        use_corner_perm: bool,
+        use_edge_perm: bool,
+        use_corner_ori: bool,
+        use_edge_ori: bool,
+    }
+
+    impl MockPruner {
+        fn new(name: &str, table_size: usize) -> Self {
+            Self {
+                name: name.to_string(),
+                table_path: "mock".to_string(),
+                table_size,
+                load_table_result: None,
+                precomputed: false,
+                saved: Arc::new(Mutex::new(Vec::new())),
+                use_corner_perm: false,
+                use_edge_perm: false,
+                use_corner_ori: false,
+                use_edge_ori: false,
+            }
+        }
+
+        fn with_loaded_table(mut self, table: Vec<u8>) -> Self {
+            self.load_table_result = Some(table);
+            self
+        }
+
+        fn with_usage_flags(mut self, cp: bool, ep: bool, co: bool, eo: bool) -> Self {
+            self.use_corner_perm = cp;
+            self.use_edge_perm = ep;
+            self.use_corner_ori = co;
+            self.use_edge_ori = eo;
+            self
+        }
+    }
+
+    impl Pruner for MockPruner {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn table_path(&self) -> &str {
+            &self.table_path
+        }
+
+        fn table_size(&self) -> usize {
+            self.table_size
+        }
+
+        fn get_coordinate(&self, minx: &LLMinx) -> usize {
+            minx.depth() % self.table_size
+        }
+
+        fn set_minx(&self, coordinate: usize, minx: &mut LLMinx) {
+            *minx = LLMinx::new();
+            for _ in 0..coordinate {
+                minx.apply_move(Move::R);
+            }
+        }
+
+        fn uses_corner_permutation(&self) -> bool {
+            self.use_corner_perm
+        }
+
+        fn uses_edge_permutation(&self) -> bool {
+            self.use_edge_perm
+        }
+
+        fn uses_corner_orientation(&self) -> bool {
+            self.use_corner_ori
+        }
+
+        fn uses_edge_orientation(&self) -> bool {
+            self.use_edge_ori
+        }
+
+        fn is_precomputed(&self, _metric: Metric, _depth: u8) -> bool {
+            self.precomputed
+        }
+
+        fn find_best_existing_table(
+            &self,
+            _metric: Metric,
+            max_depth: u8,
+        ) -> Option<(PathBuf, u8)> {
+            if self.load_table_result.is_some() && max_depth >= MIN_PRUNING_DEPTH {
+                Some((PathBuf::from("mock_table"), MIN_PRUNING_DEPTH))
+            } else {
+                None
+            }
+        }
+
+        fn load_table(&self, _metric: Metric, _depth: u8) -> Option<Vec<u8>> {
+            self.load_table_result.clone()
+        }
+
+        fn save_table(&self, table: &[u8], _metric: Metric, _depth: u8) {
+            self.saved
+                .lock()
+                .expect("mock save lock should not be poisoned")
+                .push(table.to_vec());
+        }
+    }
 
     #[test]
     fn test_solver_creation() {
@@ -1113,5 +1227,568 @@ mod tests {
 
         minx.apply_move(Move::bR2i);
         assert!(minx.state_equals(&goal));
+    }
+
+    #[test]
+    fn test_solver_config_setters_and_getters() {
+        let mut solver = Solver::new();
+        solver.set_search_mode(SearchMode::RUF);
+        solver.set_metric(Metric::Face);
+        solver.set_max_search_depth(7);
+        solver.set_limit_search_depth(true);
+        solver.set_pruning_depth(200);
+        solver.set_memory_config(MemoryConfig::new(128, 1, 1));
+
+        assert_eq!(solver.search_mode(), SearchMode::RUF);
+        assert_eq!(solver.metric(), Metric::Face);
+        assert_eq!(solver.max_search_depth(), 7);
+        assert!(solver.limit_search_depth());
+        assert_eq!(solver.pruning_depth(), MAX_PRUNING_DEPTH);
+        assert_eq!(solver.memory_config().budget_mb(), 128);
+    }
+
+    #[test]
+    fn test_status_event_constructors() {
+        let basic = StatusEvent::new(StatusEventType::Message, "x", 0.5);
+        assert_eq!(basic.message, "x");
+        assert_eq!(basic.progress, 0.5);
+        assert!(basic.search_mode.is_none());
+
+        let with = StatusEvent::with_context(
+            StatusEventType::StartDepth,
+            "depth",
+            0.2,
+            Some("RU".to_string()),
+            3,
+        );
+        assert_eq!(with.search_mode.as_deref(), Some("RU"));
+        assert_eq!(with.current_depth, 3);
+    }
+
+    #[test]
+    fn test_interrupt_handle_and_interrupt() {
+        let solver = Solver::new();
+        let handle = solver.interrupt_handle();
+        assert!(!handle.load(Ordering::SeqCst));
+        solver.interrupt();
+        assert!(handle.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_prepare_tables_and_public_accessors() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(128, 1, 1));
+        solver.set_start(LLMinx::new());
+
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if event.event_type == StatusEventType::StartBuildingTable {
+                interrupt.store(true, Ordering::SeqCst);
+            }
+        });
+
+        solver.prepare_tables();
+
+        assert!(!solver.get_moves().is_empty());
+        assert!(!solver.get_first_moves().is_empty());
+        assert!(!solver.get_next_siblings().is_empty());
+        assert!(!solver.get_pruners().is_empty());
+        assert!(solver.get_tables().len() <= solver.get_pruners().len());
+    }
+
+    #[test]
+    fn test_next_node_and_back_track_paths() {
+        let mut solver = Solver::new();
+        solver.build_moves_table();
+
+        let mut minx = LLMinx::new();
+        let stop = Solver::next_node(&mut minx, 1, &solver.first_moves, &solver.next_siblings);
+        assert!(!stop);
+        assert_eq!(minx.depth(), 1);
+
+        let stop_at_depth =
+            Solver::next_node(&mut minx, 1, &solver.first_moves, &solver.next_siblings);
+        assert!(stop_at_depth || minx.depth() <= 1);
+
+        let mut shallow = LLMinx::new();
+        assert!(Solver::back_track(&mut shallow, &solver.next_siblings));
+    }
+
+    #[test]
+    fn test_check_optimal_patterns() {
+        let mut minx = LLMinx::new();
+        minx.apply_move(Move::R);
+        minx.apply_move(Move::R);
+        minx.apply_move(Move::R);
+        assert!(!Solver::check_optimal(&minx));
+
+        let mut minx2 = LLMinx::new();
+        minx2.apply_move(Move::R);
+        minx2.apply_move(Move::L);
+        minx2.apply_move(Move::R);
+        assert!(!Solver::check_optimal(&minx2));
+    }
+
+    #[test]
+    fn test_solve_minimal_and_status_callback() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 0, MemoryConfig::new(0, 1, 1));
+        solver.set_limit_search_depth(true);
+        solver.set_start(LLMinx::new());
+
+        let events = Arc::new(AtomicUsize::new(0));
+        let events_clone = Arc::clone(&events);
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |_event| {
+            events_clone.fetch_add(1, Ordering::Relaxed);
+            interrupt.store(true, Ordering::SeqCst);
+        });
+
+        let _solutions = solver.solve();
+        assert!(events.load(Ordering::Relaxed) > 0);
+    }
+
+    #[test]
+    fn test_build_moves_table_face_vs_fifth() {
+        let mut solver = Solver::new();
+        solver.set_metric(Metric::Face);
+        solver.build_moves_table();
+        let face_len = solver.get_moves().len();
+
+        solver.set_metric(Metric::Fifth);
+        solver.build_moves_table();
+        let fifth_len = solver.get_moves().len();
+
+        assert!(face_len >= fifth_len);
+        assert!(fifth_len > 0);
+    }
+
+    #[test]
+    fn test_prepare_tables_reuse_cache_path() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(0, 1, 1));
+        solver.set_start(LLMinx::new());
+        solver.prepare_tables();
+        let tables_len = solver.get_tables().len();
+
+        solver.prepare_tables();
+        assert_eq!(solver.get_tables().len(), tables_len);
+    }
+
+    #[test]
+    fn test_solve_with_ignore_flags_path() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(0, 1, 1));
+        solver.set_limit_search_depth(true);
+        solver.set_ignore_corner_positions(true);
+        solver.set_ignore_edge_positions(true);
+        solver.set_ignore_corner_orientations(true);
+        solver.set_ignore_edge_orientations(true);
+        solver.set_start(LLMinx::new());
+
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if matches!(
+                event.event_type,
+                StatusEventType::StartBuildingTable | StatusEventType::StartDepth
+            ) {
+                interrupt.store(true, Ordering::SeqCst);
+            }
+        });
+
+        let _ = solver.solve();
+    }
+
+    #[test]
+    fn test_solve_interrupted_via_callback() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(0, 1, 1));
+        solver.set_limit_search_depth(true);
+        solver.set_start(LLMinx::new());
+
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if matches!(
+                event.event_type,
+                StatusEventType::StartBuildingTable | StatusEventType::StartDepth
+            ) {
+                interrupt.store(true, Ordering::SeqCst);
+            }
+        });
+
+        let _ = solver.solve();
+    }
+
+    #[test]
+    fn test_with_config_and_default_constructors() {
+        let solver = Solver::with_config(SearchMode::RUF, 9);
+        assert_eq!(solver.search_mode(), SearchMode::RUF);
+        assert_eq!(solver.max_search_depth(), 9);
+
+        let default_solver = Solver::default();
+        assert_eq!(default_solver.search_mode(), SearchMode::RU);
+    }
+
+    #[test]
+    fn test_prepare_tables_memory_exceeded_interrupts() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(0, 1, 1));
+        let memory_exceeded_seen = Arc::new(AtomicBool::new(false));
+        let seen_clone = Arc::clone(&memory_exceeded_seen);
+
+        solver.set_status_callback(move |event| {
+            if event.event_type == StatusEventType::MemoryExceeded {
+                seen_clone.store(true, Ordering::SeqCst);
+            }
+        });
+
+        solver.prepare_tables();
+        assert!(solver.interrupt_handle().load(Ordering::SeqCst));
+        assert!(memory_exceeded_seen.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_filter_pruning_tables_handles_missing_table_entries() {
+        let mut solver = Solver::new();
+        solver.pruners = SearchMode::RU.create_pruners();
+        solver.tables = vec![Arc::new(vec![0u8; 1])];
+
+        let filtered = solver.filter_pruning_tables();
+        assert!(filtered.len() <= solver.pruners.len());
+    }
+
+    #[test]
+    fn test_solve_without_depth_limit_path() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(0, 1, 1));
+        solver.set_limit_search_depth(false);
+        solver.set_start(LLMinx::new());
+
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if matches!(
+                event.event_type,
+                StatusEventType::StartBuildingTable | StatusEventType::StartDepth
+            ) {
+                interrupt.store(true, Ordering::SeqCst);
+            }
+        });
+
+        let _ = solver.solve();
+    }
+
+    #[test]
+    fn test_build_pruning_table_internal_forward_and_reverse_paths() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 1));
+        solver.moves = vec![Move::R, Move::U];
+
+        let pruner = MockPruner::new("mock", 3);
+        let table = solver.build_pruning_table_internal(&pruner, 2, None);
+
+        assert_eq!(table.len(), 3);
+        assert!(table.iter().any(|&value| value != u8::MAX));
+    }
+
+    #[test]
+    fn test_build_pruning_table_internal_with_loaded_base_table() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 1));
+        solver.moves = vec![Move::R];
+
+        let pruner = MockPruner::new("loaded", 3).with_loaded_table(vec![0, 1, u8::MAX]);
+        let table = solver.build_pruning_table_internal(&pruner, 3, Some(MIN_PRUNING_DEPTH));
+
+        assert_eq!(table.len(), 3);
+        assert_eq!(table[0], 0);
+        assert_eq!(table[1], 1);
+    }
+
+    #[test]
+    fn test_build_pruning_table_internal_with_missing_base_table() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 1));
+        solver.moves = vec![Move::R];
+
+        let pruner = MockPruner::new("missing", 2);
+        let table = solver.build_pruning_table_internal(&pruner, 1, Some(MIN_PRUNING_DEPTH));
+
+        assert_eq!(table.len(), 2);
+        assert_eq!(table[0], 0);
+    }
+
+    #[test]
+    fn test_build_pruning_table_falls_back_when_threadpool_invalid() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 0));
+        solver.moves = vec![Move::R];
+
+        let pruner = MockPruner::new("fallback", 2);
+        let table = solver.build_pruning_table(&pruner, 1, None);
+
+        assert_eq!(table.len(), 2);
+    }
+
+    #[test]
+    fn test_build_pruning_table_with_base_depth_hint_path() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(256, 1, 1));
+        solver.moves = vec![Move::R];
+
+        let pruner = MockPruner::new("hinted", 3).with_loaded_table(vec![0, 1, u8::MAX]);
+        let table = solver.build_pruning_table(&pruner, 3, Some(MIN_PRUNING_DEPTH));
+
+        assert_eq!(table.len(), 3);
+        assert_eq!(table[0], 0);
+        assert!(table[1] <= 2);
+    }
+
+    #[test]
+    fn test_filter_pruning_tables_with_dominated_pruners() {
+        let mut solver = Solver::new();
+        solver.set_ignore_corner_positions(true);
+        solver.set_ignore_edge_positions(true);
+        solver.set_ignore_corner_orientations(true);
+        solver.set_ignore_edge_orientations(true);
+
+        solver.pruners = vec![
+            Box::new(MockPruner::new("corner", 2).with_usage_flags(true, false, false, false)),
+            Box::new(MockPruner::new("edge", 2).with_usage_flags(false, true, false, false)),
+            Box::new(MockPruner::new("ori", 2).with_usage_flags(false, false, true, true)),
+        ];
+        solver.tables = vec![
+            Arc::new(vec![0u8; 2]),
+            Arc::new(vec![0u8; 2]),
+            Arc::new(vec![0u8; 2]),
+        ];
+
+        let filtered = solver.filter_pruning_tables();
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn test_search_branch_pruned_and_solution_paths() {
+        let mut minx = LLMinx::new();
+        let goal = LLMinx::new();
+
+        let pruned_table = Arc::new(vec![2u8, 2u8]);
+        let pruner = MockPruner::new("prune", 2);
+        let (solution_tx, solution_rx) = crossbeam_channel::unbounded();
+        let (status_tx, status_rx) = crossbeam_channel::unbounded();
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let next_siblings = vec![vec![None; Move::D2i as usize + 1]; Move::D2i as usize + 2];
+
+        let ctx_pruned = SearchContext {
+            tables: &[pruned_table],
+            pruners: &[&pruner],
+            first_moves: &[Move::R],
+            next_siblings: &next_siblings,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+        };
+
+        Solver::search_branch(&mut minx, &goal, 1, &ctx_pruned);
+        assert!(solution_rx.try_recv().is_err());
+        assert!(status_rx.try_recv().is_err());
+
+        let mut solved = LLMinx::new();
+        solved.apply_move(Move::R);
+        solved.apply_move(Move::Ri);
+        let empty_tables: [Arc<Vec<u8>>; 0] = [];
+        let empty_pruners: [&dyn Pruner; 0] = [];
+        let (solution_tx2, solution_rx2) = crossbeam_channel::unbounded();
+        let (status_tx2, status_rx2) = crossbeam_channel::unbounded();
+        let next_siblings2 = vec![vec![None; Move::D2i as usize + 1]; Move::D2i as usize + 2];
+
+        let ctx_solution = SearchContext {
+            tables: &empty_tables,
+            pruners: &empty_pruners,
+            first_moves: &[Move::R],
+            next_siblings: &next_siblings2,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx2,
+            status_tx: &status_tx2,
+        };
+
+        let solved_depth = solved.depth();
+        Solver::search_branch(&mut solved, &goal, solved_depth, &ctx_solution);
+        assert!(solution_rx2.try_recv().is_ok());
+        assert!(status_rx2.try_recv().is_ok());
+    }
+
+    #[test]
+    fn test_solve_runs_with_cached_tables_and_depth_events() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 1));
+        solver.set_limit_search_depth(true);
+        solver.set_max_search_depth(1);
+        solver.set_start(LLMinx::new());
+        solver.build_moves_table();
+
+        solver.pruners = vec![Box::new(MockPruner::new("cached", 1))];
+        solver.tables = vec![Arc::new(vec![u8::MAX])];
+        solver.last_search_mode = Some(solver.search_mode);
+        solver.last_metric = Some(solver.metric);
+        solver.last_pruning_depth = Some(solver.pruning_depth);
+
+        let depth_events = Arc::new(AtomicUsize::new(0));
+        let depth_events_clone = Arc::clone(&depth_events);
+        solver.set_status_callback(move |event| {
+            if matches!(
+                event.event_type,
+                StatusEventType::StartDepth
+                    | StatusEventType::EndDepth
+                    | StatusEventType::FinishSearch
+            ) {
+                depth_events_clone.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+
+        let _ = solver.solve();
+        assert!(depth_events.load(Ordering::Relaxed) >= 3);
+    }
+
+    #[test]
+    fn test_start_getter_returns_configured_state() {
+        let mut solver = Solver::new();
+        let mut start = LLMinx::new();
+        start.apply_move(Move::R);
+        solver.set_start(start.clone());
+        assert!(solver.start().state_equals(&start));
+    }
+
+    #[test]
+    fn test_solve_reports_interrupted_finish_message_path() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(64, 1, 1));
+        solver.set_limit_search_depth(true);
+        solver.set_max_search_depth(1);
+        solver.set_start(LLMinx::new());
+        solver.build_moves_table();
+
+        solver.pruners = vec![Box::new(MockPruner::new("cached", 1))];
+        solver.tables = vec![Arc::new(vec![u8::MAX])];
+        solver.last_search_mode = Some(solver.search_mode);
+        solver.last_metric = Some(solver.metric);
+        solver.last_pruning_depth = Some(solver.pruning_depth);
+
+        let interrupted_seen = Arc::new(AtomicBool::new(false));
+        let interrupted_seen_clone = Arc::clone(&interrupted_seen);
+        let interrupt_handle = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if event.event_type == StatusEventType::Message {
+                interrupt_handle.store(true, Ordering::SeqCst);
+            }
+            if event.event_type == StatusEventType::FinishSearch
+                && event.message.contains("interrupted")
+            {
+                interrupted_seen_clone.store(true, Ordering::SeqCst);
+            }
+        });
+
+        let _ = solver.solve();
+        assert!(interrupted_seen.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_solve_ignore_flags_and_unbounded_depth_finish_event() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 1, MemoryConfig::new(128, 1, 1));
+        solver.set_limit_search_depth(false);
+        solver.set_ignore_corner_positions(true);
+        solver.set_ignore_edge_positions(true);
+        solver.set_ignore_corner_orientations(true);
+        solver.set_ignore_edge_orientations(true);
+        solver.set_start(LLMinx::new());
+        solver.build_moves_table();
+
+        solver.pruners = vec![Box::new(MockPruner::new("cached", 1))];
+        solver.tables = vec![Arc::new(vec![u8::MAX])];
+        solver.last_search_mode = Some(solver.search_mode);
+        solver.last_metric = Some(solver.metric);
+        solver.last_pruning_depth = Some(solver.pruning_depth);
+
+        let finish_seen = Arc::new(AtomicBool::new(false));
+        let finish_seen_clone = Arc::clone(&finish_seen);
+        let interrupt = solver.interrupt_handle();
+        solver.set_status_callback(move |event| {
+            if event.event_type == StatusEventType::StartDepth {
+                interrupt.store(true, Ordering::SeqCst);
+            }
+            if event.event_type == StatusEventType::FinishSearch {
+                finish_seen_clone.store(true, Ordering::SeqCst);
+            }
+        });
+
+        let _ = solver.solve();
+        assert!(finish_seen.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_next_node_returns_true_when_first_moves_empty() {
+        let mut minx = LLMinx::new();
+        let stop = Solver::next_node(&mut minx, 1, &[], &[]);
+        assert!(stop);
+    }
+
+    #[test]
+    fn test_back_track_with_out_of_bounds_and_missing_sibling_rows() {
+        let mut minx = LLMinx::new();
+        minx.apply_move(Move::R);
+        minx.apply_move(Move::U);
+
+        assert!(Solver::back_track(&mut minx.clone(), &[]));
+
+        let mut minx2 = LLMinx::new();
+        minx2.apply_move(Move::R);
+        minx2.apply_move(Move::U);
+
+        let mut next_siblings = vec![Vec::<Option<Move>>::new(); Move::D2i as usize + 2];
+        next_siblings[0] = Vec::new();
+
+        assert!(Solver::back_track(&mut minx2, &next_siblings));
+    }
+
+    #[test]
+    fn test_search_branch_non_goal_pruned_and_unpruned_paths() {
+        let pruner = MockPruner::new("prune", 4);
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let first_moves = [Move::R];
+        let next_siblings = vec![vec![None; Move::D2i as usize + 1]; Move::D2i as usize + 2];
+
+        let mut minx_pruned = LLMinx::new();
+        minx_pruned.apply_move(Move::R);
+        let goal = LLMinx::new();
+
+        let (solution_tx, _solution_rx) = crossbeam_channel::unbounded::<String>();
+        let (status_tx, _status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+        let pruned_tables = [Arc::new(vec![3u8; 4])];
+        let pruned_pruners: [&dyn Pruner; 1] = [&pruner];
+
+        let ctx_pruned = SearchContext {
+            tables: &pruned_tables,
+            pruners: &pruned_pruners,
+            first_moves: &first_moves,
+            next_siblings: &next_siblings,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+        };
+        Solver::search_branch(&mut minx_pruned, &goal, 2, &ctx_pruned);
+
+        let mut minx_unpruned = LLMinx::new();
+        minx_unpruned.apply_move(Move::R);
+        let unpruned_tables = [Arc::new(vec![0u8; 4])];
+        let ctx_unpruned = SearchContext {
+            tables: &unpruned_tables,
+            pruners: &pruned_pruners,
+            first_moves: &first_moves,
+            next_siblings: &next_siblings,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+        };
+        Solver::search_branch(&mut minx_unpruned, &goal, 2, &ctx_unpruned);
     }
 }

@@ -464,4 +464,36 @@ mod tests {
         cleanup_stale_batch_temp_files();
         assert!(!dir.exists());
     }
+
+    #[test]
+    fn test_temp_file_append_flushes_on_100th_entry() {
+        let _guard = test_lock().lock().unwrap();
+        let mut temp_file = TempFile::new().unwrap();
+        for i in 0..100 {
+            temp_file.append(&format!("line{}", i)).unwrap();
+        }
+        assert_eq!(temp_file.count(), 100);
+    }
+
+    #[test]
+    fn test_cleanup_stale_temp_files_deletes_prefixed_file() {
+        let _guard = test_lock().lock().unwrap();
+        let path = std::env::temp_dir().join(format!("{}_manual_stale.txt", TempFile::FILE_PREFIX));
+        std::fs::write(&path, "stale").unwrap();
+        assert!(path.exists());
+
+        cleanup_stale_temp_files();
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_batch_temp_file_missing_case_and_close_noop() {
+        let _guard = test_lock().lock().unwrap();
+        let mut btf = BatchTempFile::new().unwrap();
+        let page = btf.read_case_page(42, 0, 10).unwrap();
+        assert!(page.is_empty());
+
+        btf.close();
+        btf.delete();
+    }
 }

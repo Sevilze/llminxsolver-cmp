@@ -71,7 +71,10 @@ mod tests {
         let mut ctx3 = new_ctx();
         ctx3.r_wrist = 0;
         ctx3.l_wrist = 1;
-        assert!(matches!(handle_ri(&mut ctx3, 0), MoveResult::EarlyReturn(_)));
+        assert!(matches!(
+            handle_ri(&mut ctx3, 0),
+            MoveResult::EarlyReturn(_)
+        ));
     }
 
     #[test]
@@ -104,6 +107,9 @@ mod tests {
         let mut ctx3 = new_ctx();
         ctx3.r_wrist = 0;
         ctx3.l_wrist = -1;
-        assert!(matches!(handle_r2(&mut ctx3, 0), MoveResult::EarlyReturn(_)));
+        assert!(matches!(
+            handle_r2(&mut ctx3, 0),
+            MoveResult::EarlyReturn(_)
+        ));
     }
 }

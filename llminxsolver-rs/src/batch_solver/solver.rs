@@ -714,6 +714,40 @@ fn fire_event(callback: &Option<StatusCallback>, event: StatusEvent) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::batch_solver::equivalence::EquivalenceHandler;
+    use crate::batch_solver::types::GeneratedState;
+    use crate::batch_solver::types::{EquivalenceSet, OrientationGroup, PieceMap};
+    use std::sync::atomic::AtomicUsize;
+
+    struct DummyPruner;
+
+    impl Pruner for DummyPruner {
+        fn name(&self) -> &str {
+            "dummy"
+        }
+        fn table_path(&self) -> &str {
+            "dummy"
+        }
+        fn table_size(&self) -> usize {
+            1
+        }
+        fn get_coordinate(&self, _minx: &LLMinx) -> usize {
+            0
+        }
+        fn set_minx(&self, _coordinate: usize, _minx: &mut LLMinx) {}
+        fn uses_corner_permutation(&self) -> bool {
+            false
+        }
+        fn uses_edge_permutation(&self) -> bool {
+            false
+        }
+        fn uses_corner_orientation(&self) -> bool {
+            false
+        }
+        fn uses_edge_orientation(&self) -> bool {
+            false
+        }
+    }
 
     #[test]
     fn test_empty_batch() {
@@ -721,5 +755,344 @@ mod tests {
         let interrupt = Arc::new(AtomicBool::new(false));
         let results = solve_batch_states(vec![], &config, None, interrupt, None, None);
         assert_eq!(results.total_cases, 0);
+    }
+
+    #[test]
+    fn test_calculate_max_concurrent_bounds() {
+        let config = BatchSolverConfig::default();
+
+        let max = calculate_max_concurrent(&config, 0, 4, 20, 10);
+        assert!(max >= 1);
+        assert!(max <= 10);
+    }
+
+    #[test]
+    fn test_build_cases_applies_ignore_flags() {
+        let config = BatchSolverConfig {
+            ignore_corner_permutation: true,
+            ignore_edge_permutation: true,
+            ignore_corner_orientation: true,
+            ignore_edge_orientation: true,
+            ..BatchSolverConfig::default()
+        };
+
+        let state = GeneratedState {
+            state: LLMinx::new(),
+            setup_moves: "R U".to_string(),
+            case_number: 7,
+        };
+
+        let cases = build_cases(&[state], &config, None);
+        assert_eq!(cases.len(), 1);
+        assert_eq!(cases[0].case_number, 7);
+        assert_eq!(cases[0].setup_moves, "R U");
+        assert!(cases[0].start.ignore_corner_positions()[0]);
+        assert!(cases[0].start.ignore_edge_positions()[0]);
+        assert!(cases[0].start.ignore_corner_orientations()[0]);
+        assert!(cases[0].start.ignore_edge_orientations()[0]);
+    }
+
+    #[test]
+    fn test_filter_pruning_tables_returns_subset() {
+        let mut solver =
+            Solver::with_parallel_config(SearchMode::RU, 2, MemoryConfig::new(128, 1, 1));
+        solver.set_start(LLMinx::new());
+        solver.prepare_tables();
+
+        let config = BatchSolverConfig::default();
+        let filtered = filter_pruning_tables(&solver, &config);
+
+        assert!(!solver.get_pruners().is_empty());
+        assert!(!filtered.is_empty());
+        assert!(filtered.len() <= solver.get_pruners().len());
+    }
+
+    #[test]
+    fn test_solve_batch_interrupted_after_prepare() {
+        let config = BatchSolverConfig::default();
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let states = vec![GeneratedState {
+            state: LLMinx::new(),
+            setup_moves: String::new(),
+            case_number: 1,
+        }];
+
+        interrupt.store(true, Ordering::SeqCst);
+        let results = solve_batch_states(states, &config, None, interrupt, None, None);
+        assert_eq!(results.total_cases, 1);
+        assert!(results.case_results.len() <= 1);
+    }
+
+    #[test]
+    fn test_solve_batch_with_single_state_returns_result_entry() {
+        let config = BatchSolverConfig {
+            max_search_depth: 1,
+            stop_after_first: true,
+            memory_config: MemoryConfig::new(128, 1, 1),
+            ..BatchSolverConfig::default()
+        };
+
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let states = vec![GeneratedState {
+            state: LLMinx::new(),
+            setup_moves: "".to_string(),
+            case_number: 1,
+        }];
+
+        let results = solve_batch_states(states, &config, None, interrupt, None, None);
+        assert_eq!(results.total_cases, 1);
+        assert_eq!(results.case_results.len(), 1);
+        assert_eq!(results.case_results[0].case_number, 1);
+    }
+
+    #[test]
+    fn test_fire_event_callback_invoked() {
+        let count = Arc::new(AtomicUsize::new(0));
+        let count_clone = Arc::clone(&count);
+        let cb: Option<StatusCallback> = Some(Arc::new(move |_event| {
+            count_clone.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        fire_event(&cb, StatusEvent::new(StatusEventType::Message, "x", 0.0));
+        assert_eq!(count.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn test_fire_event_without_callback_is_noop() {
+        let cb: Option<StatusCallback> = None;
+        fire_event(&cb, StatusEvent::new(StatusEventType::Message, "x", 0.0));
+    }
+
+    #[test]
+    fn test_calculate_max_concurrent_tight_budget() {
+        let config = BatchSolverConfig {
+            memory_config: MemoryConfig::new(1, 1, 8),
+            ..BatchSolverConfig::default()
+        };
+
+        let max = calculate_max_concurrent(&config, usize::MAX / 4, 8, 64, 500);
+        assert_eq!(max, 1);
+    }
+
+    #[test]
+    fn test_solve_batch_states_case_callback_and_status_path() {
+        let mut one_move = LLMinx::new();
+        one_move.apply_move(Move::R);
+
+        let states = vec![GeneratedState {
+            state: one_move,
+            setup_moves: "R".to_string(),
+            case_number: 42,
+        }];
+
+        let config = BatchSolverConfig {
+            max_search_depth: 2,
+            stop_after_first: true,
+            memory_config: MemoryConfig::new(128, 1, 1),
+            ..BatchSolverConfig::default()
+        };
+
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let status_count = Arc::new(AtomicUsize::new(0));
+        let solved_count = Arc::new(AtomicUsize::new(0));
+
+        let status_count_clone = Arc::clone(&status_count);
+        let status_cb: Option<StatusCallback> = Some(Arc::new(move |_event| {
+            status_count_clone.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        let solved_count_clone = Arc::clone(&solved_count);
+        let solved_cb: Option<CaseSolvedCallback> = Some(Arc::new(move |_result| {
+            solved_count_clone.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        let results = solve_batch_states(states, &config, None, interrupt, status_cb, solved_cb);
+        assert_eq!(results.total_cases, 1);
+        assert_eq!(results.case_results.len(), 1);
+        assert!(status_count.load(Ordering::Relaxed) > 0);
+        assert!(solved_count.load(Ordering::Relaxed) > 0);
+    }
+
+    #[test]
+    fn test_search_branch_stop_after_first_early_return() {
+        let (solution_tx, _solution_rx) = crossbeam_channel::unbounded::<(usize, String)>();
+        let (status_tx, _status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let solved = AtomicBool::new(true);
+
+        let ctx = SearchContext {
+            tables: &[],
+            pruners: &[],
+            first_moves: &[],
+            next_siblings: &[],
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+            case_number: 1,
+            case_solved: &solved,
+            stop_after_first: true,
+        };
+
+        let mut minx = LLMinx::new();
+        search_branch(&mut minx, &LLMinx::new(), 0, &ctx);
+        assert!(solved.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_search_branch_solution_found_sets_flag() {
+        let (solution_tx, solution_rx) = crossbeam_channel::unbounded::<(usize, String)>();
+        let (status_tx, status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let solved = AtomicBool::new(false);
+
+        let first_moves = [Move::R];
+        let next_siblings = vec![vec![None; Move::D2i as usize + 1]; Move::D2i as usize + 2];
+
+        let ctx = SearchContext {
+            tables: &[],
+            pruners: &[],
+            first_moves: &first_moves,
+            next_siblings: &next_siblings,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+            case_number: 42,
+            case_solved: &solved,
+            stop_after_first: false,
+        };
+
+        let mut minx = LLMinx::new();
+        search_branch(&mut minx, &LLMinx::new(), 0, &ctx);
+
+        assert!(solved.load(Ordering::SeqCst));
+        assert!(solution_rx.try_recv().is_ok());
+        assert!(status_rx.try_recv().is_ok());
+    }
+
+    #[test]
+    fn test_search_branch_pruned_path_backtracks() {
+        let (solution_tx, _solution_rx) = crossbeam_channel::unbounded::<(usize, String)>();
+        let (status_tx, _status_rx) = crossbeam_channel::unbounded::<StatusEvent>();
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let solved = AtomicBool::new(false);
+        let dummy: &dyn Pruner = &DummyPruner;
+        let pruners = vec![dummy];
+        let table = Arc::new(vec![2u8]);
+        let tables = vec![table];
+
+        let first_moves = [Move::R];
+        let next_siblings = vec![vec![None; Move::D2i as usize + 1]; Move::D2i as usize + 2];
+
+        let ctx = SearchContext {
+            tables: &tables,
+            pruners: &pruners,
+            first_moves: &first_moves,
+            next_siblings: &next_siblings,
+            interrupted: &interrupted,
+            solution_tx: &solution_tx,
+            status_tx: &status_tx,
+            case_number: 1,
+            case_solved: &solved,
+            stop_after_first: false,
+        };
+
+        let mut minx = LLMinx::new();
+        search_branch(&mut minx, &LLMinx::new(), 1, &ctx);
+        assert!(!solved.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_solve_batch_interrupt_after_prepare_returns_early_results() {
+        let config = BatchSolverConfig {
+            max_search_depth: 1,
+            memory_config: MemoryConfig::new(128, 1, 1),
+            ..BatchSolverConfig::default()
+        };
+
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let interrupt_for_cb = Arc::clone(&interrupt);
+        let status_cb: Option<StatusCallback> = Some(Arc::new(move |event| {
+            if event.event_type == StatusEventType::StartBuildingTable {
+                interrupt_for_cb.store(true, Ordering::SeqCst);
+            }
+        }));
+
+        let states = vec![GeneratedState {
+            state: LLMinx::new(),
+            setup_moves: "".to_string(),
+            case_number: 10,
+        }];
+
+        let results = solve_batch_states(states, &config, None, interrupt, status_cb, None);
+        assert_eq!(results.total_cases, 1);
+        assert!(results.case_results.len() <= 1);
+    }
+
+    #[test]
+    fn test_solve_batch_final_callback_without_solution_notifications() {
+        let mut start = LLMinx::new();
+        start.apply_move(Move::R);
+
+        let config = BatchSolverConfig {
+            max_search_depth: 0,
+            stop_after_first: false,
+            memory_config: MemoryConfig::new(128, 1, 1),
+            ..BatchSolverConfig::default()
+        };
+
+        let callback_count = Arc::new(AtomicUsize::new(0));
+        let callback_count_clone = Arc::clone(&callback_count);
+        let solved_cb: Option<CaseSolvedCallback> = Some(Arc::new(move |_result| {
+            callback_count_clone.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        let results = solve_batch_states(
+            vec![GeneratedState {
+                state: start,
+                setup_moves: "R".to_string(),
+                case_number: 11,
+            }],
+            &config,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            None,
+            solved_cb,
+        );
+
+        assert_eq!(results.total_cases, 1);
+        assert_eq!(results.case_results.len(), 1);
+        assert_eq!(callback_count.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn test_build_cases_with_equivalence_applies_ignore_state() {
+        let piece_map = PieceMap::default_megaminx();
+        let equiv = EquivalenceHandler::new(
+            vec![EquivalenceSet {
+                pieces: vec!["UC1".to_string(), "UC2".to_string()],
+            }],
+            vec![OrientationGroup {
+                num_orientations: 1,
+                pieces: vec!["UE1".to_string()],
+            }],
+            piece_map,
+        )
+        .expect("equivalence should be valid");
+        let equiv_arc = Arc::new(equiv);
+
+        let config = BatchSolverConfig::default();
+        let cases = build_cases(
+            &[GeneratedState {
+                state: LLMinx::new(),
+                setup_moves: "".to_string(),
+                case_number: 12,
+            }],
+            &config,
+            Some(&equiv_arc),
+        );
+
+        assert_eq!(cases.len(), 1);
+        assert!(cases[0].start.ignore_corner_positions().iter().any(|&v| v));
+        assert!(cases[0].start.ignore_edge_orientations().iter().any(|&v| v));
     }
 }

@@ -600,4 +600,21 @@ mod tests {
         let err = file.append(1, "R U".to_string());
         assert!(err.is_some());
     }
+
+    #[test]
+    fn test_temp_and_batch_default_and_flush_wrappers() {
+        let _guard = lock().lock().unwrap();
+
+        let temp = TempFile::default();
+        assert!(temp.append("A".to_string()).is_none());
+        temp.flush_file();
+        assert_eq!(temp.count(), 1);
+        temp.delete_file();
+
+        let batch = BatchTempFile::default();
+        assert!(batch.append(9, "B".to_string()).is_none());
+        batch.flush();
+        assert_eq!(batch.case_count(9), 1);
+        batch.delete_file();
+    }
 }

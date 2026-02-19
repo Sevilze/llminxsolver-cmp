@@ -406,6 +406,39 @@ mod tests {
     }
 
     #[test]
+    fn test_handle_fi_flat_wrist_fflick_branch() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = 0;
+        ctx.r_wrist = 0;
+        assert!(matches!(
+            handle_fi(&mut ctx, 2, "f'", "R"),
+            MoveResult::Success
+        ));
+    }
+
+    #[test]
+    fn test_handle_fi_lowercase_mv_fflick_branch() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = 0;
+        ctx.r_wrist = 0;
+        ctx.grip = -1;
+
+        assert!(matches!(
+            handle_fi(&mut ctx, 1, "f'", "R"),
+            MoveResult::Success
+        ));
+        assert_eq!(ctx.l_index.location, "fflick");
+    }
+
+    #[test]
+    fn test_handle_f2_l_wrist_one_non_d_prev_move_branch() {
+        let mut ctx = new_ctx();
+        ctx.l_wrist = 1;
+        ctx.r_wrist = 0;
+        assert!(matches!(handle_f2(&mut ctx, 1, "R"), MoveResult::Success));
+    }
+
+    #[test]
     fn test_handle_f_additional_branches() {
         let mut ctx = new_ctx();
         ctx.l_wrist = -1;

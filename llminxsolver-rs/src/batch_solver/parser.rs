@@ -419,6 +419,32 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_empty_modifier_and_plain_before_generators() {
+        let parsed = ScrambleParser::parse("R U#").unwrap();
+        assert!(parsed.modifiers.specific_cases.is_empty());
+        assert!(parsed.modifiers.ranges.is_empty());
+        assert!(parsed.modifiers.start_from.is_none());
+
+        let complex = ScrambleParser::parse("R <U, U'>").unwrap();
+        assert_eq!(complex.segments.len(), 2);
+        assert!(matches!(&complex.segments[0], ScrambleSegment::Plain(s) if s == "R"));
+        assert!(matches!(&complex.segments[1], ScrambleSegment::Generators(v) if v.len() == 2));
+    }
+
+    #[test]
+    fn test_parse_unclosed_angle_bracket_reports_expected_char() {
+        let err = ScrambleParser::parse("<R, U").unwrap_err();
+        assert!(matches!(err, BatchError::ParseError(msg) if msg.contains(">")));
+    }
+
+    #[test]
+    fn test_parse_content_unclosed_square_bracket_reports_expected_char() {
+        let mut chars = "R U".chars().peekable();
+        let err = ScrambleParser::extract_bracketed_content(&mut chars, ']').unwrap_err();
+        assert!(matches!(err, BatchError::ParseError(msg) if msg.contains("]")));
+    }
+
+    #[test]
     fn test_parse_orientation_groups() {
         let (_, groups) = ScrambleParser::parse_equivalences("1: UC1 UC2 UC3\n2: RC1 RC5");
         assert_eq!(groups.len(), 2);
@@ -526,5 +552,38 @@ mod tests {
         if let ScrambleSegment::Series(v) = &result.segments[0] {
             assert_eq!(v.len(), 2);
         }
+    }
+
+    #[test]
+    fn test_parse_single_move_aliases_and_invalid() {
+        assert_eq!(ScrambleParser::parse_single_move("Ri").unwrap(), Move::Ri);
+        assert_eq!(ScrambleParser::parse_single_move("Ui").unwrap(), Move::Ui);
+        assert_eq!(
+            ScrambleParser::parse_single_move("bL2i").unwrap(),
+            Move::bL2i
+        );
+        assert_eq!(
+            ScrambleParser::parse_single_move("bR2i").unwrap(),
+            Move::bR2i
+        );
+        assert!(ScrambleParser::parse_single_move("XYZ").is_err());
+    }
+
+    #[test]
+    fn test_parse_modifier_invalid_and_start_from_zero_ignored() {
+        let result = ScrambleParser::parse("R #2-1,0,0+").unwrap();
+        assert!(result.modifiers.specific_cases.is_empty());
+        assert!(result.modifiers.ranges.is_empty());
+        assert!(result.modifiers.start_from.is_none());
+    }
+
+    #[test]
+    fn test_parse_equivalences_with_orientation_groups() {
+        let input = "{UC1 UC2}\n1: UE1 UE2\n2: UC3 UC4";
+        let (equivs, groups) = ScrambleParser::parse_equivalences(input);
+        assert_eq!(equivs.len(), 1);
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0].0, 1);
+        assert_eq!(groups[1].0, 2);
     }
 }

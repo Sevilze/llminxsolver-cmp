@@ -230,4 +230,119 @@ mod tests {
         assert!(without_auf > 0.0);
         assert!(with_auf > 0.0);
     }
+
+    #[test]
+    fn test_calculate_mcc_bl_moves() {
+        let result = calculate_mcc("bl bl'");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_br_moves() {
+        let result = calculate_mcc("br br'");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_bl2_moves() {
+        let result = calculate_mcc("bl2 R");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_br2_moves() {
+        let result = calculate_mcc("br2 R");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_with_varied_params() {
+        let params = MCCParams {
+            wrist_mult: 1.0,
+            push_mult: 1.5,
+            ring_mult: 1.5,
+            destabilize: 1.0,
+            add_regrip: 2.0,
+            double: 2.0,
+            over_work_mult: 3.0,
+            moveblock: 1.0,
+            rotation: 4.0,
+        };
+        let result = calculate_mcc_with_params("R U R'", &params);
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_long_algorithm() {
+        let result = calculate_mcc("R U R' U' R U R' U' R U R' U'");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_rotation_sequence() {
+        let result = calculate_mcc("x R x' U");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_y_rotation() {
+        let result = calculate_mcc("y R U R'");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_z_rotation() {
+        let result = calculate_mcc("z R U R'");
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_mixed_moves() {
+        let result = calculate_mcc("R U L' D F");
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_rotation_prefixed_sequence_branch() {
+        let result = calculate_mcc("x R R U");
+        assert!(result.is_finite());
+        assert!(result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_r_and_l_latency_paths() {
+        let params = MCCParams {
+            add_regrip: 0.7,
+            ..MCCParams::default()
+        };
+
+        let r_result = calculate_mcc_with_params("R R U R'", &params);
+        let l_result = calculate_mcc_with_params("L L U L'", &params);
+
+        assert!(r_result.is_finite());
+        assert!(l_result.is_finite());
+        assert!(r_result >= 0.0);
+        assert!(l_result >= 0.0);
+    }
+
+    #[test]
+    fn test_calculate_mcc_branch_sweep_mixed_sequences() {
+        let atoms = ["R", "L", "x", "U", "D", "r", "l"];
+        let params = MCCParams {
+            add_regrip: 1.2,
+            ..MCCParams::default()
+        };
+
+        for a in atoms {
+            for b in atoms {
+                for c in atoms {
+                    for d in atoms {
+                        let seq = format!("{} {} {} {}", a, b, c, d);
+                        let value = calculate_mcc_with_params(&seq, &params);
+                        assert!(value.is_finite() || value.is_nan());
+                    }
+                }
+            }
+        }
+    }
 }

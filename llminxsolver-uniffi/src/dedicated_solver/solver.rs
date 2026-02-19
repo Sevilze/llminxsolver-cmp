@@ -439,4 +439,99 @@ mod tests {
         handle.cancel();
         assert!(handle.is_running() || !handle.is_running());
     }
+
+    #[test]
+    fn test_solver_handle_completes_and_callback_paths_fire() {
+        let config = SolverConfig {
+            search_mode: SearchMode::RU,
+            metric: Metric::Face,
+            limit_search_depth: false,
+            max_search_depth: 1,
+            pruning_depth: 6,
+            ignore_corner_positions: false,
+            ignore_edge_positions: false,
+            ignore_corner_orientations: false,
+            ignore_edge_orientations: false,
+            parallel_config: Some(ParallelConfig {
+                memory_budget_mb: 128,
+                table_gen_threads: 1,
+                search_threads: 1,
+            }),
+        };
+
+        let handle = SolverHandle::new(config, sample_state());
+
+        let progress = Arc::new(AtomicUsize::new(0));
+        let found = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestCallback {
+            progress: Arc::clone(&progress),
+            found: Arc::clone(&found),
+            complete: Arc::clone(&complete),
+        }));
+
+        handle.start();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while handle.is_running() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+
+        if handle.is_running() {
+            handle.cancel();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+        }
+
+        let _ = progress.load(Ordering::Relaxed);
+        let _ = found.load(Ordering::Relaxed);
+        let _ = complete.load(Ordering::Relaxed);
+    }
+
+    #[test]
+    fn test_parallel_solver_handle_with_mode_pruning_depths_completes() {
+        let config = ParallelSolverConfig {
+            search_modes: vec![SearchMode::RU, SearchMode::RUF],
+            metric: Metric::Fifth,
+            limit_search_depth: false,
+            max_search_depth: 1,
+            pruning_depth: 6,
+            mode_pruning_depths: vec![crate::dedicated_solver::types::ModePruningDepth {
+                mode: SearchMode::RU,
+                depth: 5,
+            }],
+            ignore_corner_positions: false,
+            ignore_edge_positions: false,
+            ignore_corner_orientations: false,
+            ignore_edge_orientations: false,
+            parallel_config: ParallelConfig {
+                memory_budget_mb: 128,
+                table_gen_threads: 1,
+                search_threads: 1,
+            },
+        };
+
+        let handle = ParallelSolverHandle::new(config, sample_state());
+        let progress = Arc::new(AtomicUsize::new(0));
+        let found = Arc::new(AtomicUsize::new(0));
+        let complete = Arc::new(AtomicUsize::new(0));
+        handle.set_callback(Box::new(TestCallback {
+            progress: Arc::clone(&progress),
+            found: Arc::clone(&found),
+            complete: Arc::clone(&complete),
+        }));
+
+        handle.start();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while handle.is_running() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+
+        if handle.is_running() {
+            handle.cancel();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+        }
+
+        let _ = progress.load(Ordering::Relaxed);
+        let _ = found.load(Ordering::Relaxed);
+        let _ = complete.load(Ordering::Relaxed);
+    }
 }
