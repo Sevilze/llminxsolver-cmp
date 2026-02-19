@@ -8,11 +8,11 @@ permissions:
 
 jobs:
   coverage:
-    name: coverage
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-tarpaulin
-      - run: cargo tarpaulin --workspace --coveralls ${{ secrets.COVERALLS_REPO_TOKEN }}
+      - run: cargo tarpaulin --workspace --coveralls -- --test-threads=1 ${{ secrets.COVERALLS_REPO_TOKEN }}
