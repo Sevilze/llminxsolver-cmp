@@ -1,4 +1,7 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,7 +10,14 @@ plugins {
 }
 
 kotlin {
-    jvm("desktop")
+    jvmToolchain(25)
+
+    jvm("desktop") {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_25)
+        }
+    }
 
     sourceSets {
         val desktopMain by getting {
@@ -21,6 +31,17 @@ kotlin {
 
 compose.desktop {
     application {
+        javaHome =
+            javaToolchains
+                .launcherFor {
+                    languageVersion.set(JavaLanguageVersion.of(25))
+                }
+                .get()
+                .metadata
+                .installationPath
+                .asFile
+                .absolutePath
+
         mainClass = "com.llminxsolver.MainKt"
 
         nativeDistributions {
@@ -53,10 +74,9 @@ compose.desktop {
             }
         }
 
-        buildTypes.release {
-            proguard {
-                configurationFiles.from(project.file("proguard-rules.pro"))
-            }
+        buildTypes.release.proguard {
+            version.set("7.8.2")
+            configurationFiles.from(project.file("proguard-rules.pro"))
         }
     }
 }

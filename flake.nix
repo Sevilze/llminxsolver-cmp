@@ -98,7 +98,7 @@
             src = ./.;
 
             nativeBuildInputs = with pkgs; [
-              jdk21
+              jdk25
               unzip
               makeWrapper
               cacert
@@ -106,7 +106,7 @@
             ];
 
             buildInputs = with pkgs; [
-              jdk21
+              jdk25
               stdenv.cc.cc.lib
             ] ++ runtimeLibs;
 
@@ -145,7 +145,7 @@
 
               mkdir -p $out/bin
               makeWrapper "$out/LLMinx Solver/bin/LLMinx Solver" $out/bin/llminxsolver \
-                --set JAVA_HOME ${pkgs.jdk21} \
+                --set JAVA_HOME ${pkgs.jdk25} \
                 --prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs}
 
               runHook postInstall
@@ -165,7 +165,7 @@
             rustToolchain
             pkg-config
             openssl
-            jdk21
+            jdk25
           ];
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
